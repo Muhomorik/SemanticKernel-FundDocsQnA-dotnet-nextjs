@@ -1,0 +1,43 @@
+# .NET
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio
+.vs/
+*.sln.docstates
+
+# Test Results
+TestResults/
+*.trx
+
+# IDE
+.idea/
+*.swp
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Output files
+Preprocessor/Preprocessor/output/*.json
+!Preprocessor/Preprocessor/output/.gitkeep
+
+# PDF files (optional)
+Preprocessor/Preprocessor/pdfs/*.pdf
+!Preprocessor/Preprocessor/pdfs/.gitkeep
