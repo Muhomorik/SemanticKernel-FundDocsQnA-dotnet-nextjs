@@ -1,20 +1,22 @@
 using CommandLine;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+
 using Preprocessor;
 using Preprocessor.Extractors;
 using Preprocessor.Services;
 
 // Parse command line arguments
-var result = await Parser.Default.ParseArguments<Options>(args)
+var result = await Parser.Default.ParseArguments<CliOptions>(args)
     .MapResult(
         async options => await RunAsync(options),
         errors => Task.FromResult(1));
 
 return result;
 
-static async Task<int> RunAsync(Options options)
+static async Task<int> RunAsync(CliOptions cliOptions)
 {
     // Build service collection
     var services = new ServiceCollection();
@@ -31,44 +33,52 @@ static async Task<int> RunAsync(Options options)
     {
         var builder = Kernel.CreateBuilder();
 
-        // Add Ollama embedding service
+
+        // Add Ollama embedding generator (new API)
 #pragma warning disable SKEXP0070 // Ollama connector is experimental
-        builder.AddOllamaTextEmbeddingGeneration(
-            modelId: options.EmbeddingModel,
-            endpoint: new Uri(options.OllamaUrl));
+        builder.AddOllamaEmbeddingGenerator(
+            cliOptions.EmbeddingModel,
+            new Uri(cliOptions.OllamaUrl));
 
         // Add Ollama chat completion for vision (if needed)
-        if (options.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
+        if (cliOptions.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
         {
             builder.AddOllamaChatCompletion(
-                modelId: options.VisionModel,
-                endpoint: new Uri(options.OllamaUrl));
+                cliOptions.VisionModel,
+                new Uri(cliOptions.OllamaUrl));
         }
 #pragma warning restore SKEXP0070
 
         return builder.Build();
     });
 
-    // Register embedding generation service from kernel
+
+    // Register embedding generator service from kernel (new API)
     services.AddSingleton(sp =>
     {
         var kernel = sp.GetRequiredService<Kernel>();
-        return kernel.GetRequiredService<Microsoft.SemanticKernel.Embeddings.ITextEmbeddingGenerationService>();
+        return kernel
+            .GetRequiredService<
+                Microsoft.Extensions.AI.IEmbeddingGenerator<string, Microsoft.Extensions.AI.Embedding<float>>>();
     });
 
-    // Register chat completion service from kernel (for vision)
-    services.AddSingleton(sp =>
+    // Register chat completion service and extractor only for ollama-vision method
+    if (cliOptions.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
     {
-        var kernel = sp.GetRequiredService<Kernel>();
-        return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
-    });
-
-    // Register extractors
-    services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
-    services.AddSingleton<IPdfExtractor>(sp => new OllamaVisionExtractor(
-        sp.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>(),
-        sp.GetRequiredService<ILogger<OllamaVisionExtractor>>(),
-        options.VisionModel));
+        services.AddSingleton(sp =>
+        {
+            var kernel = sp.GetRequiredService<Kernel>();
+            return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
+        });
+        services.AddSingleton<IPdfExtractor>(sp => new OllamaVisionExtractor(
+            sp.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>(),
+            sp.GetRequiredService<ILogger<OllamaVisionExtractor>>(),
+            cliOptions.VisionModel));
+    }
+    else
+    {
+        services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
+    }
 
     // Register services
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
@@ -82,13 +92,13 @@ static async Task<int> RunAsync(Options options)
     var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
     logger.LogInformation("Starting Preprocessor");
-    logger.LogInformation("Method: {Method}", options.Method);
-    logger.LogInformation("Input: {Input}", options.Input);
-    logger.LogInformation("Output: {Output}", options.Output);
-    logger.LogInformation("Ollama URL: {OllamaUrl}", options.OllamaUrl);
-    logger.LogInformation("Embedding Model: {EmbeddingModel}", options.EmbeddingModel);
+    logger.LogInformation("Method: {Method}", cliOptions.Method);
+    logger.LogInformation("Input: {Input}", cliOptions.Input);
+    logger.LogInformation("Output: {Output}", cliOptions.Output);
+    logger.LogInformation("Ollama URL: {OllamaUrl}", cliOptions.OllamaUrl);
+    logger.LogInformation("Embedding Model: {EmbeddingModel}", cliOptions.EmbeddingModel);
 
-    var exitCode = await preprocessor.ProcessAsync(options);
+    var exitCode = await preprocessor.ProcessAsync(cliOptions);
 
     if (exitCode == 0)
     {

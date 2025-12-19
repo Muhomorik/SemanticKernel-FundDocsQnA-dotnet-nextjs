@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.AI;
 
 namespace Preprocessor.Services;
 
@@ -8,14 +8,14 @@ namespace Preprocessor.Services;
 /// </summary>
 public class OllamaEmbeddingService : IEmbeddingService
 {
-    private readonly ITextEmbeddingGenerationService _embeddingService;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly ILogger<OllamaEmbeddingService> _logger;
 
     public OllamaEmbeddingService(
-        ITextEmbeddingGenerationService embeddingService,
+        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         ILogger<OllamaEmbeddingService> logger)
     {
-        _embeddingService = embeddingService;
+        _embeddingGenerator = embeddingGenerator;
         _logger = logger;
     }
 
@@ -23,11 +23,12 @@ public class OllamaEmbeddingService : IEmbeddingService
     {
         _logger.LogDebug("Generating embedding for text of length {Length}", text.Length);
 
-        var result = await _embeddingService.GenerateEmbeddingAsync(text, cancellationToken: cancellationToken);
+        var embedding = await _embeddingGenerator.GenerateAsync(new[] { text }, cancellationToken: cancellationToken);
+        var vector = embedding.FirstOrDefault()?.Vector.ToArray() ?? Array.Empty<float>();
 
-        _logger.LogDebug("Generated embedding with {Dimensions} dimensions", result.Length);
+        _logger.LogDebug("Generated embedding with {Dimensions} dimensions", vector.Length);
 
-        return result.ToArray();
+        return vector;
     }
 
     public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(IEnumerable<string> texts, CancellationToken cancellationToken = default)
@@ -35,10 +36,11 @@ public class OllamaEmbeddingService : IEmbeddingService
         var textList = texts.ToList();
         _logger.LogDebug("Generating embeddings for {Count} texts", textList.Count);
 
-        var results = await _embeddingService.GenerateEmbeddingsAsync(textList, cancellationToken: cancellationToken);
+        var embeddings = await _embeddingGenerator.GenerateAsync(textList, cancellationToken: cancellationToken);
+        var vectors = embeddings.Select(e => e.Vector.ToArray()).ToList();
 
-        _logger.LogDebug("Generated {Count} embeddings", results.Count);
+        _logger.LogDebug("Generated {Count} embeddings", vectors.Count);
 
-        return results.Select(r => r.ToArray()).ToList();
+        return vectors;
     }
 }
