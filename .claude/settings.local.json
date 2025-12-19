@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [],
+    "ask": []
+  },
+  "enabledMcpjsonServers": [
+    "microsoft-learn"
+  ],
+  "enableAllProjectMcpServers": true
+}
