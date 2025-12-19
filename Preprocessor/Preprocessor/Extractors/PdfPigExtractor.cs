@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+
 using Preprocessor.Models;
+
 using UglyToad.PdfPig;
 
 namespace Preprocessor.Extractors;
@@ -51,7 +53,7 @@ public class PdfPigExtractor : IPdfExtractor
             // Split into chunks
             var pageChunks = SplitIntoChunks(pageText, _chunkSize);
 
-            for (int i = 0; i < pageChunks.Count; i++)
+            for (var i = 0; i < pageChunks.Count; i++)
             {
                 chunks.Add(new DocumentChunk
                 {
