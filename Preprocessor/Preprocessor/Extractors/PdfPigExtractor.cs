@@ -22,6 +22,7 @@ public class PdfPigExtractor : IPdfExtractor
         _chunkSize = chunkSize;
     }
 
+    /// <inheritdoc/>
     public Task<IEnumerable<DocumentChunk>> ExtractAsync(string filePath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
@@ -40,7 +41,10 @@ public class PdfPigExtractor : IPdfExtractor
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var pageText = page.Text;
+            // Extract words and join them with spaces for better spacing
+            var words = page.GetWords();
+            var pageText = string.Join(" ", words.Select(w => w.Text));
+
             if (string.IsNullOrWhiteSpace(pageText))
             {
                 _logger.LogDebug("Page {PageNumber} of {FileName} has no text", page.Number, fileName);
@@ -73,6 +77,11 @@ public class PdfPigExtractor : IPdfExtractor
         return Task.FromResult<IEnumerable<DocumentChunk>>(chunks);
     }
 
+    /// <summary>
+    /// Cleans and normalizes extracted text by removing excessive whitespace.
+    /// </summary>
+    /// <param name="text">The raw text to clean.</param>
+    /// <returns>Cleaned text with normalized whitespace.</returns>
     private static string CleanText(string text)
     {
         // Replace multiple whitespace with single space
@@ -84,6 +93,29 @@ public class PdfPigExtractor : IPdfExtractor
         return text;
     }
 
+    /// <summary>
+    /// Splits text into smaller chunks suitable for embedding generation and vector search.
+    /// Attempts to split on sentence boundaries to maintain semantic coherence.
+    /// </summary>
+    /// <param name="text">The text to split into chunks.</param>
+    /// <param name="chunkSize">Maximum size of each chunk in characters.</param>
+    /// <returns>List of text chunks, each preserving sentence boundaries where possible.</returns>
+    /// <remarks>
+    /// Chunking is essential for RAG systems because:
+    /// - Embedding models have token/character limits
+    /// - Smaller chunks provide better retrieval granularity
+    /// - Vector search accuracy improves with focused, coherent text segments
+    ///
+    /// The method combines multiple sentences into chunks (not one-sentence-per-chunk) because:
+    /// - Single sentences (20-100 chars) lack context for quality embeddings
+    /// - Embedding models work best with paragraph-level context (100-1000 chars)
+    /// - Related information across consecutive sentences stays together
+    /// - Fewer, richer chunks enable faster vector search
+    ///
+    /// For fund documents Q&A, when someone asks "What are the management fees for SEB Asienfond?",
+    /// the system can retrieve just the chunk containing the cost breakdown rather than irrelevant
+    /// text about investment objectives or risk disclosures.
+    /// </remarks>
     private static List<string> SplitIntoChunks(string text, int chunkSize)
     {
         var chunks = new List<string>();
