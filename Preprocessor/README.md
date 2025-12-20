@@ -51,6 +51,36 @@ Create a `pdfs` folder in your build output directory and add PDF files there.
 | Embeddings  | `--embedding-model` | `mxbai-embed-large`, `all-minilm`|
 | Vision      | `--vision-model`    | `llava:13b`, `bakllava`          |
 
+#### Choosing a Nomic Embed Text Model
+
+**For Ollama users:**
+
+```bash
+ollama pull nomic-embed-text  # Automatically gets the latest stable version (v1.5)
+```
+
+**For LM Studio users:**
+
+When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions. Here's how to choose:
+
+| Model Name | Description | Recommendation |
+|------------|-------------|----------------|
+| **nomic-embed-text-v1.5-GGUF** | Latest stable release | ✅ **Recommended** - Best balance of quality and performance |
+| Nomic-embed-text-v1.5-Embedding-GGUF | Same as v1.5-GGUF | Alternative naming, functionally identical |
+| nomic-embed-text-v1-GGUF | Original v1 release | Use only if you need compatibility with older systems |
+| nomic-embed-text-v2-moe-GGUF | Mixture of Experts (experimental) | Larger and slower, potentially better quality but not widely tested |
+| Nomic-Embed-Text-V2-GGUF | Version 2 (non-MoE) | Not as mature as v1.5, avoid for now |
+
+**Quick recommendation:** Download `nomic-embed-text-v1.5-GGUF` in LM Studio for the best experience.
+
+**Using LM Studio:**
+
+1. Search for and download the model in LM Studio's model browser
+2. Load the model in the "Embedding" section
+3. Start the local server (Developer tab → Start Server)
+4. Use `--ollama-url http://localhost:1234` when running the preprocessor
+5. The `--embedding-model` parameter can be any value (LM Studio uses the loaded model)
+
 ## CLI Parameters
 
 | Parameter          | Short | Required | Default                   | Description                    |
