@@ -33,9 +33,6 @@ static async Task<int> RunAsync(CliOptions cliOptions)
     {
         var builder = Kernel.CreateBuilder();
 
-
-        // Add Ollama embedding generator (new API)
-#pragma warning disable SKEXP0070 // Ollama connector is experimental
         builder.AddOllamaEmbeddingGenerator(
             cliOptions.EmbeddingModel,
             new Uri(cliOptions.OllamaUrl));
@@ -47,7 +44,6 @@ static async Task<int> RunAsync(CliOptions cliOptions)
                 cliOptions.VisionModel,
                 new Uri(cliOptions.OllamaUrl));
         }
-#pragma warning restore SKEXP0070
 
         return builder.Build();
     });

@@ -55,6 +55,12 @@ public class CliOptions
         {
             yield return $"Output directory does not exist: {outputDir}";
         }
+
+        if (!Uri.TryCreate(OllamaUrl, UriKind.Absolute, out var ollamaUri) ||
+            (ollamaUri.Scheme != Uri.UriSchemeHttp && ollamaUri.Scheme != Uri.UriSchemeHttps))
+        {
+            yield return $"Invalid Ollama URL format '{OllamaUrl}'. Must be a valid HTTP/HTTPS URL (e.g., http://localhost:11434). Use --ollama-url to specify a different endpoint.";
+        }
     }
 
     private string DebuggerDisplay => $"Method={Method}, Input={Input}, Output={Output}, Append={Append}, VisionModel={VisionModel}";
