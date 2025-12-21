@@ -4,25 +4,62 @@ using Microsoft.Extensions.AI;
 namespace Preprocessor.Services;
 
 /// <summary>
-/// Generates embeddings using Ollama via Semantic Kernel.
+/// Generates embeddings using Ollama or LM Studio via Semantic Kernel.
 /// </summary>
 /// <remarks>
-/// <para><strong>Prerequisites:</strong></para>
+/// <para>
+/// Despite the class name, this service supports both Ollama and LM Studio providers.
+/// It's provider-agnostic and works with any IEmbeddingGenerator implementation registered in the DI container.
+/// </para>
+/// <para><strong>Prerequisites by Provider:</strong></para>
+/// <para><strong>Ollama:</strong></para>
 /// <list type="bullet">
 ///   <item>
 ///     <description>
-///       <strong>Ollama Server:</strong> Must be running and accessible. Download from https://ollama.com/download
+///       Download from https://ollama.com/download and install
 ///     </description>
 ///   </item>
 ///   <item>
 ///     <description>
-///       <strong>Default Port:</strong> 11434 (http://localhost:11434). Override with --ollama-url CLI option.
+///       Default URL: http://localhost:11434 (uses native <c>/api/embed</c> endpoint)
 ///     </description>
 ///   </item>
 ///   <item>
 ///     <description>
-///       <strong>Embedding Model:</strong> Default is 'nomic-embed-text'. Pull with: <c>ollama pull nomic-embed-text</c>
-///       Override with --embedding-model CLI option.
+///       Pull embedding model: <c>ollama pull nomic-embed-text</c>
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       Use with: <c>--provider ollama</c>
+///     </description>
+///   </item>
+/// </list>
+/// <para><strong>LM Studio:</strong></para>
+/// <list type="bullet">
+///   <item>
+///     <description>
+///       Download from https://lmstudio.ai and install
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       Default URL: http://localhost:1234 (uses OpenAI-compatible <c>/v1/embeddings</c> endpoint)
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       Load embedding model in LM Studio's Embedding section (e.g., nomic-embed-text-v1.5-GGUF)
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       Start local server (Developer tab → Start Server)
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       Use with: <c>--provider lmstudio</c> (default)
 ///     </description>
 ///   </item>
 /// </list>
@@ -33,25 +70,44 @@ namespace Preprocessor.Services;
 ///     <description>Description</description>
 ///   </listheader>
 ///   <item>
+///     <term>--provider</term>
+///     <description>Embedding provider: 'ollama' or 'lmstudio' (default: lmstudio)</description>
+///   </item>
+///   <item>
 ///     <term>--ollama-url</term>
-///     <description>Ollama server URL (default: http://localhost:11434)</description>
+///     <description>Provider endpoint URL (auto-detects based on --provider if not specified)</description>
 ///   </item>
 ///   <item>
 ///     <term>--embedding-model</term>
 ///     <description>Embedding model name (default: nomic-embed-text)</description>
 ///   </item>
 /// </list>
-/// <para><strong>Common Errors:</strong></para>
+/// <para><strong>Common Errors and Troubleshooting:</strong></para>
 /// <list type="bullet">
 ///   <item>
 ///     <description>
-///       <strong>HttpRequestException:</strong> Ollama server not running or network unreachable.
-///       Start Ollama and verify it's accessible at the configured URL.
+///       <strong>HttpRequestException:</strong> Provider server not running or network unreachable.
+///       For Ollama: Verify with <c>ollama list</c>.
+///       For LM Studio: Check if server is started and model is loaded.
 ///     </description>
 ///   </item>
 ///   <item>
 ///     <description>
-///       <strong>TaskCanceledException:</strong> Request timeout. Check if Ollama is responsive or model is loaded.
+///       <strong>TaskCanceledException:</strong> Request timeout. The provider may be slow or the model may not be loaded.
+///       For Ollama: Try <c>ollama run nomic-embed-text</c> to ensure the model is ready.
+///       For LM Studio: Verify the model is loaded in the Embedding section.
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       <strong>Empty Embeddings:</strong> Wrong provider selected or endpoint mismatch.
+///       Verify <c>--provider</c> matches your running service (ollama vs lmstudio).
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       <strong>404 Not Found:</strong> Endpoint mismatch between provider and configured URL.
+///       Ollama uses <c>/api/embed</c>, LM Studio uses <c>/v1/embeddings</c>.
 ///     </description>
 ///   </item>
 /// </list>
@@ -70,19 +126,20 @@ public class OllamaEmbeddingService : IEmbeddingService
     }
 
     /// <summary>
-    /// Tests connectivity to the Ollama server by attempting to generate a simple embedding.
+    /// Tests connectivity to the embedding provider by attempting to generate a simple embedding.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if the server is reachable and the model is loaded, false otherwise.</returns>
+    /// <returns>True if the provider is reachable and the model is loaded, false otherwise.</returns>
     /// <remarks>
-    /// This method is useful for validating the Ollama configuration before processing large batches.
+    /// This method is useful for validating the provider configuration before processing large batches.
     /// It generates a simple test embedding to verify connectivity and model availability.
+    /// Works with both Ollama and LM Studio providers.
     /// </remarks>
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Testing connection to Ollama server...");
+            _logger.LogInformation("Testing connection to embedding provider...");
 
             // Try to generate a simple embedding as a health check
             var testEmbedding = await GenerateEmbeddingAsync("test", cancellationToken);
@@ -90,17 +147,17 @@ public class OllamaEmbeddingService : IEmbeddingService
             if (testEmbedding.Length > 0)
             {
                 _logger.LogInformation(
-                    "Successfully connected to Ollama server. Embedding model is loaded and responsive (generated {Dimensions}D vector).",
+                    "Successfully connected to embedding provider. Model is loaded and responsive (generated {Dimensions}D vector).",
                     testEmbedding.Length);
                 return true;
             }
 
-            _logger.LogWarning("Connected to Ollama server but received empty embedding");
+            _logger.LogWarning("Connected to embedding provider but received empty embedding");
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to connect to Ollama server during health check");
+            _logger.LogError(ex, "Failed to connect to embedding provider during health check");
             return false;
         }
     }
@@ -118,7 +175,8 @@ public class OllamaEmbeddingService : IEmbeddingService
 
         try
         {
-            var embedding = await _embeddingGenerator.GenerateAsync(new[] { text }, cancellationToken: cancellationToken);
+            var embedding =
+                await _embeddingGenerator.GenerateAsync(new[] { text }, cancellationToken: cancellationToken);
             var vector = embedding.FirstOrDefault()?.Vector.ToArray() ?? Array.Empty<float>();
 
             _logger.LogDebug("Generated embedding with {Dimensions} dimensions", vector.Length);
@@ -128,20 +186,22 @@ public class OllamaEmbeddingService : IEmbeddingService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex,
-                "Failed to generate embedding: Ollama server not reachable. " +
-                "Ensure Ollama is running and accessible at the configured URL. " +
-                "Check if the embedding model is pulled: ollama pull <model-name>");
+                "Failed to generate embedding: Provider server not reachable. " +
+                "Ensure your embedding provider (Ollama or LM Studio) is running and accessible at the configured URL. " +
+                "For Ollama: Check 'ollama list'. " +
+                "For LM Studio: Verify model loaded in Embedding section.");
             throw new InvalidOperationException(
-                "Failed to connect to Ollama server. Ensure Ollama is running and the embedding model is available. " +
+                "Failed to connect to embedding provider. Ensure the provider is running and the embedding model is available. " +
                 "See logs for details.", ex);
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
             _logger.LogError(ex,
-                "Embedding generation timed out. The Ollama server may be overloaded or the model may not be loaded. " +
-                "Try: ollama run <model-name> to ensure the model is ready.");
+                "Embedding generation timed out. The provider server may be overloaded or the model may not be loaded. " +
+                "For Ollama: Try 'ollama run <model-name>' to ensure the model is ready. " +
+                "For LM Studio: Verify the model is loaded in the Embedding section.");
             throw new InvalidOperationException(
-                "Embedding generation timed out. The Ollama server may be slow or unresponsive. " +
+                "Embedding generation timed out. The provider server may be slow or unresponsive. " +
                 "See logs for details.", ex);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -158,7 +218,8 @@ public class OllamaEmbeddingService : IEmbeddingService
         }
     }
 
-    public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(IEnumerable<string> texts, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(IEnumerable<string> texts,
+        CancellationToken cancellationToken = default)
     {
         var textList = texts.ToList();
 
@@ -199,24 +260,26 @@ public class OllamaEmbeddingService : IEmbeddingService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex,
-                "Failed to generate embeddings for batch of {Count} texts: Ollama server not reachable. " +
-                "Ensure Ollama is running and accessible at the configured URL. " +
-                "Check if the embedding model is pulled: ollama pull <model-name>",
+                "Failed to generate embeddings for batch of {Count} texts: Provider server not reachable. " +
+                "Ensure your embedding provider (Ollama or LM Studio) is running and accessible at the configured URL. " +
+                "For Ollama: Check 'ollama list'. " +
+                "For LM Studio: Verify model loaded in Embedding section.",
                 validTexts.Count);
             throw new InvalidOperationException(
-                $"Failed to connect to Ollama server while generating {validTexts.Count} embeddings. " +
-                "Ensure Ollama is running and the embedding model is available. See logs for details.", ex);
+                $"Failed to connect to embedding provider while generating {validTexts.Count} embeddings. " +
+                "Ensure the provider is running and the embedding model is available. See logs for details.", ex);
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
             _logger.LogError(ex,
                 "Embedding generation timed out for batch of {Count} texts. " +
-                "The Ollama server may be overloaded or the model may not be loaded. " +
-                "Try: ollama run <model-name> to ensure the model is ready.",
+                "The provider server may be overloaded or the model may not be loaded. " +
+                "For Ollama: Try 'ollama run <model-name>' to ensure the model is ready. " +
+                "For LM Studio: Verify the model is loaded in the Embedding section.",
                 validTexts.Count);
             throw new InvalidOperationException(
                 $"Embedding generation timed out for batch of {validTexts.Count} texts. " +
-                "The Ollama server may be slow or unresponsive. See logs for details.", ex);
+                "The provider server may be slow or unresponsive. See logs for details.", ex);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

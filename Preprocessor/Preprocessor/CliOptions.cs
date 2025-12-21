@@ -1,4 +1,5 @@
 using CommandLine;
+
 using System.Diagnostics;
 
 namespace Preprocessor;
@@ -31,8 +32,34 @@ public class CliOptions
         HelpText = "Embedding model for generating embeddings")]
     public string EmbeddingModel { get; init; } = "nomic-embed-text";
 
-    [Option("ollama-url", Required = false, Default = "http://localhost:11434", HelpText = "Ollama server URL")]
-    public string OllamaUrl { get; init; } = "http://localhost:11434";
+    [Option('p', "provider", Required = false, Default = EmbeddingProvider.LMStudio,
+        HelpText = "Embedding provider: 'ollama' or 'lmstudio' (default: lmstudio)")]
+    public EmbeddingProvider Provider { get; init; } = EmbeddingProvider.LMStudio;
+
+    [Option("ollama-url", Required = false, Default = null,
+        HelpText = "Provider endpoint URL (default: http://localhost:1234 for LMStudio, http://localhost:11434 for Ollama)")]
+    public string? OllamaUrl { get; init; }
+
+    /// <summary>
+    /// Gets the effective endpoint URL based on provider and explicit URL.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Default URLs by Provider:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>Ollama: http://localhost:11434</description></item>
+    ///   <item><description>LM Studio: http://localhost:1234</description></item>
+    /// </list>
+    /// <para>
+    /// You can override the default with --ollama-url. The parameter name is kept for
+    /// backward compatibility but works for both providers.
+    /// </para>
+    /// </remarks>
+    public string EffectiveUrl => OllamaUrl ?? Provider switch
+    {
+        EmbeddingProvider.Ollama => "http://localhost:11434",
+        EmbeddingProvider.LMStudio => "http://localhost:1234",
+        _ => "http://localhost:1234"
+    };
 
     /// <summary>
     /// Validates the options and returns any validation errors.
@@ -56,12 +83,15 @@ public class CliOptions
             yield return $"Output directory does not exist: {outputDir}";
         }
 
-        if (!Uri.TryCreate(OllamaUrl, UriKind.Absolute, out var ollamaUri) ||
-            (ollamaUri.Scheme != Uri.UriSchemeHttp && ollamaUri.Scheme != Uri.UriSchemeHttps))
+        if (!Uri.TryCreate(EffectiveUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            yield return $"Invalid Ollama URL format '{OllamaUrl}'. Must be a valid HTTP/HTTPS URL (e.g., http://localhost:11434). Use --ollama-url to specify a different endpoint.";
+            yield return
+                $"Invalid endpoint URL format '{EffectiveUrl}'. Must be a valid HTTP/HTTPS URL. " +
+                $"Use --ollama-url to override the default for {Provider}.";
         }
     }
 
-    private string DebuggerDisplay => $"Method={Method}, Input={Input}, Output={Output}, Append={Append}, VisionModel={VisionModel}";
+    private string DebuggerDisplay =>
+        $"Method={Method}, Input={Input}, Output={Output}, Append={Append}, VisionModel={VisionModel}";
 }

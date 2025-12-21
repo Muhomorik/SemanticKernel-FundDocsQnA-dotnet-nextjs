@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+
 using Preprocessor.Models;
 
 namespace Preprocessor.Extractors;
@@ -27,7 +28,8 @@ public class OllamaVisionExtractor : IPdfExtractor
         _visionModel = visionModel;
     }
 
-    public async Task<IEnumerable<DocumentChunk>> ExtractAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<DocumentChunk>> ExtractAsync(string filePath,
+        CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
         {
@@ -44,8 +46,8 @@ public class OllamaVisionExtractor : IPdfExtractor
         // like Docnet.Core or PdfiumViewer
 
         _logger.LogWarning("Ollama Vision extraction is not fully implemented. " +
-            "PDF-to-image conversion requires additional libraries (e.g., Docnet.Core). " +
-            "Falling back to a stub implementation.");
+                           "PDF-to-image conversion requires additional libraries (e.g., Docnet.Core). " +
+                           "Falling back to a stub implementation.");
 
         // Stub: Return empty for now, indicating this method needs PDF rendering support
         await Task.CompletedTask;
@@ -66,7 +68,8 @@ public class OllamaVisionExtractor : IPdfExtractor
         // Create message with image
         var message = new ChatMessageContentItemCollection
         {
-            new TextContent("Extract all text from this image. Return only the text content, preserving the structure as much as possible."),
+            new TextContent(
+                "Extract all text from this image. Return only the text content, preserving the structure as much as possible."),
             new ImageContent(imageData, "image/png")
         };
 

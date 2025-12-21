@@ -1,6 +1,6 @@
 # Preprocessor
 
-A .NET Console application that extracts text from PDF documents and generates embeddings using Semantic Kernel with Ollama.
+A .NET Console application that extracts text from PDF documents and generates embeddings using Semantic Kernel with Ollama or LM Studio.
 
 ## Purpose
 
@@ -13,16 +13,28 @@ All parameters have defaults. Just press F5 to debug:
 - Reads PDFs from `bin/Debug/net8.0/pdfs/`
 - Writes output to `bin/Debug/net8.0/output.json`
 - Uses `pdfpig` extraction method
-- Connects to Ollama at `http://localhost:11434`
+- **Default provider: LM Studio** at `http://localhost:1234`
+- Use `--provider ollama` to switch to Ollama
 
 Create a `pdfs` folder in your build output directory and add PDF files there.
 
 ## Prerequisites
 
 - .NET 8 SDK
-- Ollama running locally (default: <http://localhost:11434>)
+- **Embedding Provider**: Choose one (LM Studio is default)
+  - LM Studio (default) - GUI-based, port 1234
+  - Ollama - CLI-based, port 11434
 
-### Ollama Setup (Windows)
+## Choosing a Provider
+
+| Provider | Port | Best For | Endpoint |
+|----------|------|----------|----------|
+| **LM Studio** (default) | 1234 | GUI workflows, visual model management, beginners | `/v1/embeddings` (OpenAI-compatible) |
+| **Ollama** | 11434 | CLI workflows, automation, servers | `/api/embed` (native) |
+
+Use `--provider lmstudio` (default) or `--provider ollama` to select your provider.
+
+### Embedding Provider Setup (Windows)
 
 #### Option 1: Ollama (CLI)
 
@@ -89,21 +101,28 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 | `--input`          | `-i`  | No       | `pdfs`                    | Folder with PDFs               |
 | `--output`         | `-o`  | No       | `output.json`             | Output JSON path               |
 | `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
+| `--provider`       | `-p`  | No       | `lmstudio`                | `ollama` or `lmstudio`         |
 | `--vision-model`   | -     | No       | `llava`                   | Vision model (ollama-vision)   |
 | `--embedding-model`| -     | No       | `nomic-embed-text`        | Embedding model                |
-| `--ollama-url`     | -     | No       | `http://localhost:11434`  | Ollama endpoint                |
+| `--ollama-url`     | -     | No       | Auto (provider-based)     | Provider endpoint override     |
 
 ## Usage
 
 ```bash
-# Extract using PdfPig
-dotnet run --project Preprocessor -- -m pdfpig -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+# LM Studio (default provider)
+dotnet run --project Preprocessor -- -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+
+# Ollama (explicit provider selection)
+dotnet run --project Preprocessor -- --provider ollama -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
 
 # Extract using Ollama Vision
-dotnet run --project Preprocessor -- -m ollama-vision -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+dotnet run --project Preprocessor -- -m ollama-vision --provider ollama -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
 
 # Append to existing file
-dotnet run --project Preprocessor -- -m pdfpig -i ./new-pdfs -o ./Preprocessor/output/embeddings.json --append
+dotnet run --project Preprocessor -- -i ./new-pdfs -o ./Preprocessor/output/embeddings.json --append
+
+# Override default provider URL
+dotnet run --project Preprocessor -- --provider lmstudio --ollama-url http://localhost:8080 -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
 ```
 
 ## Output Format
