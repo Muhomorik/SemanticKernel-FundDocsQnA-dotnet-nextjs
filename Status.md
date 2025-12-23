@@ -48,36 +48,71 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 ---
 
-## Part 2: Backend API ✅ COMPLETED
+## Part 2: Backend API ✅ COMPLETED (Production-Ready)
 
 ### Implementation Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Solution Structure | ✅ Complete | Separate Backend.sln with API and Tests projects |
-| Configuration | ✅ Complete | appsettings.json with BackendOptions |
+| Configuration | ✅ Complete | appsettings.json with BackendOptions, User Secrets support |
 | Models | ✅ Complete | All request/response models |
 | MemoryService | ✅ Complete | Loads embeddings, semantic search |
 | QuestionAnsweringService | ✅ Complete | Orchestrates search + LLM |
 | AskController | ✅ Complete | POST /api/ask endpoint |
-| HealthController | ✅ Complete | GET /api/health endpoint |
-| Program.cs | ✅ Complete | DI, Semantic Kernel, Groq setup |
-| Semantic Kernel Setup | ✅ Complete | Ollama embeddings + Groq chat |
+| Health Checks | ✅ Complete | ASP.NET Core health checks (/health/live, /health/ready) |
+| Program.cs | ✅ Complete | Application Insights, Key Vault, OpenAI embeddings |
+| Semantic Kernel Setup | ✅ Complete | OpenAI embeddings + Groq chat |
 | CORS Configuration | ✅ Complete | Configured for Next.js frontend |
 | Swagger/OpenAPI | ✅ Complete | Auto-generated API docs |
-| Documentation | ✅ Complete | Comprehensive README.md |
+| Application Insights | ✅ Complete | Monitoring for production (free tier) |
+| Secrets Management | ✅ Complete | User Secrets (local), Azure Key Vault (prod), GitHub Secrets (CI/CD) |
+| Azure Deployment | ✅ Complete | App Service F1, CI/CD with GitHub Actions |
+| Documentation | ✅ Complete | README, AZURE-DEPLOYMENT.md, SECRETS-MANAGEMENT.md |
 | Unit Tests | ⏳ Pending | Test projects created, tests needed |
 
 ### Features Implemented
 
 - ✅ Load embeddings.json on startup
-- ✅ Initialize VolatileMemoryStore with embeddings
-- ✅ Semantic search using Ollama embeddings
+- ✅ Initialize in-memory vector store with embeddings
+- ✅ Semantic search using OpenAI embeddings (text-embedding-3-small)
 - ✅ Question answering using Groq LLM (llama-3.3-70b-versatile)
-- ✅ Environment variable support (GROQ_API_KEY, EMBEDDINGS_PATH)
+- ✅ Environment variable support (GROQ_API_KEY, OPENAI_API_KEY, EMBEDDINGS_PATH)
 - ✅ Error handling and logging
-- ✅ Health check endpoint
 - ✅ Source references in responses
+
+### Production-Ready Features ✅
+
+- ✅ ASP.NET Core Health Checks (liveness + readiness probes)
+- ✅ OpenAI embeddings for query generation
+- ✅ Application Insights telemetry (free tier, 5GB/month)
+- ✅ Azure Key Vault integration (production secrets via Managed Identity)
+- ✅ GitHub Actions CI/CD pipeline (.github/workflows/deploy-backend.yml)
+- ✅ Azure App Service deployment ready (F1 free tier)
+- ✅ Azure setup script (backend/azure-setup.sh)
+- ✅ Comprehensive deployment documentation
+- ✅ Secrets management guide
+
+### Production Deployment Ready
+
+**Azure Resources Created:**
+- Azure App Service (F1 Free tier) - Zero-cost hosting
+- Application Insights - Free tier monitoring (5GB/month)
+- Azure Key Vault - Secure secrets management (~$0.03/month)
+- Managed Identity - Secure access to Key Vault
+- GitHub Actions - Automated CI/CD
+
+**Total Monthly Cost: ~$0.03**
+
+### ⚠️ Critical Prerequisite for Deployment
+
+**Preprocessor Update Required:** The Preprocessor must also be updated to use OpenAI embeddings (not Ollama or LM Studio) to ensure vector space compatibility between document and query embeddings. The backend now uses OpenAI `text-embedding-3-small` for query embeddings, so all document embeddings must be regenerated using the same model before deploying to production.
+
+**Action Required:**
+1. Update Preprocessor to use OpenAI embeddings API
+2. Regenerate all embeddings in `embeddings.json` using `text-embedding-3-small`
+3. Copy updated `embeddings.json` to `backend/Backend.API/Data/`
+4. Then proceed with Azure deployment
 
 ### Not Yet Implemented
 
@@ -86,7 +121,7 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 - ❌ Caching layer
 - ❌ Authentication/Authorization
 - ❌ Rate limiting
-- ❌ Docker support
+- ❌ Token usage tracking (OpenAI + Groq → Application Insights custom metrics)
 
 ---
 
@@ -130,18 +165,22 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Local Development | ✅ Working | Preprocessor and Backend run locally |
-| Ollama Setup | ✅ Documented | Installation and model setup instructions |
-| Groq API | ✅ Documented | Free tier API key setup |
-| Docker | ❌ Not Implemented | No Dockerfile yet |
-| CI/CD | ❌ Not Implemented | No GitHub Actions or pipelines |
-| Production Deployment | ❌ Not Implemented | Ready for Railway/Render/Vercel |
+| OpenAI API | ✅ Configured | For query embeddings (text-embedding-3-small) |
+| Groq API | ✅ Configured | Free tier LLM (llama-3.3-70b-versatile) |
+| Azure App Service | ✅ Ready | Setup script and deployment guide complete |
+| Application Insights | ✅ Ready | Monitoring configured (free tier) |
+| Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
+| CI/CD | ✅ Complete | GitHub Actions workflow configured |
+| Production Deployment | ✅ Ready | Complete deployment documentation |
 
-### Deployment Targets
+### Deployment Setup Complete
 
-- ❌ Backend → Railway/Render
-- ❌ Frontend → Vercel/Netlify
-- ❌ Environment variables configuration
-- ❌ Production monitoring/logging
+- ✅ Backend → Azure App Service (F1 Free tier)
+- ✅ GitHub Actions → Automated CI/CD
+- ✅ Azure Key Vault → Production secrets
+- ✅ Application Insights → Monitoring and telemetry
+- ✅ Health checks → Liveness and readiness probes
+- ❌ Frontend → Not started yet
 
 ---
 
@@ -212,20 +251,25 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 ### Immediate Priorities
 
-1. ⏳ Write unit tests for Backend services and controllers
-2. ⏳ Create Next.js frontend application
-3. ⏳ Implement chat interface
-4. ⏳ Test end-to-end integration
+1. **Deploy Backend to Azure** (Ready to deploy - see backend/docs/AZURE-DEPLOYMENT.md)
+   - Run azure-setup.sh to create Azure resources
+   - Configure GitHub Secrets
+   - Push to main branch to trigger deployment
+2. ⏳ Write unit tests for Backend services and controllers
+3. ⏳ Create Next.js frontend application
+4. ⏳ Implement chat interface
+5. ⏳ Test end-to-end integration
 
 ### Future Enhancements
 
-- Add Docker support for easy deployment
 - Implement caching layer
 - Add authentication (optional)
 - Create MCP server integration
 - Support multiple languages
 - Add streaming responses for better UX
 - Implement chat history
+- Upgrade to Azure App Service B1 tier if F1 limitations are problematic
+- Track token usage and pricing (OpenAI embeddings + Groq LLM → Application Insights custom metrics)
 
 ---
 
@@ -258,17 +302,25 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 ## Cost Analysis
 
-### Current Costs: $0
+### Development Costs: $0
 
-- Ollama: Free (local)
+- OpenAI API: Pay-per-use for embeddings (~$0.02 per 1M tokens)
 - Groq API: Free tier (sufficient for hobby project)
-- LM Studio: Free (local, optional)
 
-### Production Costs (Estimated)
+### Production Costs (Actual)
 
-- Groq API: $0 (staying within free tier limits)
+- **Azure App Service F1**: $0/month (free tier, with limitations)
+- **Application Insights**: $0/month (5GB free tier)
+- **Azure Key Vault**: ~$0.03/month (10K operations free, then $0.03 per 10K)
+- **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
+- **Groq LLM**: $0/month (free tier)
 
-**Total: $0 - $5/month**
+**Total Production Cost: ~$0.03/month**
+
+### Upgrade Options
+
+- **Azure App Service B1**: ~$13/month (always-on, no cold starts, custom domains)
+- **Application Insights Pay-as-you-go**: $2.30/GB after 5GB free tier
 
 ---
 

@@ -28,15 +28,16 @@ public record BackendOptions
     public required string GroqApiUrl { get; init; }
 
     /// <summary>
-    /// Gets or sets the Ollama embedding model name.
-    /// Must match the model used by the Preprocessor.
+    /// Gets or sets the OpenAI API key for embedding generation.
+    /// Can be overridden by the OPENAI_API_KEY environment variable.
     /// </summary>
-    public required string EmbeddingModel { get; init; }
+    public required string OpenAIApiKey { get; init; }
 
     /// <summary>
-    /// Gets or sets the Ollama server URL.
+    /// Gets or sets the OpenAI embedding model name.
+    /// Must match the model used by the Preprocessor for vector space compatibility.
     /// </summary>
-    public required string OllamaUrl { get; init; }
+    public required string OpenAIEmbeddingModel { get; init; }
 
     /// <summary>
     /// Gets or sets the maximum number of search results to return.
