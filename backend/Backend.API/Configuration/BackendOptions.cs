@@ -41,7 +41,7 @@ public record BackendOptions
     /// <summary>
     /// Gets or sets the maximum number of search results to return.
     /// </summary>
-    public int MaxSearchResults { get; init; } = 5;
+    public int MaxSearchResults { get; init; } = 10;
 
     /// <summary>
     /// Gets or sets the memory collection name.

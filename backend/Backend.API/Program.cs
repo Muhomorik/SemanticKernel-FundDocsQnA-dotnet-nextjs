@@ -1,8 +1,8 @@
 using Backend.API.Configuration;
 using Backend.API.Services;
 
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Embeddings;
 
 /*
  * Backend API for PDF Q&A Application
@@ -43,7 +43,8 @@ backendOptions = backendOptions with
 // Warn if Groq API key is missing (app will still start but /api/ask will fail)
 if (string.IsNullOrWhiteSpace(backendOptions.GroqApiKey))
 {
-    Console.WriteLine("WARNING: GroqApiKey is not set. Please set it in appsettings.json or via GROQ_API_KEY environment variable.");
+    Console.WriteLine(
+        "WARNING: GroqApiKey is not set. Please set it in appsettings.json or via GROQ_API_KEY environment variable.");
 }
 
 // Register configuration as singleton for dependency injection
@@ -57,11 +58,9 @@ var kernelBuilder = Kernel.CreateBuilder();
 // Configure Ollama for embeddings generation
 // IMPORTANT: Must use the same model (nomic-embed-text) as the Preprocessor
 // This ensures query embeddings are in the same vector space as document embeddings
-#pragma warning disable SKEXP0070  // Suppress experimental API warning for Ollama
 kernelBuilder.AddOllamaEmbeddingGenerator(
     backendOptions.EmbeddingModel,
     new Uri(backendOptions.OllamaUrl));
-#pragma warning restore SKEXP0070
 
 // Configure Groq for chat completion (LLM)
 // Groq provides OpenAI-compatible API, so we use AddOpenAIChatCompletion
@@ -81,12 +80,12 @@ var kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
 
 // Extract and register the embedding service separately
-// MemoryService needs direct access to ITextEmbeddingGenerationService
+// MemoryService needs direct access to IEmbeddingGenerator
 // to generate embeddings for search queries
-builder.Services.AddSingleton<ITextEmbeddingGenerationService>(sp =>
+builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var k = sp.GetRequiredService<Kernel>();
-    return k.GetRequiredService<ITextEmbeddingGenerationService>();
+    return k.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 });
 
 // ========================================
@@ -115,8 +114,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
@@ -141,7 +140,7 @@ catch (Exception ex)
     Console.WriteLine($"  1. The embeddings file exists at: {backendOptions.EmbeddingsFilePath}");
     Console.WriteLine($"  2. Ollama is running at: {backendOptions.OllamaUrl}");
     Console.WriteLine($"  3. The model '{backendOptions.EmbeddingModel}' is available in Ollama");
-    throw;  // Re-throw to prevent app from starting in a broken state
+    throw; // Re-throw to prevent app from starting in a broken state
 }
 
 // ========================================

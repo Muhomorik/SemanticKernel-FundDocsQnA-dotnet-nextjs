@@ -3,7 +3,7 @@ using System.Text.Json;
 using Backend.API.Configuration;
 using Backend.API.Models;
 
-using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.AI;
 
 namespace Backend.API.Services;
 
@@ -13,7 +13,7 @@ namespace Backend.API.Services;
 public class MemoryService : IMemoryService
 {
     private readonly BackendOptions _options;
-    private readonly ITextEmbeddingGenerationService _embeddingService;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingService;
     private readonly ILogger<MemoryService> _logger;
     private List<EmbeddingRecord> _embeddings = new();
     private bool _isInitialized;
@@ -22,7 +22,7 @@ public class MemoryService : IMemoryService
 
     public MemoryService(
         BackendOptions options,
-        ITextEmbeddingGenerationService embeddingService,
+        IEmbeddingGenerator<string, Embedding<float>> embeddingService,
         ILogger<MemoryService> logger)
     {
         _options = options;
@@ -74,13 +74,13 @@ public class MemoryService : IMemoryService
 
             // Generate embedding for the query
             var queryEmbedding =
-                await _embeddingService.GenerateEmbeddingAsync(query, cancellationToken: cancellationToken);
+                await _embeddingService.GenerateAsync(query, cancellationToken: cancellationToken);
 
             // Calculate cosine similarity with all embeddings
             var similarities = _embeddings.Select(e => new
                 {
                     Embedding = e,
-                    Similarity = CosineSimilarity(queryEmbedding.ToArray(), e.Embedding)
+                    Similarity = CosineSimilarity(queryEmbedding.Vector.ToArray(), e.Embedding)
                 })
                 .OrderByDescending(x => x.Similarity)
                 .Take(maxResults)
