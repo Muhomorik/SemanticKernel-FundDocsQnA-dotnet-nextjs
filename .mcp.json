@@ -3,6 +3,14 @@
     "microsoft-learn": {
       "url": "https://learn.microsoft.com/api/mcp",
       "type": "http"
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
     }
   }
 }
