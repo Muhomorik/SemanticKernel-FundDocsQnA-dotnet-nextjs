@@ -46,7 +46,6 @@ Use `--provider lmstudio` (default) or `--provider ollama` to select your provid
 
    ```powershell
    ollama pull nomic-embed-text   # embeddings (required)
-   ollama pull llava              # vision (optional)
    ```
 
 #### Option 2: LM Studio (GUI)
@@ -54,7 +53,6 @@ Use `--provider lmstudio` (default) or `--provider ollama` to select your provid
 1. Download from [lmstudio.ai](https://lmstudio.ai/)
 2. Search and download models in the app:
    - `nomic-embed-text` for embeddings
-   - `llava` for vision (optional)
 3. Start the local server (Developer tab → Start Server)
 4. Use with `--ollama-url http://localhost:1234`
 
@@ -63,7 +61,6 @@ Use `--provider lmstudio` (default) or `--provider ollama` to select your provid
 | Purpose     | Option              | Alternatives                     |
 |-------------|--------------------|----------------------------------|
 | Embeddings  | `--embedding-model` | `mxbai-embed-large`, `all-minilm`|
-| Vision      | `--vision-model`    | `llava:13b`, `bakllava`          |
 
 #### Choosing a Nomic Embed Text Model
 
@@ -99,12 +96,11 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 
 | Parameter          | Short | Required | Default                   | Description                    |
 |--------------------|-------|----------|---------------------------|--------------------------------|
-| `--method`         | `-m`  | No       | `pdfpig`                  | `pdfpig` or `ollama-vision`    |
+| `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
 | `--input`          | `-i`  | No       | `pdfs`                    | Folder with PDFs               |
 | `--output`         | `-o`  | No       | `output.json`             | Output JSON path               |
 | `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
 | `--provider`       | `-p`  | No       | `lmstudio`                | `ollama` or `lmstudio`         |
-| `--vision-model`   | -     | No       | `llava`                   | Vision model (ollama-vision)   |
 | `--embedding-model`| -     | No       | `nomic-embed-text`        | Embedding model                |
 | `--ollama-url`     | -     | No       | Auto (provider-based)     | Provider endpoint override     |
 
@@ -116,9 +112,6 @@ dotnet run --project Preprocessor -- -i ./Preprocessor/pdfs -o ./Preprocessor/ou
 
 # Ollama (explicit provider selection)
 dotnet run --project Preprocessor -- --provider ollama -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
-
-# Extract using Ollama Vision
-dotnet run --project Preprocessor -- -m ollama-vision --provider ollama -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
 
 # Append to existing file
 dotnet run --project Preprocessor -- -i ./new-pdfs -o ./Preprocessor/output/embeddings.json --append

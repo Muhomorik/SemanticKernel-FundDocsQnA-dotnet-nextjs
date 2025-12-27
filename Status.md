@@ -22,7 +22,6 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 |-----------|--------|-------|
 | Console Application | ✅ Complete | .NET 9 with CommandLineParser |
 | PdfPig Extraction | ✅ Complete | Word-based text extraction with smart chunking |
-| Ollama Vision Extraction | ⚠️ Partial | Stub implementation, needs PDF-to-image conversion |
 | Embedding Generation | ✅ Complete | Supports Ollama and LM Studio |
 | OllamaEmbeddingService | ✅ Complete | With connection testing and error handling |
 | JSON Export | ✅ Complete | Structured format with id, text, embedding, source, page |
@@ -41,9 +40,8 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 - ✅ Comprehensive error handling and logging
 - ✅ Provider abstraction (Ollama/LM Studio)
 
-### Not Implemented
+### Not Planned
 
-- ❌ Ollama Vision extraction (PDF → images needed)
 - ❌ Cloud embedding providers (Azure OpenAI, etc.)
 
 ---

@@ -71,19 +71,6 @@ static async Task<int> RunAsync(CliOptions cliOptions)
                 break;
         }
 
-        // Add Ollama chat completion for vision (if needed)
-        if (cliOptions.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
-        {
-            // Vision support is Ollama-specific
-            var visionUrl = cliOptions.Provider == EmbeddingProvider.Ollama
-                ? cliOptions.EffectiveUrl
-                : "http://localhost:11434"; // Fallback to Ollama default for vision
-
-            builder.AddOllamaChatCompletion(
-                cliOptions.VisionModel,
-                new Uri(visionUrl));
-        }
-
         return builder.Build();
     });
 
@@ -95,23 +82,8 @@ static async Task<int> RunAsync(CliOptions cliOptions)
         return kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     });
 
-    // Register chat completion service and extractor only for ollama-vision method
-    if (cliOptions.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
-    {
-        services.AddSingleton(sp =>
-        {
-            var kernel = sp.GetRequiredService<Kernel>();
-            return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
-        });
-        services.AddSingleton<IPdfExtractor>(sp => new OllamaVisionExtractor(
-            sp.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>(),
-            sp.GetRequiredService<ILogger<OllamaVisionExtractor>>(),
-            cliOptions.VisionModel));
-    }
-    else
-    {
-        services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
-    }
+    // Register PDF extractor
+    services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
 
     // Register services
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();

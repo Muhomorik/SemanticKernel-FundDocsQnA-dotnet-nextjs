@@ -10,7 +10,7 @@ namespace Preprocessor;
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public class CliOptions
 {
-    [Option('m', "method", Default = "pdfpig", HelpText = "Extraction method: 'pdfpig' or 'ollama-vision'")]
+    [Option('m', "method", Default = "pdfpig", HelpText = "Extraction method: 'pdfpig'")]
     public string Method { get; init; } = "pdfpig";
 
     [Option('i', "input", Required = false, Default = "pdfs", HelpText = "Input directory containing PDF files")]
@@ -23,10 +23,6 @@ public class CliOptions
     [Option('a', "append", Required = false, Default = false,
         HelpText = "Append to existing output file instead of overwriting")]
     public bool Append { get; init; }
-
-    [Option("vision-model", Required = false, Default = "llava",
-        HelpText = "Vision model for ollama-vision extraction")]
-    public string VisionModel { get; init; } = "llava";
 
     [Option("embedding-model", Required = false, Default = "nomic-embed-text",
         HelpText = "Embedding model for generating embeddings")]
@@ -66,7 +62,7 @@ public class CliOptions
     /// </summary>
     public IEnumerable<string> Validate()
     {
-        var validMethods = new[] { "pdfpig", "ollama-vision" };
+        var validMethods = new[] { "pdfpig" };
         if (!validMethods.Contains(Method.ToLowerInvariant()))
         {
             yield return $"Invalid method '{Method}'. Must be one of: {string.Join(", ", validMethods)}";
@@ -93,5 +89,5 @@ public class CliOptions
     }
 
     private string DebuggerDisplay =>
-        $"Method={Method}, Input={Input}, Output={Output}, Append={Append}, VisionModel={VisionModel}";
+        $"Method={Method}, Input={Input}, Output={Output}, Append={Append}";
 }

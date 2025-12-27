@@ -8,7 +8,7 @@ namespace Preprocessor.Extractors;
 public interface IPdfExtractor
 {
     /// <summary>
-    /// The name of the extraction method (e.g., "pdfpig", "ollama-vision").
+    /// The name of the extraction method (e.g., "pdfpig").
     /// </summary>
     string MethodName { get; }
 

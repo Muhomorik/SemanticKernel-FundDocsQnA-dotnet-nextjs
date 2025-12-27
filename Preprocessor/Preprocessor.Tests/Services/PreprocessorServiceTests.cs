@@ -205,7 +205,6 @@ public class PreprocessorServiceTests
             Input = input ?? _tempDir,
             Output = output ?? Path.Combine(_tempDir, "output.json"),
             Append = append,
-            VisionModel = "llava",
             EmbeddingModel = "nomic-embed-text",
             OllamaUrl = "http://localhost:11434"
         };
