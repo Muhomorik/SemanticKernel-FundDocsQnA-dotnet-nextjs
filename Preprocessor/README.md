@@ -1,5 +1,7 @@
 # Preprocessor
 
+> Part of [PDF Q&A Application](../README.md)
+
 A .NET Console application that extracts text from PDF documents and generates embeddings using Semantic Kernel with Ollama or LM Studio.
 
 ## Purpose

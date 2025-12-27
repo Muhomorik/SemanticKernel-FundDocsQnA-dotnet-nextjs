@@ -5,6 +5,7 @@ Complete guide for deploying the Backend API to Azure App Service with zero-cost
 ## Overview
 
 This deployment uses:
+
 - **Azure App Service (F1 Free tier)** - ~$0/month
 - **Application Insights (Free tier)** - ~$0/month (5GB data/month)
 - **Azure Key Vault** - ~$0.03/month
@@ -41,12 +42,12 @@ az account set --subscription "Your Subscription Name"
 ### Step 2: Run Azure Setup Script
 
 ```bash
-cd backend
 chmod +x azure-setup.sh
 ./azure-setup.sh
 ```
 
 The script will create:
+
 - Resource Group
 - App Service Plan (F1 Free tier)
 - App Service (Linux, .NET 9)
@@ -76,13 +77,13 @@ The script will create:
 
 ```bash
 # In Preprocessor directory
-cd ../Preprocessor/Preprocessor
+cd Preprocessor/Preprocessor
 
 # Update to use OpenAI embeddings, then run:
 dotnet run -- -m pdfpig -i ./pdfs -o ./bin/Debug/net9.0/output.json
 
 # Copy to backend
-cp ./bin/Debug/net9.0/output.json ../../backend/Backend.API/Data/embeddings.json
+cp ./bin/Debug/net9.0/output.json ../backend/Backend.API/Data/embeddings.json
 ```
 
 ### Step 5: Deploy
@@ -96,6 +97,7 @@ git push origin main
 ```
 
 Monitor the deployment:
+
 - GitHub → Actions tab → Watch the workflow
 
 ### Step 6: Verify Deployment
@@ -172,6 +174,7 @@ dependencies
 ### Staying Within Free Tier
 
 The free tier includes 5GB data/month. To stay within limits:
+
 - Log level set to `Warning` in production
 - Sampling enabled for high-volume telemetry
 - Monitor usage: Application Insights → Usage and estimated costs
@@ -209,11 +212,13 @@ az webapp restart \
 ### Issue: App Won't Start
 
 **Check:**
+
 1. Application Insights → Live Metrics for real-time errors
 2. App Service → Log stream for startup logs
 3. Ensure embeddings.json was deployed (check `/home/site/wwwroot/Data/`)
 
 **Solution:**
+
 ```bash
 # Check logs
 az webapp log tail \
@@ -224,10 +229,12 @@ az webapp log tail \
 ### Issue: Health Check Failing
 
 **Check:**
+
 1. `/health/live` - Should always return 200
 2. `/health/ready` - Check if embeddings loaded
 
 **Common Causes:**
+
 - Embeddings file missing or corrupt
 - OpenAI API key invalid
 - Memory exhausted (F1 tier has 1GB RAM limit)
@@ -235,10 +242,12 @@ az webapp log tail \
 ### Issue: Cold Starts (F1 Tier)
 
 **Symptoms:**
+
 - First request after 20min idle takes 10-30 seconds
 - App "wakes up" slowly
 
 **Solutions:**
+
 - Accept this limitation (it's the free tier)
 - Upgrade to B1 tier (~$13/month) for "Always On" feature
 - Use external monitoring to ping the app every 10 minutes
@@ -246,10 +255,12 @@ az webapp log tail \
 ### Issue: CPU Limit Exceeded (F1 Tier)
 
 **Symptoms:**
+
 - App stops responding after heavy use
 - Error: "CPU quota exceeded"
 
 **Solution:**
+
 - F1 tier has 60 CPU minutes/day limit
 - Wait until next day for quota reset
 - Upgrade to B1 tier for higher limits
@@ -258,6 +269,7 @@ az webapp log tail \
 ### Issue: Application Insights Not Working
 
 **Check:**
+
 1. Connection string is set in App Service configuration
 2. Environment is NOT Development (AI only enabled in Production)
 3. Check for ingestion errors in Application Insights
@@ -278,12 +290,14 @@ az webapp log tail \
 ### If You Need to Upgrade
 
 **App Service B1 (~$13/month):**
+
 - Always-on (no cold starts)
 - Custom domains
 - 100 ACU vs 60 CPU min/day
 - 1.75GB RAM vs 1GB
 
 **Application Insights Pay-as-you-go:**
+
 - First 5GB free
 - $2.30/GB after that
 - Set up cost alerts!
@@ -293,12 +307,14 @@ az webapp log tail \
 ### Automatic Deployments
 
 GitHub Actions automatically deploys on:
+
 - Push to `main` branch
 - Changes in `backend/**` directory
 
 ### Manual Deployment
 
 Trigger manually from GitHub:
+
 1. Go to Actions tab
 2. Select "Deploy Backend to Azure"
 3. Click "Run workflow"
@@ -307,6 +323,7 @@ Trigger manually from GitHub:
 ### Rollback
 
 To rollback to a previous version:
+
 1. Azure Portal → App Service → Deployment Center
 2. Select a previous deployment
 3. Click "Redeploy"

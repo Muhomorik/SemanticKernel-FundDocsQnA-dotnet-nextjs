@@ -1,17 +1,12 @@
 # Backend API - PDF Q&A Application
 
+> Part of [PDF Q&A Application](../README.md). See root README for [deployment](../docs/AZURE-DEPLOYMENT.md) and [secrets management](../docs/SECRETS-MANAGEMENT.md).
+
 ASP.NET Core Web API backend that provides semantic search and question answering capabilities for PDF documents using Semantic Kernel, OpenAI embeddings, and Groq LLM.
 
 ## Overview
 
 This backend API loads pre-generated embeddings from the Preprocessor, stores them in an in-memory vector store, and provides endpoints to search and answer questions about your PDF documents.
-
-**Production Features:**
-- ASP.NET Core Health Checks (liveness & readiness probes)
-- Application Insights monitoring (free tier)
-- Azure Key Vault secrets management
-- GitHub Actions CI/CD deployment
-- Zero-cost Azure App Service hosting (F1 tier)
 
 ## Architecture
 
@@ -199,21 +194,6 @@ Healthy
 - `200 OK` - Application is ready (embeddings loaded, dependencies available)
 - `503 Service Unavailable` - Application is not ready
 
-## Running in Production
-
-For production deployment to Azure App Service with CI/CD, see:
-
-**[Azure Deployment Guide →](docs/AZURE-DEPLOYMENT.md)**
-
-The deployment includes:
-- Azure App Service (F1 Free tier)
-- Application Insights monitoring
-- Azure Key Vault for secrets
-- GitHub Actions CI/CD
-- Automated health monitoring
-
-**Total Cost: ~$0.03/month**
-
 ## Testing
 
 ### Manual Testing
@@ -383,10 +363,6 @@ dotnet run
 
 ## Documentation
 
-- **[Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md)** - Complete guide for deploying to Azure App Service
-- **[Secrets Management Guide](docs/SECRETS-MANAGEMENT.md)** - How to manage API keys and secrets securely
+- **[Azure Deployment Guide](../docs/AZURE-DEPLOYMENT.md)** - Complete guide for deploying to Azure App Service
+- **[Secrets Management Guide](../docs/SECRETS-MANAGEMENT.md)** - How to manage API keys and secrets securely
 - **[Project Status](../Status.md)** - Overall project progress and implementation status
-
-## Next Steps
-
-1. Deploy to Azure App Service (see [deployment guide](docs/AZURE-DEPLOYMENT.md))

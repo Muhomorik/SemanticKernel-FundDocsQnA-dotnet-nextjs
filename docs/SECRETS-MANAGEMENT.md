@@ -5,6 +5,7 @@ This guide explains how secrets are managed across different environments to ens
 ## Overview
 
 Three-tier secrets strategy:
+
 - **Local Development:** .NET User Secrets (developer-specific, not committed)
 - **Production:** Azure Key Vault (secure cloud storage, read-only for developers)
 - **CI/CD:** GitHub Secrets (for automated deployment)
@@ -55,11 +56,13 @@ dotnet user-secrets clear
 ### Where Are User Secrets Stored?
 
 **Windows:**
+
 ```
 %APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json
 ```
 
 **Linux/macOS:**
+
 ```
 ~/.microsoft/usersecrets/<UserSecretsId>/secrets.json
 ```
@@ -90,6 +93,7 @@ In production, the backend automatically loads secrets from Azure Key Vault usin
 ### Viewing Production Secrets
 
 **Using Azure Portal:**
+
 1. Go to [Azure Portal](https://portal.azure.com)
 2. Navigate to Key Vaults → Your Key Vault
 3. Secrets → View secret values
@@ -175,7 +179,7 @@ If you prefer to set API keys via GitHub Actions instead of Key Vault:
 
 ## Security Best Practices
 
-### ✅ DO
+### DO
 
 - **Use User Secrets for local development** - Never commit API keys to source control
 - **Use Azure Key Vault for production** - Secure, centralized secret management
@@ -184,7 +188,7 @@ If you prefer to set API keys via GitHub Actions instead of Key Vault:
 - **Grant least privilege** - Only give key access to those who need it
 - **Monitor secret access** - Review Key Vault audit logs
 
-### ❌ DON'T
+### DON'T
 
 - **Never commit secrets to Git** - Use `.gitignore` for `appsettings.Development.json` if it contains secrets
 - **Never hardcode API keys** - Always use configuration
@@ -199,6 +203,7 @@ If you prefer to set API keys via GitHub Actions instead of Key Vault:
 **Cause:** User Secrets not configured or API key not set.
 
 **Solution:**
+
 ```bash
 dotnet user-secrets set "BackendOptions:GroqApiKey" "your-key-here"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-key-here"
@@ -207,11 +212,13 @@ dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-key-here"
 ### Issue: Production App Can't Access Key Vault
 
 **Causes:**
+
 1. Managed Identity not enabled
 2. Managed Identity not granted access to Key Vault
 3. Key Vault name environment variable not set
 
 **Solution:**
+
 ```bash
 # Check Managed Identity is enabled
 az webapp identity show \
@@ -233,12 +240,14 @@ az keyvault set-policy \
 ### Issue: Secrets Not Loading from User Secrets
 
 **Check:**
+
 1. `UserSecretsId` is set in `.csproj`
 2. Running in Development environment
 3. Secrets file exists and is valid JSON
 4. Secret keys match the configuration path exactly
 
 **Verify:**
+
 ```bash
 # List secrets
 dotnet user-secrets list
@@ -286,11 +295,11 @@ Result: App uses `"my-prod-key"` from Key Vault.
 
 | Action | Local Dev | Production |
 |--------|-----------|------------|
-| Set own API keys | ✅ Yes (User Secrets) | ❌ No |
-| Read own secrets | ✅ Yes | ❌ No |
-| Update production secrets | ❌ No | ❌ No (admin only) |
-| View production secrets | ❌ No | ❌ No (admin only) |
-| Deploy to production | ✅ Yes (via GitHub) | ✅ Yes (via GitHub) |
+| Set own API keys | Yes (User Secrets) | No |
+| Read own secrets | Yes | No |
+| Update production secrets | No | No (admin only) |
+| View production secrets | No | No (admin only) |
+| Deploy to production | Yes (via GitHub) | Yes (via GitHub) |
 
 **Key Point:** Developers cannot view or change production secrets, ensuring security separation.
 

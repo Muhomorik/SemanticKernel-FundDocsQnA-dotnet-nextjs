@@ -1,5 +1,7 @@
 # Frontend - PDF Q&A Application
 
+> Part of [PDF Q&A Application](../README.md)
+
 Next.js frontend for asking questions about PDF documents.
 
 ## Tech Stack
