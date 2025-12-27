@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-22
+Last Updated: 2025-12-27
 
 ## Project Overview
 
@@ -10,7 +10,7 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 - Preprocessor: .NET 9 Console App + PdfPig + Semantic Kernel
 - Backend: ASP.NET Core 9 + Semantic Kernel + Groq API
-- Frontend: Next.js + Tailwind CSS (planned)
+- Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -96,6 +96,7 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 ### Production Deployment Ready
 
 **Azure Resources Created:**
+
 - Azure App Service (F1 Free tier) - Zero-cost hosting
 - Application Insights - Free tier monitoring (5GB/month)
 - Azure Key Vault - Secure secrets management (~$0.03/month)
@@ -109,6 +110,7 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 **Preprocessor Update Required:** The Preprocessor must also be updated to use OpenAI embeddings (not Ollama or LM Studio) to ensure vector space compatibility between document and query embeddings. The backend now uses OpenAI `text-embedding-3-small` for query embeddings, so all document embeddings must be regenerated using the same model before deploying to production.
 
 **Action Required:**
+
 1. Update Preprocessor to use OpenAI embeddings API
 2. Regenerate all embeddings in `embeddings.json` using `text-embedding-3-small`
 3. Copy updated `embeddings.json` to `backend/Backend.API/Data/`
@@ -125,9 +127,9 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 ---
 
-## Part 3: Frontend ⏳ IN PROGRESS (Initial Setup)
+## Part 3: Frontend ✅ COMPLETED
 
-**Current Phase:** Setting up Next.js 16 project structure with TypeScript, Tailwind CSS, and shadcn/ui
+**Current Phase:** All core features implemented - chat interface with theme support, responsive design, and error handling
 
 ### Implementation Status
 
@@ -145,15 +147,17 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 | Root Layout | ✅ Complete | Inter font, metadata, global styles |
 | Frontend README | ✅ Complete | Basic setup instructions and tech stack |
 | Testing Infrastructure | ✅ Complete | Jest + React Testing Library |
-| Sample Test | ✅ Complete | Homepage test with 3 passing tests |
-| Chat Interface Component | ❌ Not Started | Planned |
-| Question Input/Submit | ❌ Not Started | Planned |
-| Answer Display | ❌ Not Started | Planned |
-| Source References Display | ❌ Not Started | Planned |
-| Loading States | ❌ Not Started | Planned |
-| Error Handling UI | ❌ Not Started | Planned |
-| Chat History | ❌ Not Started | Planned |
-| Responsive Design | ❌ Not Started | Planned |
+| Sample Test | ✅ Complete | Homepage test with 4 passing tests |
+| Theme Toggle (Light/Dark) | ✅ Complete | next-themes integration |
+| Header Component | ✅ Complete | Title + theme toggle |
+| Footer Component | ✅ Complete | GitHub link + tech stack info |
+| Chat Interface Component | ✅ Complete | Main orchestrator |
+| ChatMessage Component | ✅ Complete | User/AI messages with sources |
+| ChatInput Component | ✅ Complete | Textarea + submit button |
+| ExampleQueries Component | ✅ Complete | Clickable example questions |
+| Loading States | ✅ Complete | Skeleton loading |
+| Error Handling UI | ✅ Complete | Alert with retry |
+| Responsive Design | ✅ Complete | Mobile-first approach |
 
 ### Features Implemented
 
@@ -176,13 +180,15 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 ### Planned Features
 
 - ✅ Next.js application setup
-- ❌ Chat interface component
-- ❌ Question input and submit
-- ❌ Answer display with source references
-- ❌ Loading states
-- ❌ Error handling
-- ❌ Responsive design (Tailwind CSS)
-- ❌ Chat history (in-memory, no persistence)
+- ✅ Light/dark theme toggle
+- ✅ Chat interface component
+- ✅ Question input and submit
+- ✅ Answer display with source references
+- ✅ Loading states (skeleton)
+- ✅ Error handling with retry
+- ✅ Responsive design (mobile-first)
+- ✅ Example queries (clickable)
+- ✅ Footer with GitHub link and tech info
 
 ### Not Planned
 
@@ -226,7 +232,7 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 - ✅ Azure Key Vault → Production secrets
 - ✅ Application Insights → Monitoring and telemetry
 - ✅ Health checks → Liveness and readiness probes
-- ❌ Frontend → Not started yet
+- ⏳ Frontend → Ready for deployment (needs Azure Static Web Apps or App Service setup)
 
 ---
 
@@ -251,7 +257,9 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 
 ### Frontend
 
-- ❌ No tests yet (frontend not started)
+| Test Suite | Status | Coverage |
+|-------------|--------|----------|
+| page.test.tsx | ✅ Complete | Homepage rendering, example queries |
 
 ---
 
@@ -302,8 +310,8 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
    - Configure GitHub Secrets
    - Push to main branch to trigger deployment
 2. ⏳ Write unit tests for Backend services and controllers
-3. ✅ Create Next.js frontend application (Initial setup complete)
-4. ⏳ Implement chat interface UI components
+3. ✅ Create Next.js frontend application
+4. ✅ Implement chat interface UI components
 5. ⏳ Test end-to-end integration
 
 ### Future Enhancements
@@ -335,8 +343,8 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 ### In Progress ⏳
 
 - [ ] Unit tests for backend
-- [x] Frontend development (initial setup)
-- [ ] Frontend chat UI components
+- [x] Frontend development
+- [x] Frontend chat UI components
 - [ ] End-to-end testing
 
 ### Planned ❌
