@@ -1,6 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
 function GitHubIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -15,39 +12,42 @@ function GitHubIcon({ className }: { className?: string }) {
 }
 
 export function Footer() {
+  const techStack = [
+    "Next.js 16",
+    "ASP.NET Core 9",
+    "Semantic Kernel",
+    "Groq API",
+    "OpenAI Embeddings",
+  ];
+
   return (
-    <footer className="bg-muted/30 border-t">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col items-center gap-4">
+    <footer className="border-border/40 border-t">
+      <div className="mx-auto max-w-5xl px-6 py-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           {/* Tech Stack */}
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-muted-foreground text-sm">Built with</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Badge variant="secondary">Next.js 16</Badge>
-              <Badge variant="secondary">ASP.NET Core 9</Badge>
-              <Badge variant="secondary">Semantic Kernel</Badge>
-              <Badge variant="secondary">Groq API</Badge>
-              <Badge variant="secondary">OpenAI Embeddings</Badge>
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground text-xs">Built with</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {techStack.map((tech) => (
+                <span
+                  key={tech}
+                  className="bg-secondary/50 text-secondary-foreground rounded-full px-2 py-0.5 text-xs"
+                >
+                  {tech}
+                </span>
+              ))}
             </div>
           </div>
 
-          <Separator className="my-2 w-full max-w-md" />
-
-          {/* Deployment Info */}
-          <p className="text-muted-foreground text-center text-xs">
-            Deployed on Azure App Service. Zero-cost hobby project for learning
-            AI/ML integrations.
-          </p>
-
-          {/* GitHub Link */}
+          {/* GitHub link */}
           <a
-            href="https://github.com/dmitr/SemanticKernel-FundDocsQnA-dotnet-nextjs"
+            href="https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm transition-colors"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors duration-200"
           >
-            <GitHubIcon className="h-4 w-4" />
-            <span>View on GitHub</span>
+            <GitHubIcon className="h-3.5 w-3.5" />
+            <span>GitHub</span>
           </a>
         </div>
       </div>

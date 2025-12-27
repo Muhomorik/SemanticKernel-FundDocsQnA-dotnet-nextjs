@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { SendHorizontal, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 
 interface ChatInputProps {
   onSubmit: (question: string) => void;
@@ -30,9 +30,11 @@ export function ChatInput({ onSubmit, isLoading, disabled }: ChatInputProps) {
     }
   };
 
+  const canSubmit = value.trim() && !isLoading && !disabled;
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <div className="relative flex-1">
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="bg-card border-border/60 focus-within:border-border focus-within:ring-ring/20 relative overflow-hidden rounded-2xl border shadow-sm transition-all duration-200 focus-within:ring-2">
         <Textarea
           ref={textareaRef}
           value={value}
@@ -40,23 +42,31 @@ export function ChatInput({ onSubmit, isLoading, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Ask a question about your documents..."
           disabled={isLoading || disabled}
-          className="min-h-[60px] resize-none pr-12"
-          rows={2}
+          className="min-h-14 resize-none border-0 bg-transparent px-4 py-4 pr-14 text-base shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
+          rows={1}
         />
+        <div className="absolute bottom-2 right-2">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            size="icon"
+            className="bg-primary hover:bg-primary/90 disabled:bg-muted h-10 w-10 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2
+                className="h-4.5 w-4.5 animate-spin"
+                strokeWidth={2}
+              />
+            ) : (
+              <ArrowUp className="h-4.5 w-4.5" strokeWidth={2} />
+            )}
+            <span className="sr-only">Send message</span>
+          </Button>
+        </div>
       </div>
-      <Button
-        type="submit"
-        disabled={!value.trim() || isLoading || disabled}
-        size="icon"
-        className="h-[60px] w-[60px] shrink-0"
-      >
-        {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <SendHorizontal className="h-5 w-5" />
-        )}
-        <span className="sr-only">Send message</span>
-      </Button>
+      <p className="text-muted-foreground/60 mt-2 text-center text-xs">
+        Press Enter to send · Shift+Enter for new line
+      </p>
     </form>
   );
 }

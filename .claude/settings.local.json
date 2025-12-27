@@ -1,11 +1,15 @@
 {
   "permissions": {
-    "allow": [],
+    "allow": [
+      "Bash(cat:*)"
+    ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "microsoft-learn"
-  ],
-  "enableAllProjectMcpServers": true
+    "microsoft-learn",
+    "next-devtools",
+    "shadcn"
+  ]
 }

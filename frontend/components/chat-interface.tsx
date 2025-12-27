@@ -4,10 +4,9 @@ import * as React from "react";
 import { ChatMessage, ChatMessageSkeleton, type Message } from "./chat-message";
 import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { askQuestion, ApiError } from "@/lib/api";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RotateCcw } from "lucide-react";
 
 export function ChatInterface() {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -26,7 +25,6 @@ export function ChatInterface() {
   const handleSubmit = async (question: string) => {
     setError(null);
 
-    // Add user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -38,7 +36,6 @@ export function ChatInterface() {
     try {
       const response = await askQuestion(question);
 
-      // Add assistant message
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
@@ -72,7 +69,6 @@ export function ChatInterface() {
       .reverse()
       .find((m) => m.role === "user");
     if (lastUserMessage) {
-      // Remove the last user message and try again
       setMessages((prev) => prev.filter((m) => m.id !== lastUserMessage.id));
       handleSubmit(lastUserMessage.content);
     }
@@ -82,59 +78,79 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-3xl space-y-6">
-          {!hasMessages && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <h2 className="mb-2 text-2xl font-semibold">
-                Ask about your documents
-              </h2>
-              <p className="text-muted-foreground mb-8 text-center">
-                Get AI-powered answers from your pre-processed PDF documents.
-              </p>
-              <ExampleQueries onSelect={handleSubmit} disabled={isLoading} />
-            </div>
-          )}
-
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
-
-          {isLoading && <ChatMessageSkeleton />}
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription className="flex items-center justify-between">
-                <span>{error}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRetry}
-                  className="ml-4 shrink-0"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Retry
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div ref={messagesEndRef} />
+      {/* Hero section - only shown when no messages */}
+      {!hasMessages && !isLoading && (
+        <div className="flex flex-col items-center px-6 pt-6 pb-4">
+          <div className="animate-fade-up text-center">
+            <h1 className="font-serif text-2xl font-medium tracking-tight sm:text-3xl">
+              Ask about your documents
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-md text-sm">
+              Get AI-powered answers from your pre-processed PDF documents with
+              source references.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Input Area */}
-      <div className="bg-background border-t p-4">
-        <div className="mx-auto max-w-3xl">
+      {/* Input area - always visible at top when no messages, or at bottom when chatting */}
+      {!hasMessages && !isLoading && (
+        <div className="mx-auto w-full max-w-2xl px-6 py-3">
           <ChatInput onSubmit={handleSubmit} isLoading={isLoading} />
-          <p className="text-muted-foreground mt-2 text-center text-xs">
-            Press Enter to send, Shift+Enter for new line
-          </p>
         </div>
-      </div>
+      )}
+
+      {/* Example queries - positioned BELOW input when no messages */}
+      {!hasMessages && !isLoading && (
+        <div className="mx-auto w-full max-w-3xl px-6 py-4">
+          <ExampleQueries onSelect={handleSubmit} disabled={isLoading} />
+        </div>
+      )}
+
+      {/* Messages area - shown when there are messages */}
+      {(hasMessages || isLoading) && (
+        <>
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="mx-auto max-w-3xl space-y-6">
+              {messages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+
+              {isLoading && <ChatMessageSkeleton />}
+
+              {error && (
+                <div className="animate-fade-up bg-destructive/5 border-destructive/20 flex items-start gap-3 rounded-xl border p-4">
+                  <AlertCircle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-destructive text-sm font-medium">
+                      Something went wrong
+                    </p>
+                    <p className="text-destructive/80 mt-1 text-sm">{error}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRetry}
+                    className="border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
+                  >
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                    Retry
+                  </Button>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input area at bottom when chatting */}
+          <div className="border-border/40 bg-background/80 border-t backdrop-blur-xl">
+            <div className="mx-auto max-w-3xl px-4 py-4">
+              <ChatInput onSubmit={handleSubmit} isLoading={isLoading} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

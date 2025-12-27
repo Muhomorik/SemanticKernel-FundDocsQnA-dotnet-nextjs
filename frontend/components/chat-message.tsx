@@ -1,8 +1,5 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { User, Bot, FileText } from "lucide-react";
+import { User, Sparkles, FileText } from "lucide-react";
 import type { SourceReference } from "@/lib/api";
 
 export interface Message {
@@ -20,42 +17,61 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   return (
-    <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
+    <div
+      className={cn(
+        "animate-fade-up flex gap-3",
+        isUser ? "flex-row-reverse" : "flex-row"
+      )}
+    >
+      {/* Avatar */}
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors",
+          isUser
+            ? "bg-primary text-primary-foreground"
+            : "bg-warm/10 text-warm"
         )}
       >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+        {isUser ? (
+          <User className="h-4 w-4" strokeWidth={1.5} />
+        ) : (
+          <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+        )}
       </div>
+
+      {/* Message content */}
       <div
         className={cn(
-          "flex max-w-[80%] flex-col gap-2",
+          "flex max-w-[85%] flex-col gap-2 sm:max-w-[75%]",
           isUser ? "items-end" : "items-start"
         )}
       >
-        <Card
+        {/* Message bubble */}
+        <div
           className={cn(
-            "py-3",
-            isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+            "rounded-2xl px-4 py-3 shadow-sm",
+            isUser
+              ? "bg-primary text-primary-foreground rounded-br-md"
+              : "bg-card border-border/50 text-card-foreground rounded-bl-md border"
           )}
         >
-          <CardContent className="p-0 px-4">
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-          </CardContent>
-        </Card>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {message.content}
+          </p>
+        </div>
+
+        {/* Source references */}
         {message.sources && message.sources.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {message.sources.map((source, index) => (
-              <Badge
+              <span
                 key={`${source.file}-${source.page}-${index}`}
-                variant="outline"
-                className="gap-1 text-xs"
+                className="bg-muted/50 text-muted-foreground border-border/30 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
               >
-                <FileText className="h-3 w-3" />
-                {source.file} (p. {source.page})
-              </Badge>
+                <FileText className="h-3 w-3" strokeWidth={1.5} />
+                <span className="max-w-32 truncate">{source.file}</span>
+                <span className="text-muted-foreground/60">p.{source.page}</span>
+              </span>
             ))}
           </div>
         )}
@@ -66,13 +82,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
 export function ChatMessageSkeleton() {
   return (
-    <div className="flex gap-3">
-      <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+    <div className="animate-fade-in flex gap-3">
+      {/* Avatar skeleton */}
+      <div className="bg-muted h-8 w-8 shrink-0 animate-pulse rounded-xl" />
+
+      {/* Content skeleton */}
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-20 w-64 rounded-lg sm:w-80" />
-        <div className="flex gap-1">
-          <Skeleton className="h-5 w-24" />
-          <Skeleton className="h-5 w-20" />
+        <div className="bg-muted h-24 w-64 animate-pulse rounded-2xl rounded-bl-md sm:w-80" />
+        <div className="flex gap-1.5">
+          <div className="bg-muted h-5 w-20 animate-pulse rounded-full" />
+          <div className="bg-muted h-5 w-16 animate-pulse rounded-full" />
         </div>
       </div>
     </div>
