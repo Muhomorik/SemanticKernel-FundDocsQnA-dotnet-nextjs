@@ -1,6 +1,6 @@
 # Frontend - PDF Q&A Application
 
-> Part of [PDF Q&A Application](../README.md)
+> Part of [PDF Q&A Application](../README.md). See [Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md) for all environment variables.
 
 Next.js frontend for asking questions about PDF documents.
 
@@ -86,6 +86,23 @@ describe('Home Page', () => {
 })
 ```
 
+## Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API endpoint URL | `http://localhost:5000` |
+
+Configure in `.env.local`:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local to set NEXT_PUBLIC_API_URL if needed
+```
+
+**Note:** Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. Never put secrets in these variables.
+
+See **[Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md)** for complete configuration reference.
+
 ## Backend API
 
-Backend must be running at `http://localhost:5000` (see `../backend/README.md`)
+Backend must be running at `http://localhost:5000` (see [Backend README](../backend/README.md))

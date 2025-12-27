@@ -1,31 +1,90 @@
-# PDF Q&A Application
+# Fund Factsheet Q&A Generator
 
-A zero-cost hobby project for asking questions about PDF documents using AI. Built with .NET, Next.js, Semantic Kernel, and cloud AI services.
+A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates relevant questions, and provides answers to common investor queries about fund basics, risk profiles, costs, performance scenarios, and investment terms.
 
-## Architecture
+| Feature | Description |
+|---------|-------------|
+| **Semantic Search** | Vector embeddings for accurate document retrieval |
+| **Natural Language Q&A** | Ask questions, get answers with source citations |
+| **Low Cost** | Free-tier cloud services (Groq, OpenAI) |
+| **Local Processing** | Generate embeddings with LM Studio or Ollama |
 
-```plaintext
-PDFs ──► Preprocessor ──► embeddings.json ──► Backend API ◄── Frontend
-              │                                    │
-              │                                    ▼
-         LM Studio /                        OpenAI Embeddings
-         Ollama                             + Groq LLM
+---
+
+## 🤖 For AI Agents
+
+**IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md) to understand:
+
+- What features are already implemented
+- Current implementation status of each component
+- Known issues and limitations
+
+**Instructions for AI assistants:**
+
+1. **Before starting work:** Check [Status.md](Status.md) to verify feature status
+2. **During implementation:** Update status from ❌ to ⏳ (in progress)
+3. **After completion:** Update status to ✅ and document any new features or changes
+4. **Always maintain:** Keep Status.md synchronized with actual implementation state
+
+---
+
+## 📋 Overview
+
+A low-cost hobby project that enables semantic Q&A over PDF documents. Upload PDFs, generate embeddings locally, and ask questions in natural language.
+
+**Key Features:**
+
+- Semantic search using vector embeddings
+- Natural language Q&A with source citations
+- Free-tier cloud services (Groq, OpenAI)
+- Local embedding generation (LM Studio/Ollama)
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    subgraph Preprocessing
+        PDF[PDF Files] --> PRE[Preprocessor]
+        PRE --> EMB[embeddings.json]
+    end
+
+    subgraph Runtime
+        EMB --> API[Backend API]
+        FE[Frontend] --> API
+        API --> OAI[OpenAI Embeddings]
+        API --> GROQ[Groq LLM]
+    end
+
+    subgraph Local
+        PRE --> LMS[LM Studio / Ollama]
+    end
 ```
+
+### Components
 
 | Component | Tech Stack | Description |
 |-----------|------------|-------------|
 | [Preprocessor](Preprocessor/README.md) | .NET 9, PdfPig, Semantic Kernel | Extract text from PDFs, generate embeddings |
 | [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel | Semantic search + Q&A API |
-| [Frontend](frontend/README.md) | Next.js 16, TypeScript, Tailwind, shadcn/ui | Chat interface |
+| [Frontend](frontend/README.md) | Next.js 16, TypeScript, shadcn/ui | Chat interface |
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- .NET 9 SDK
-- Node.js 18+
-- LM Studio or Ollama (for preprocessing)
-- API keys: [Groq](https://console.groq.com) (free), [OpenAI](https://platform.openai.com)
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| .NET SDK | 9.0+ | [Download](https://dotnet.microsoft.com/download) |
+| Node.js | 18+ | [Download](https://nodejs.org/) |
+| LM Studio or Ollama | Latest | For local embedding generation |
+| Groq API Key | - | [Get free key](https://console.groq.com) |
+| OpenAI API Key | - | [Get key](https://platform.openai.com) |
+
+> **Configuration:** See [Configuration & Secrets Guide](docs/SECRETS-MANAGEMENT.md) for complete setup instructions.
 
 ### 1. Generate Embeddings
 
@@ -34,8 +93,6 @@ cd Preprocessor/Preprocessor
 # Add PDFs to ./pdfs folder
 dotnet run
 ```
-
-See [Preprocessor README](Preprocessor/README.md) for details.
 
 ### 2. Start Backend
 
@@ -47,36 +104,36 @@ cp ../../Preprocessor/Preprocessor/bin/Debug/net9.0/output.json Data/embeddings.
 dotnet run
 ```
 
-API available at `http://localhost:5000`. See [Backend README](backend/README.md) for details.
-
 ### 3. Start Frontend
 
 ```bash
 cd frontend
-npm install
-cp .env.example .env.local
+npm install && cp .env.example .env.local
 npm run dev
 ```
 
-Visit `http://localhost:3000`. See [Frontend README](frontend/README.md) for details.
+Open [http://localhost:3000](http://localhost:3000)
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```plaintext
 .
-├── Preprocessor/          # PDF text extraction & embeddings
-├── backend/               # ASP.NET Core API
-│   ├── Backend.API/       # Main API project
-│   └── Backend.Tests/     # Unit tests
-├── frontend/              # Next.js web app
-├── docs/                  # Deployment & secrets guides
+├── Preprocessor/           # PDF text extraction & embeddings
+├── backend/                # ASP.NET Core API
+│   ├── Backend.API/        # Main API project
+│   └── Backend.Tests/      # Unit tests
+├── frontend/               # Next.js web app
+├── docs/                   # Guides
 │   ├── AZURE-DEPLOYMENT.md
 │   └── SECRETS-MANAGEMENT.md
-├── azure-setup.sh         # Azure deployment script
-└── Status.md              # Project status tracker
+└── azure-setup.sh          # Azure deployment script
 ```
 
-## Deployment
+---
+
+## ☁️ Deployment
 
 Deploy to Azure with near-zero cost (~$0.03/month):
 
@@ -88,43 +145,39 @@ Deploy to Azure with near-zero cost (~$0.03/month):
 | OpenAI Embeddings | Pay-per-use | ~$0.003 |
 | Groq LLM | Free tier | $0 |
 
-**[Full Deployment Guide](docs/AZURE-DEPLOYMENT.md)**
-
-Quick deploy:
-
 ```bash
 ./azure-setup.sh  # Creates Azure resources
-# Configure GitHub secret: AZURE_WEBAPP_PUBLISH_PROFILE
-git push origin main  # Triggers deployment
+git push origin main  # Triggers CI/CD deployment
 ```
 
-## Secrets Management
+See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for details.
 
-Three-tier strategy for secure secret handling:
+---
 
-| Environment | Method | Details |
-|-------------|--------|---------|
-| Local Dev | .NET User Secrets | `dotnet user-secrets set "key" "value"` |
-| Production | Azure Key Vault | Accessed via Managed Identity |
-| CI/CD | GitHub Secrets | For deployment credentials |
+## 📚 Documentation
 
-**[Full Secrets Guide](docs/SECRETS-MANAGEMENT.md)**
+| Document | Description |
+|----------|-------------|
+| [Configuration & Secrets](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, settings |
+| [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
+| [Backend API](backend/README.md) | API endpoints and configuration |
+| [Frontend](frontend/README.md) | Development and testing |
+| [Preprocessor](Preprocessor/README.md) | PDF processing options |
+| [Project Status](Status.md) | Implementation progress |
 
-## Documentation
+---
 
-- [Project Status](Status.md) - Implementation progress and known issues
-- [Azure Deployment](docs/AZURE-DEPLOYMENT.md) - Complete Azure setup guide
-- [Secrets Management](docs/SECRETS-MANAGEMENT.md) - API key handling
-- [Backend API](backend/README.md) - API endpoints and configuration
-- [Frontend](frontend/README.md) - Development and testing
-- [Preprocessor](Preprocessor/README.md) - PDF processing options
+## 🛠️ Tech Stack
 
-## Tech Stack
+| Layer | Technologies |
+|-------|--------------|
+| **Preprocessor** | .NET 9, PdfPig, Semantic Kernel, Ollama/LM Studio |
+| **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq |
+| **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
+| **Infrastructure** | Azure App Service, Key Vault, Application Insights |
 
-- **Preprocessor**: .NET 9, PdfPig, Semantic Kernel, Ollama/LM Studio
-- **Backend**: ASP.NET Core 9, Semantic Kernel, OpenAI, Groq, Application Insights
-- **Frontend**: Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, Jest
+---
 
-## License
+## 📄 License
 
 This is a hobby project for learning Semantic Kernel and AI integration.

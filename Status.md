@@ -2,15 +2,25 @@
 
 Last Updated: 2025-12-27
 
-## Project Overview
-
-A zero-cost hobby project for asking questions about pre-processed PDF documents using AI.
-
 **Tech Stack:**
 
 - Preprocessor: .NET 9 Console App + PdfPig + Semantic Kernel
 - Backend: ASP.NET Core 9 + Semantic Kernel + Groq API
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
+
+---
+
+## 🤖 Instructions for AI Agents
+
+**CRITICAL:** This document is the source of truth for project status. AI assistants MUST:
+
+1. **Before starting work:** Review this file to understand what's implemented, in-progress, or planned
+2. **During implementation:** Update relevant status from ❌ to ⏳ (in progress)
+3. **After completion:** Update status to ✅ and document new features in the appropriate section
+4. **Always maintain accuracy:** Keep this document synchronized with actual codebase state
+5. **Update timestamp:** Change "Last Updated" date when making significant updates
+
+**Do not duplicate work.** Always verify current status before implementing features.
 
 ---
 
@@ -194,17 +204,6 @@ A zero-cost hobby project for asking questions about pre-processed PDF documents
 - No authentication
 - No chat persistence
 - No user accounts
-
----
-
-## Part 4: MCP Server (Optional) ❌ NOT STARTED
-
-### Planned Features
-
-- ❌ MCP protocol implementation
-- ❌ `search_documents` tool
-- ❌ Integration with VS Code/Claude Desktop
-- ❌ Reuse existing Backend services
 
 ---
 

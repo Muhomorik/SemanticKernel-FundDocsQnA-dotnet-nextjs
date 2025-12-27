@@ -1,8 +1,10 @@
 # Preprocessor
 
-> Part of [PDF Q&A Application](../README.md)
+> Part of [PDF Q&A Application](../README.md). See [Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md) for complete project configuration.
 
 A .NET Console application that extracts text from PDF documents and generates embeddings using Semantic Kernel with Ollama or LM Studio.
+
+**Note:** The Preprocessor has no secrets - all configuration is via CLI arguments (documented below).
 
 ## Purpose
 
