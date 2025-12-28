@@ -18,10 +18,26 @@ describe("Home Page", () => {
     expect(description).toBeInTheDocument();
   });
 
-  it("shows example queries", () => {
+  it("shows example query categories and hint", () => {
     render(<Home />);
-    const exampleText = screen.getByText(/Try asking:/i);
-    expect(exampleText).toBeInTheDocument();
+    // Check for category buttons
+    const categories = [
+      "Fund Basics",
+      "Risk & Returns",
+      "Costs",
+      "Investing",
+      "Practical",
+      "Comparison",
+    ];
+    categories.forEach((cat) => {
+      expect(screen.getByRole("button", { name: cat })).toBeInTheDocument();
+    });
+    // Check for the hint text
+    expect(
+      screen.getByText(
+        /Click a category to see more questions, or click any question to ask it/i
+      )
+    ).toBeInTheDocument();
   });
 
   it("renders example query buttons", () => {
