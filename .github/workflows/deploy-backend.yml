@@ -1,0 +1,52 @@
+name: Deploy Backend to Azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  AZURE_WEBAPP_NAME: 'funddocs-backend-api'
+  PUBLISH_PATH: './publish'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore backend/Backend.sln
+
+      - name: Build
+        run: dotnet build backend/Backend.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test backend/Backend.Tests/Backend.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish backend/Backend.API/Backend.API.csproj --configuration Release --output ${{ env.PUBLISH_PATH }}
+
+      - name: Copy embeddings file
+        run: |
+          mkdir -p ${{ env.PUBLISH_PATH }}/Data
+          cp backend/Backend.API/Data/embeddings.json ${{ env.PUBLISH_PATH }}/Data/embeddings.json
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.PUBLISH_PATH }}

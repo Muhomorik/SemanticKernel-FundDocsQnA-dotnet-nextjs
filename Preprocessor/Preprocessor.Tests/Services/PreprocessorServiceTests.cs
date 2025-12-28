@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+
 using Moq;
+
 using Preprocessor.Extractors;
 using Preprocessor.Models;
 using Preprocessor.Services;
@@ -38,7 +40,7 @@ public class PreprocessorServiceTests
     {
         if (Directory.Exists(_tempDir))
         {
-            Directory.Delete(_tempDir, recursive: true);
+            Directory.Delete(_tempDir, true);
         }
     }
 
@@ -46,7 +48,7 @@ public class PreprocessorServiceTests
     public async Task ProcessAsync_WithInvalidMethod_ShouldReturnNonZeroExitCode()
     {
         // Arrange
-        var options = CreateOptions(method: "invalid-method");
+        var options = CreateOptions("invalid-method");
 
         // Act
         var result = await _service.ProcessAsync(options);
@@ -131,8 +133,8 @@ public class PreprocessorServiceTests
 
         // Create existing embeddings file
         var existingEmbeddings = """
-            [{"id":"existing","text":"Existing text","embedding":[0.1,0.2],"source":"old.pdf","page":1}]
-            """;
+                                 [{"id":"existing","text":"Existing text","embedding":[0.1,0.2],"source":"old.pdf","page":1}]
+                                 """;
         await File.WriteAllTextAsync(outputPath, existingEmbeddings);
 
         // Create a dummy PDF file
@@ -191,19 +193,18 @@ public class PreprocessorServiceTests
         Assert.That(result, Is.Not.EqualTo(0));
     }
 
-    private Options CreateOptions(
+    private CliOptions CreateOptions(
         string method = "pdfpig",
         string? input = null,
         string? output = null,
         bool append = false)
     {
-        return new Options
+        return new CliOptions
         {
             Method = method,
             Input = input ?? _tempDir,
             Output = output ?? Path.Combine(_tempDir, "output.json"),
             Append = append,
-            VisionModel = "llava",
             EmbeddingModel = "nomic-embed-text",
             OllamaUrl = "http://localhost:11434"
         };

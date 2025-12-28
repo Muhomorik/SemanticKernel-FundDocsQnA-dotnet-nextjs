@@ -1,21 +1,44 @@
 using CommandLine;
+
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+
+using OpenAI;
+
+using System.ClientModel;
+
 using Preprocessor;
 using Preprocessor.Extractors;
 using Preprocessor.Services;
 
 // Parse command line arguments
-var result = await Parser.Default.ParseArguments<Options>(args)
+var result = await Parser.Default.ParseArguments<CliOptions>(args)
     .MapResult(
         async options => await RunAsync(options),
         errors => Task.FromResult(1));
 
 return result;
 
-static async Task<int> RunAsync(Options options)
+static async Task<int> RunAsync(CliOptions cliOptions)
 {
+    // Resolve OpenAI API key with priority: CLI argument → Environment variable → Error
+    string? openAIApiKey = null;
+    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
+    {
+        openAIApiKey = cliOptions.OpenAIApiKey
+                       ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+        if (string.IsNullOrWhiteSpace(openAIApiKey))
+        {
+            Console.Error.WriteLine("ERROR: OpenAI provider requires an API key.");
+            Console.Error.WriteLine("Set via --openai-api-key or OPENAI_API_KEY environment variable.");
+            Console.Error.WriteLine("Get your API key from: https://platform.openai.com/api-keys");
+            return 1;
+        }
+    }
+
     // Build service collection
     var services = new ServiceCollection();
 
@@ -26,49 +49,66 @@ static async Task<int> RunAsync(Options options)
         builder.SetMinimumLevel(LogLevel.Information);
     });
 
-    // Configure Semantic Kernel with Ollama
+    // Configure Semantic Kernel with provider-specific embedding generator
     services.AddSingleton(sp =>
     {
         var builder = Kernel.CreateBuilder();
 
-        // Add Ollama embedding service
-#pragma warning disable SKEXP0070 // Ollama connector is experimental
-        builder.AddOllamaTextEmbeddingGeneration(
-            modelId: options.EmbeddingModel,
-            endpoint: new Uri(options.OllamaUrl));
-
-        // Add Ollama chat completion for vision (if needed)
-        if (options.Method.Equals("ollama-vision", StringComparison.OrdinalIgnoreCase))
+        switch (cliOptions.Provider)
         {
-            builder.AddOllamaChatCompletion(
-                modelId: options.VisionModel,
-                endpoint: new Uri(options.OllamaUrl));
+            case EmbeddingProvider.Ollama:
+                builder.AddOllamaEmbeddingGenerator(
+                    cliOptions.EmbeddingModel,
+                    new Uri(cliOptions.EffectiveUrl));
+                break;
+
+            case EmbeddingProvider.LMStudio:
+                // CRITICAL: Work around OpenAI BaseAddress bug by including /v1 in URL
+                var lmStudioEndpoint = cliOptions.EffectiveUrl.TrimEnd('/');
+                if (!lmStudioEndpoint.EndsWith("/v1"))
+                {
+                    lmStudioEndpoint += "/v1";
+                }
+
+                // For custom endpoints, create OpenAI client manually and register as IEmbeddingGenerator
+                builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+                {
+                    var openAIClient = new OpenAIClient(
+                        new ApiKeyCredential("lm-studio"), // LM Studio ignores this
+                        new OpenAIClientOptions
+                        {
+                            Endpoint = new Uri(lmStudioEndpoint)
+                        });
+
+                    return openAIClient
+                        .GetEmbeddingClient(cliOptions.EmbeddingModel)
+                        .AsIEmbeddingGenerator();
+                });
+                break;
+
+            case EmbeddingProvider.OpenAI:
+                // Use OpenAI's text-embedding-3-small for production compatibility
+                #pragma warning disable SKEXP0010
+                builder.AddOpenAIEmbeddingGenerator(
+                    cliOptions.EmbeddingModel,
+                    openAIApiKey);
+                #pragma warning restore SKEXP0010
+                break;
         }
-#pragma warning restore SKEXP0070
 
         return builder.Build();
     });
 
-    // Register embedding generation service from kernel
+
+    // Register embedding generator service from kernel (new API)
     services.AddSingleton(sp =>
     {
         var kernel = sp.GetRequiredService<Kernel>();
-        return kernel.GetRequiredService<Microsoft.SemanticKernel.Embeddings.ITextEmbeddingGenerationService>();
+        return kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     });
 
-    // Register chat completion service from kernel (for vision)
-    services.AddSingleton(sp =>
-    {
-        var kernel = sp.GetRequiredService<Kernel>();
-        return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
-    });
-
-    // Register extractors
+    // Register PDF extractor
     services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
-    services.AddSingleton<IPdfExtractor>(sp => new OllamaVisionExtractor(
-        sp.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>(),
-        sp.GetRequiredService<ILogger<OllamaVisionExtractor>>(),
-        options.VisionModel));
 
     // Register services
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
@@ -82,13 +122,24 @@ static async Task<int> RunAsync(Options options)
     var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
     logger.LogInformation("Starting Preprocessor");
-    logger.LogInformation("Method: {Method}", options.Method);
-    logger.LogInformation("Input: {Input}", options.Input);
-    logger.LogInformation("Output: {Output}", options.Output);
-    logger.LogInformation("Ollama URL: {OllamaUrl}", options.OllamaUrl);
-    logger.LogInformation("Embedding Model: {EmbeddingModel}", options.EmbeddingModel);
+    logger.LogInformation("Method: {Method}", cliOptions.Method);
+    logger.LogInformation("Input: {Input}", cliOptions.Input);
+    logger.LogInformation("Output: {Output}", cliOptions.Output);
+    logger.LogInformation("Provider: {Provider}", cliOptions.Provider);
+    logger.LogInformation("Endpoint URL: {Url}", cliOptions.EffectiveUrl);
+    logger.LogInformation("Embedding Model: {EmbeddingModel}", cliOptions.EmbeddingModel);
 
-    var exitCode = await preprocessor.ProcessAsync(options);
+    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
+    {
+        var maskedKey = openAIApiKey!.Length > 8
+            ? $"{openAIApiKey.Substring(0, 7)}...{openAIApiKey.Substring(openAIApiKey.Length - 4)}"
+            : "sk-****";
+        logger.LogInformation("OpenAI API Key: {ApiKey}", maskedKey);
+        var keySource = cliOptions.OpenAIApiKey != null ? "CLI argument" : "Environment variable";
+        logger.LogInformation("API Key Source: {Source}", keySource);
+    }
+
+    var exitCode = await preprocessor.ProcessAsync(cliOptions);
 
     if (exitCode == 0)
     {

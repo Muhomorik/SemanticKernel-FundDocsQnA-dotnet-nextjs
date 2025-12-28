@@ -1,5 +1,7 @@
 using System.Text.Json;
+
 using Microsoft.Extensions.Logging;
+
 using Preprocessor.Extractors;
 using Preprocessor.Models;
 
@@ -33,42 +35,46 @@ public class PreprocessorService
     /// <summary>
     /// Processes PDF files according to the provided options.
     /// </summary>
-    /// <param name="options">Processing options.</param>
+    /// <param name="cliOptions">Processing options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Exit code (0 for success, non-zero for failure).</returns>
-    public async Task<int> ProcessAsync(Options options, CancellationToken cancellationToken = default)
+    public async Task<int> ProcessAsync(CliOptions cliOptions, CancellationToken cancellationToken = default)
     {
         try
         {
             // Validate options
-            var errors = options.Validate().ToList();
+            var errors = cliOptions.Validate().ToList();
             if (errors.Count > 0)
             {
                 foreach (var error in errors)
                 {
                     _logger.LogError("Validation error: {Error}", error);
                 }
+
                 return 1;
             }
 
             // Find the appropriate extractor
             var extractor = _extractors.FirstOrDefault(e =>
-                e.MethodName.Equals(options.Method, StringComparison.OrdinalIgnoreCase));
+                e.MethodName.Equals(cliOptions.Method, StringComparison.OrdinalIgnoreCase));
 
             if (extractor == null)
             {
-                _logger.LogError("No extractor found for method: {Method}", options.Method);
+                _logger.LogError("No extractor found for method: {Method}", cliOptions.Method);
                 return 1;
             }
 
             _logger.LogInformation("Using extraction method: {Method}", extractor.MethodName);
 
+            // Convert relative paths to absolute paths based on current working directory
+            var inputPath = Path.GetFullPath(cliOptions.Input);
+
             // Find all PDF files
-            var pdfFiles = Directory.GetFiles(options.Input, "*.pdf", SearchOption.TopDirectoryOnly);
+            var pdfFiles = Directory.GetFiles(inputPath, "*.pdf", SearchOption.TopDirectoryOnly);
 
             if (pdfFiles.Length == 0)
             {
-                _logger.LogWarning("No PDF files found in {InputDir}", options.Input);
+                _logger.LogWarning("No PDF files found in {InputDir}", inputPath);
                 return 0;
             }
 
@@ -76,11 +82,12 @@ public class PreprocessorService
 
             // Load existing results if appending
             var existingResults = new List<EmbeddingResult>();
-            if (options.Append && File.Exists(options.Output))
+            if (cliOptions.Append && File.Exists(cliOptions.Output))
             {
-                _logger.LogInformation("Loading existing embeddings from {Output}", options.Output);
-                var existingJson = await File.ReadAllTextAsync(options.Output, cancellationToken);
-                existingResults = JsonSerializer.Deserialize<List<EmbeddingResult>>(existingJson) ?? new List<EmbeddingResult>();
+                _logger.LogInformation("Loading existing embeddings from {Output}", cliOptions.Output);
+                var existingJson = await File.ReadAllTextAsync(cliOptions.Output, cancellationToken);
+                existingResults = JsonSerializer.Deserialize<List<EmbeddingResult>>(existingJson) ??
+                                  new List<EmbeddingResult>();
                 _logger.LogInformation("Loaded {Count} existing embeddings", existingResults.Count);
             }
 
@@ -105,14 +112,16 @@ public class PreprocessorService
                         continue;
                     }
 
-                    _logger.LogInformation("Extracted {Count} chunks from {FileName}", chunkList.Count, Path.GetFileName(pdfFile));
+                    _logger.LogInformation("Extracted {Count} chunks from {FileName}", chunkList.Count,
+                        Path.GetFileName(pdfFile));
 
                     // Generate embeddings for each chunk
                     foreach (var chunk in chunkList)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var embedding = await _embeddingService.GenerateEmbeddingAsync(chunk.Content, cancellationToken);
+                        var embedding =
+                            await _embeddingService.GenerateEmbeddingAsync(chunk.Content, cancellationToken);
 
                         var result = new EmbeddingResult
                         {
@@ -135,16 +144,16 @@ public class PreprocessorService
             }
 
             // Save results
-            _logger.LogInformation("Saving {Count} embeddings to {Output}", allResults.Count, options.Output);
+            _logger.LogInformation("Saving {Count} embeddings to {Output}", allResults.Count, cliOptions.Output);
 
-            var outputDir = Path.GetDirectoryName(options.Output);
+            var outputDir = Path.GetDirectoryName(cliOptions.Output);
             if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
             {
                 Directory.CreateDirectory(outputDir);
             }
 
             var json = JsonSerializer.Serialize(allResults, JsonOptions);
-            await File.WriteAllTextAsync(options.Output, json, cancellationToken);
+            await File.WriteAllTextAsync(cliOptions.Output, json, cancellationToken);
 
             _logger.LogInformation("Successfully processed {Count} PDF files", pdfFiles.Length);
             return 0;
