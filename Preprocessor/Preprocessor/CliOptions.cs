@@ -16,21 +16,21 @@ public class CliOptions
     [Option('i', "input", Required = false, Default = "pdfs", HelpText = "Input directory containing PDF files")]
     public string Input { get; init; } = "pdfs";
 
-    [Option('o', "output", Required = false, Default = "output.json",
+    [Option('o', "output", Required = false, Default = "./embeddings.json",
         HelpText = "Output JSON file path for embeddings")]
-    public string Output { get; init; } = "output.json";
+    public string Output { get; init; } = "./embeddings.json";
 
     [Option('a', "append", Required = false, Default = false,
         HelpText = "Append to existing output file instead of overwriting")]
     public bool Append { get; init; }
 
-    [Option("embedding-model", Required = false, Default = "nomic-embed-text",
+    [Option("embedding-model", Required = false, Default = "text-embedding-3-small",
         HelpText = "Embedding model for generating embeddings")]
-    public string EmbeddingModel { get; init; } = "nomic-embed-text";
+    public string EmbeddingModel { get; init; } = "text-embedding-3-small";
 
-    [Option('p', "provider", Required = false, Default = EmbeddingProvider.LMStudio,
-        HelpText = "Embedding provider: 'ollama', 'lmstudio', or 'openai' (default: lmstudio)")]
-    public EmbeddingProvider Provider { get; init; } = EmbeddingProvider.LMStudio;
+    [Option('p', "provider", Required = false, Default = EmbeddingProvider.OpenAI,
+        HelpText = "Embedding provider: 'ollama', 'lmstudio', or 'openai' (default: openai)")]
+    public EmbeddingProvider Provider { get; init; } = EmbeddingProvider.OpenAI;
 
     [Option("ollama-url", Required = false, Default = null,
         HelpText = "Provider endpoint URL (default: http://localhost:1234 for LMStudio, http://localhost:11434 for Ollama)")]
