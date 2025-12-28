@@ -26,6 +26,15 @@ namespace Preprocessor;
 ///       Requires: Model loaded in LM Studio's Embedding section
 ///     </description>
 ///   </item>
+///   <item>
+///     <term>OpenAI</term>
+///     <description>
+///       Uses OpenAI's cloud API endpoint <c>/v1/embeddings</c>.
+///       Default URL: https://api.openai.com/v1
+///       Model: text-embedding-3-small (1536 dimensions)
+///       Requires: OPENAI_API_KEY environment variable or --openai-api-key argument
+///     </description>
+///   </item>
 /// </list>
 /// <para><strong>Selecting a Provider:</strong></para>
 /// <list type="bullet">
@@ -39,6 +48,13 @@ namespace Preprocessor;
 ///     <description>
 ///       <strong>LM Studio:</strong> Best for GUI-driven workflows with visual model management.
 ///       Use --provider lmstudio --ollama-url http://localhost:1234
+///     </description>
+///   </item>
+///   <item>
+///     <description>
+///       <strong>OpenAI:</strong> Best for production deployments requiring compatibility with backend.
+///       Use --provider openai --embedding-model text-embedding-3-small
+///       Set OPENAI_API_KEY environment variable or use --openai-api-key argument.
 ///     </description>
 ///   </item>
 /// </list>
@@ -55,5 +71,12 @@ public enum EmbeddingProvider
     /// LM Studio embedding provider using OpenAI-compatible /v1/embeddings endpoint.
     /// Default port: 1234
     /// </summary>
-    LMStudio
+    LMStudio,
+
+    /// <summary>
+    /// OpenAI cloud embedding provider using /v1/embeddings endpoint.
+    /// Requires API key (OPENAI_API_KEY environment variable or --openai-api-key).
+    /// Model: text-embedding-3-small (1536 dimensions)
+    /// </summary>
+    OpenAI
 }

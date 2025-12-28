@@ -29,12 +29,16 @@ public class CliOptions
     public string EmbeddingModel { get; init; } = "nomic-embed-text";
 
     [Option('p', "provider", Required = false, Default = EmbeddingProvider.LMStudio,
-        HelpText = "Embedding provider: 'ollama' or 'lmstudio' (default: lmstudio)")]
+        HelpText = "Embedding provider: 'ollama', 'lmstudio', or 'openai' (default: lmstudio)")]
     public EmbeddingProvider Provider { get; init; } = EmbeddingProvider.LMStudio;
 
     [Option("ollama-url", Required = false, Default = null,
         HelpText = "Provider endpoint URL (default: http://localhost:1234 for LMStudio, http://localhost:11434 for Ollama)")]
     public string? OllamaUrl { get; init; }
+
+    [Option("openai-api-key", Required = false, Default = null,
+        HelpText = "OpenAI API key (or set OPENAI_API_KEY environment variable)")]
+    public string? OpenAIApiKey { get; init; }
 
     /// <summary>
     /// Gets the effective endpoint URL based on provider and explicit URL.
@@ -44,16 +48,18 @@ public class CliOptions
     /// <list type="bullet">
     ///   <item><description>Ollama: http://localhost:11434</description></item>
     ///   <item><description>LM Studio: http://localhost:1234</description></item>
+    ///   <item><description>OpenAI: https://api.openai.com/v1</description></item>
     /// </list>
     /// <para>
     /// You can override the default with --ollama-url. The parameter name is kept for
-    /// backward compatibility but works for both providers.
+    /// backward compatibility but works for all providers.
     /// </para>
     /// </remarks>
     public string EffectiveUrl => OllamaUrl ?? Provider switch
     {
         EmbeddingProvider.Ollama => "http://localhost:11434",
         EmbeddingProvider.LMStudio => "http://localhost:1234",
+        EmbeddingProvider.OpenAI => "https://api.openai.com/v1",
         _ => "http://localhost:1234"
     };
 
@@ -85,6 +91,17 @@ public class CliOptions
             yield return
                 $"Invalid endpoint URL format '{EffectiveUrl}'. Must be a valid HTTP/HTTPS URL. " +
                 $"Use --ollama-url to override the default for {Provider}.";
+        }
+
+        // Validate OpenAI API key if provided
+        if (Provider == EmbeddingProvider.OpenAI)
+        {
+            if (!string.IsNullOrWhiteSpace(OpenAIApiKey) && !OpenAIApiKey.StartsWith("sk-"))
+            {
+                yield return
+                    $"OpenAI API key appears to be invalid (should start with 'sk-'). " +
+                    $"Please check your API key from https://platform.openai.com/api-keys";
+            }
         }
     }
 

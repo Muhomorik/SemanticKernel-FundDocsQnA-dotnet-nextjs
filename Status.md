@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-27
+Last Updated: 2025-12-28
 
 **Tech Stack:**
 
@@ -32,7 +32,7 @@ Last Updated: 2025-12-27
 |-----------|--------|-------|
 | Console Application | ✅ Complete | .NET 9 with CommandLineParser |
 | PdfPig Extraction | ✅ Complete | Word-based text extraction with smart chunking |
-| Embedding Generation | ✅ Complete | Supports Ollama and LM Studio |
+| Embedding Generation | ✅ Complete | Supports Ollama, LM Studio, and OpenAI |
 | OllamaEmbeddingService | ✅ Complete | With connection testing and error handling |
 | JSON Export | ✅ Complete | Structured format with id, text, embedding, source, page |
 | CLI Options | ✅ Complete | All parameters implemented and validated |
@@ -44,15 +44,17 @@ Last Updated: 2025-12-27
 - ✅ Extract text from PDFs using PdfPig
 - ✅ Generate embeddings using Ollama (nomic-embed-text)
 - ✅ Generate embeddings using LM Studio (OpenAI-compatible API)
+- ✅ Generate embeddings using OpenAI (text-embedding-3-small)
 - ✅ Export to JSON format
 - ✅ Append mode for incremental processing
 - ✅ Configurable chunking and models
 - ✅ Comprehensive error handling and logging
-- ✅ Provider abstraction (Ollama/LM Studio)
+- ✅ Provider abstraction (Ollama/LM Studio/OpenAI)
+- ✅ Secure API key management (environment variables + CLI args)
 
 ### Not Planned
 
-- ❌ Cloud embedding providers (Azure OpenAI, etc.)
+- ❌ Other cloud embedding providers (Azure OpenAI, etc.)
 
 ---
 
@@ -112,17 +114,6 @@ Last Updated: 2025-12-27
 - GitHub Actions - Automated CI/CD
 
 **Total Monthly Cost: ~$0.03**
-
-### ⚠️ Critical Prerequisite for Deployment
-
-**Preprocessor Update Required:** The Preprocessor must also be updated to use OpenAI embeddings (not Ollama or LM Studio) to ensure vector space compatibility between document and query embeddings. The backend now uses OpenAI `text-embedding-3-small` for query embeddings, so all document embeddings must be regenerated using the same model before deploying to production.
-
-**Action Required:**
-
-1. Update Preprocessor to use OpenAI embeddings API
-2. Regenerate all embeddings in `embeddings.json` using `text-embedding-3-small`
-3. Copy updated `embeddings.json` to `backend/Backend.API/Data/`
-4. Then proceed with Azure deployment
 
 ### Not Yet Implemented
 
@@ -278,9 +269,7 @@ Last Updated: 2025-12-27
 
 ### Preprocessor
 
-1. Ollama Vision extraction is incomplete (stub only)
-2. Large PDFs may take significant time to process
-3. No progress bar for long-running operations
+1. No progress bar for long-running operations
 
 ### Backend
 

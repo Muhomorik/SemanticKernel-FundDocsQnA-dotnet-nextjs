@@ -23,6 +23,22 @@ return result;
 
 static async Task<int> RunAsync(CliOptions cliOptions)
 {
+    // Resolve OpenAI API key with priority: CLI argument → Environment variable → Error
+    string? openAIApiKey = null;
+    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
+    {
+        openAIApiKey = cliOptions.OpenAIApiKey
+                       ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+        if (string.IsNullOrWhiteSpace(openAIApiKey))
+        {
+            Console.Error.WriteLine("ERROR: OpenAI provider requires an API key.");
+            Console.Error.WriteLine("Set via --openai-api-key or OPENAI_API_KEY environment variable.");
+            Console.Error.WriteLine("Get your API key from: https://platform.openai.com/api-keys");
+            return 1;
+        }
+    }
+
     // Build service collection
     var services = new ServiceCollection();
 
@@ -69,6 +85,15 @@ static async Task<int> RunAsync(CliOptions cliOptions)
                         .AsIEmbeddingGenerator();
                 });
                 break;
+
+            case EmbeddingProvider.OpenAI:
+                // Use OpenAI's text-embedding-3-small for production compatibility
+                #pragma warning disable SKEXP0010
+                builder.AddOpenAIEmbeddingGenerator(
+                    cliOptions.EmbeddingModel,
+                    openAIApiKey);
+                #pragma warning restore SKEXP0010
+                break;
         }
 
         return builder.Build();
@@ -103,6 +128,16 @@ static async Task<int> RunAsync(CliOptions cliOptions)
     logger.LogInformation("Provider: {Provider}", cliOptions.Provider);
     logger.LogInformation("Endpoint URL: {Url}", cliOptions.EffectiveUrl);
     logger.LogInformation("Embedding Model: {EmbeddingModel}", cliOptions.EmbeddingModel);
+
+    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
+    {
+        var maskedKey = openAIApiKey!.Length > 8
+            ? $"{openAIApiKey.Substring(0, 7)}...{openAIApiKey.Substring(openAIApiKey.Length - 4)}"
+            : "sk-****";
+        logger.LogInformation("OpenAI API Key: {ApiKey}", maskedKey);
+        var keySource = cliOptions.OpenAIApiKey != null ? "CLI argument" : "Environment variable";
+        logger.LogInformation("API Key Source: {Source}", keySource);
+    }
 
     var exitCode = await preprocessor.ProcessAsync(cliOptions);
 
