@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Source of truth for project status: [Status.md](Status.md)**
 
 Before starting any work:
+
 1. Review Status.md to understand what's implemented, in-progress, or planned
 2. During implementation: Update relevant status from ❌ to ⏳ (in progress)
 3. After completion: Update status to ✅ and document new features
@@ -34,6 +35,7 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 ## Build & Run Commands
 
 ### Preprocessor
+
 ```bash
 cd Preprocessor/Preprocessor
 
@@ -52,6 +54,7 @@ dotnet test Preprocessor.Tests/Preprocessor.Tests.csproj
 ```
 
 ### Backend
+
 ```bash
 cd backend
 
@@ -74,12 +77,14 @@ dotnet publish Backend.API/Backend.API.csproj --configuration Release --output .
 ```
 
 **API Endpoints:**
+
 - `POST /api/ask` - Ask a question (`{ "question": "..." }`)
 - `GET /health/live` - Liveness probe
 - `GET /health/ready` - Readiness probe
 - `GET /swagger` - API documentation (development only)
 
 ### Frontend
+
 ```bash
 cd frontend
 
@@ -108,6 +113,7 @@ npm run build
 ## Architecture
 
 ### Data Flow
+
 ```
 PDF Files → Preprocessor → embeddings.json → Backend → Frontend
                 ↓                              ↓
@@ -121,22 +127,26 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 ### Key Services
 
 **Backend:**
+
 - `MemoryService` - Loads embeddings.json, performs cosine similarity search
 - `QuestionAnsweringService` - Orchestrates embedding generation, retrieval, and LLM response
 - Uses Semantic Kernel with OpenAI embeddings (text-embedding-3-small) and Groq LLM (llama-3.3-70b-versatile)
 
 **Frontend:**
+
 - `ChatInterface` - Main orchestrator component managing messages, loading state, error handling
 - `lib/api.ts` - Type-safe API client for backend communication
 
 ### Configuration
 
 **Backend config** (`appsettings.json` / User Secrets / Environment Variables):
+
 - `BackendOptions:GroqApiKey` - Groq API key for LLM
 - `BackendOptions:OpenAIApiKey` - OpenAI API key for embeddings
 - `BackendOptions:EmbeddingsFilePath` - Path to embeddings.json (default: `Data/embeddings.json`)
 
 **Frontend config** (`.env.local`):
+
 - `NEXT_PUBLIC_API_URL` - Backend API URL
 
 ## Important Notes
