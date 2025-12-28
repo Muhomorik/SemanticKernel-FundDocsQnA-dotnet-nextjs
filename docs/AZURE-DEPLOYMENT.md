@@ -178,49 +178,42 @@ Set in Azure Portal → App Service → Configuration → Application settings:
 
 ### Health Check Configuration
 
-- **Path:** `/health/ready`
-- **Interval:** 30 seconds
-- **Unhealthy threshold:** 3 failures
+> **Note:** Health check probes are **NOT available on F1 Free tier**. The endpoints still work for manual testing:
 
-This is automatically configured by the setup script.
+- `/health/live` - Liveness probe (always returns 200)
+- `/health/ready` - Readiness probe (returns 200 if embeddings loaded)
 
-## Monitoring with Application Insights
+Health check monitoring requires B1 tier or higher.
 
-### Accessing Logs
+## Monitoring and F1 Tier Limitations
 
-1. Azure Portal → Application Insights → Your instance
-2. View:
-   - **Live Metrics** - Real-time performance
-   - **Failures** - Exceptions and failed requests
-   - **Performance** - Response times
-   - **Logs** - Query logs using KQL
+### App Service F1 Free Tier Limitations
 
-### Sample Queries
+The following App Service features are **NOT available** on F1 Free tier:
 
-```kql
-// Recent exceptions
-exceptions
-| where timestamp > ago(1h)
-| order by timestamp desc
+| Feature | F1 Free | B1 Basic ($13/mo) |
+|---------|---------|-------------------|
+| Health check probes | ❌ | ✅ |
+| Always On | ❌ | ✅ |
+| Custom domains | ❌ | ✅ |
+| SSL certificates | ❌ | ✅ |
+| Deployment slots | ❌ | ✅ |
+| CPU limit | 60 min/day | Unlimited |
+| RAM | 1 GB | 1.75 GB |
 
-// Slow requests
-requests
-| where duration > 5000
-| order by timestamp desc
+**What IS available on F1:**
+- ✅ Application Insights integration (separate service with own free tier)
+- ✅ Log streaming
+- ✅ Basic deployment via GitHub Actions
+- ✅ Managed Identity for Key Vault access
 
-// Embedding service calls
-dependencies
-| where name contains "OpenAI"
-| summarize count(), avg(duration) by resultCode
-```
+### Application Insights (Separate Service)
 
-### Staying Within Free Tier
+Application Insights is a **separate Azure service** (not part of App Service) with its own free tier (5GB/month). It works with App Service F1.
 
-The free tier includes 5GB data/month. To stay within limits:
+Access via: Azure Portal → Application Insights → `ai-funddocs`
 
-- Log level set to `Warning` in production
-- Sampling enabled for high-volume telemetry
-- Monitor usage: Application Insights → Usage and estimated costs
+**Free tier limit:** 5GB data ingestion per month. If exceeded, $2.30/GB after that.
 
 ## Updating Secrets
 
@@ -326,7 +319,6 @@ The Next.js frontend is deployed to Azure Static Web Apps, which provides:
 - Global CDN distribution
 - Free SSL certificates
 - Automatic deployments from GitHub
-- Preview environments for pull requests
 
 ### Configuration
 

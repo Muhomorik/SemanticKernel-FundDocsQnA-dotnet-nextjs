@@ -39,15 +39,18 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 ```bash
 cd Preprocessor/Preprocessor
 
-# Run with Ollama (requires Ollama running with embedding model)
-dotnet run -- --provider ollama -i ./pdfs -o ./output.json
-
-# Run with OpenAI
+# Run with OpenAI (default - requires OPENAI_API_KEY env var)
 $env:OPENAI_API_KEY = "sk-..."
-dotnet run -- --provider openai --embedding-model text-embedding-3-small -i ./pdfs -o ./output.json
+dotnet run
+
+# Run with Ollama (local, free)
+dotnet run -- --provider ollama --embedding-model nomic-embed-text
+
+# Custom input/output paths
+dotnet run -- -i ./custom/pdfs -o ./custom/embeddings.json
 
 # Append more PDFs to existing embeddings
-dotnet run -- -i ./new-pdfs -o ./output.json --append
+dotnet run -- -i ./new-pdfs --append
 
 # Run tests
 dotnet test Preprocessor.Tests/Preprocessor.Tests.csproj

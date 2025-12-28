@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-28 (CI/CD workflows added)
+Last Updated: 2025-12-28 (Azure resources deployed)
 
 **Tech Stack:**
 
@@ -338,7 +338,7 @@ Last Updated: 2025-12-28 (CI/CD workflows added)
 ### Planned ❌
 
 - [x] Production deployment setup (Azure resources + CI/CD workflows)
-- [ ] Actually deploy to production (run azure-setup.sh + push to main)
+- [x] Deploy to production (Azure resources created, embeddings generated, GitHub secrets configured)
 - [ ] Performance optimization
 - [ ] Advanced features (MCP, caching, etc.)
 
