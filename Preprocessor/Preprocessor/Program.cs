@@ -1,6 +1,7 @@
 using CommandLine;
 
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -23,17 +24,26 @@ return result;
 
 static async Task<int> RunAsync(CliOptions cliOptions)
 {
-    // Resolve OpenAI API key with priority: CLI argument → Environment variable → Error
+    // Build configuration for user secrets
+    var configuration = new ConfigurationBuilder()
+        .AddUserSecrets<Program>(optional: true)
+        .Build();
+
+    // Resolve OpenAI API key with priority: CLI argument → Environment variable → User secrets → Error
     string? openAIApiKey = null;
     if (cliOptions.Provider == EmbeddingProvider.OpenAI)
     {
         openAIApiKey = cliOptions.OpenAIApiKey
-                       ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+                       ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                       ?? configuration["OpenAIApiKey"];
 
         if (string.IsNullOrWhiteSpace(openAIApiKey))
         {
             Console.Error.WriteLine("ERROR: OpenAI provider requires an API key.");
-            Console.Error.WriteLine("Set via --openai-api-key or OPENAI_API_KEY environment variable.");
+            Console.Error.WriteLine("Set via one of:");
+            Console.Error.WriteLine("  1. --openai-api-key argument");
+            Console.Error.WriteLine("  2. OPENAI_API_KEY environment variable");
+            Console.Error.WriteLine("  3. User secrets: dotnet user-secrets set \"OpenAIApiKey\" \"sk-...\"");
             Console.Error.WriteLine("Get your API key from: https://platform.openai.com/api-keys");
             return 1;
         }
@@ -135,7 +145,11 @@ static async Task<int> RunAsync(CliOptions cliOptions)
             ? $"{openAIApiKey.Substring(0, 7)}...{openAIApiKey.Substring(openAIApiKey.Length - 4)}"
             : "sk-****";
         logger.LogInformation("OpenAI API Key: {ApiKey}", maskedKey);
-        var keySource = cliOptions.OpenAIApiKey != null ? "CLI argument" : "Environment variable";
+        var keySource = cliOptions.OpenAIApiKey != null
+            ? "CLI argument"
+            : Environment.GetEnvironmentVariable("OPENAI_API_KEY") != null
+                ? "Environment variable"
+                : "User secrets";
         logger.LogInformation("API Key Source: {Source}", keySource);
     }
 
