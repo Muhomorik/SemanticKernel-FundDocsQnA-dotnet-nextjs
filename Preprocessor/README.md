@@ -14,31 +14,31 @@ Convert PDFs into searchable embeddings (run once, or when adding new PDFs).
 
 All parameters have defaults. Just press F5 to debug:
 
-- Reads PDFs from `bin/Debug/net8.0/pdfs/`
-- Writes output to `bin/Debug/net8.0/output.json`
+- Reads PDFs from `pdfs/` (relative to working directory)
+- Writes output to `./embeddings.json`
 - Uses `pdfpig` extraction method
-- **Default provider: LM Studio** at `http://localhost:1234`
-- Use `--provider ollama` to switch to Ollama
+- **Default provider: OpenAI** with `text-embedding-3-small` model
+- Use `--provider ollama` or `--provider lmstudio` to switch to local providers
 
 Create a `pdfs` folder in your build output directory and add PDF files there.
 
 ## Prerequisites
 
-- .NET 8 SDK
-- **Embedding Provider**: Choose one (LM Studio is default for local development)
-  - LM Studio (default) - GUI-based, port 1234, free
+- .NET 9 SDK
+- **Embedding Provider**: Choose one (OpenAI is default for production compatibility)
+  - OpenAI (default) - Cloud-based, requires API key (~$0.02 per 1M tokens)
+  - LM Studio - GUI-based, port 1234, free
   - Ollama - CLI-based, port 11434, free
-  - OpenAI - Cloud-based, requires API key (~$0.02 per 1M tokens)
 
 ## Choosing a Provider
 
 | Provider | Port/URL | Best For | Endpoint | Cost |
 |----------|----------|----------|----------|------|
-| **LM Studio** (default) | 1234 | GUI workflows, visual model management, beginners | `/v1/embeddings` (OpenAI-compatible) | Free (local) |
+| **OpenAI** (default) | Cloud API | Production deployment, backend compatibility | `/v1/embeddings` (cloud) | ~$0.02 per 1M tokens |
+| **LM Studio** | 1234 | GUI workflows, visual model management, beginners | `/v1/embeddings` (OpenAI-compatible) | Free (local) |
 | **Ollama** | 11434 | CLI workflows, automation, servers | `/api/embed` (native) | Free (local) |
-| **OpenAI** | Cloud API | Production deployment, backend compatibility | `/v1/embeddings` (cloud) | ~$0.02 per 1M tokens |
 
-Use `--provider lmstudio` (default), `--provider ollama`, or `--provider openai` to select your provider.
+Use `--provider openai` (default), `--provider lmstudio`, or `--provider ollama` to select your provider.
 
 ⚠️ **CRITICAL:** OpenAI embeddings (1536 dimensions) are NOT compatible with Ollama/LM Studio embeddings (384 dimensions). When switching providers, you MUST regenerate ALL embeddings from scratch.
 
@@ -133,34 +133,34 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 |--------------------|-------|----------|---------------------------|--------------------------------|
 | `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
 | `--input`          | `-i`  | No       | `pdfs`                    | Folder with PDFs               |
-| `--output`         | `-o`  | No       | `output.json`             | Output JSON path               |
+| `--output`         | `-o`  | No       | `./embeddings.json`       | Output JSON path               |
 | `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
-| `--provider`       | `-p`  | No       | `lmstudio`                | `ollama`, `lmstudio`, or `openai` |
-| `--embedding-model`| -     | No       | `nomic-embed-text`        | Embedding model (use `text-embedding-3-small` for OpenAI) |
+| `--provider`       | `-p`  | No       | `openai`                  | `ollama`, `lmstudio`, or `openai` |
+| `--embedding-model`| -     | No       | `text-embedding-3-small`  | Embedding model (use `nomic-embed-text` for local providers) |
 | `--ollama-url`     | -     | No       | Auto (provider-based)     | Provider endpoint override     |
 | `--openai-api-key` | -     | No       | `null`                    | OpenAI API key (or set `OPENAI_API_KEY` env var) |
 
 ## Usage
 
 ```bash
-# LM Studio (default provider - local, free)
-dotnet run --project Preprocessor -- -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
-
-# Ollama (explicit provider selection - local, free)
-dotnet run --project Preprocessor -- --provider ollama -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
-
-# OpenAI (cloud provider - for production deployment)
+# OpenAI (default provider - production compatible)
 # Set API key first: $env:OPENAI_API_KEY = "sk-..."
-dotnet run --project Preprocessor -- --provider openai --embedding-model text-embedding-3-small -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+dotnet run
 
-# OpenAI with inline API key (not recommended - use environment variable instead)
-dotnet run --project Preprocessor -- --provider openai --openai-api-key "sk-..." --embedding-model text-embedding-3-small -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+# LM Studio (local, free)
+dotnet run -- --provider lmstudio --embedding-model nomic-embed-text
+
+# Ollama (local, free)
+dotnet run -- --provider ollama --embedding-model nomic-embed-text
+
+# Custom input/output paths
+dotnet run -- -i ./custom/pdfs -o ./custom/embeddings.json
 
 # Append to existing file
-dotnet run --project Preprocessor -- -i ./new-pdfs -o ./Preprocessor/output/embeddings.json --append
+dotnet run -- -i ./new-pdfs --append
 
 # Override default provider URL
-dotnet run --project Preprocessor -- --provider lmstudio --ollama-url http://localhost:8080 -i ./Preprocessor/pdfs -o ./Preprocessor/output/embeddings.json
+dotnet run -- --provider lmstudio --ollama-url http://localhost:8080
 ```
 
 ### Production Deployment Workflow
