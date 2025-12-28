@@ -12,8 +12,8 @@ env:
   NODE_VERSION: "20.x"
 
 jobs:
-  backend-checks:
-    name: Backend - Build & Test
+  build-and-deploy:
+    name: build-and-deploy
     runs-on: ubuntu-latest
 
     steps:
