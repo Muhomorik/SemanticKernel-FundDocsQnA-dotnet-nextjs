@@ -14,6 +14,28 @@ This deployment uses:
 
 **Total Cost: ~$0.03/month**
 
+## ✅ Production Deployment Prerequisites
+
+**Before deploying to production:**
+
+1. ✅ Update Preprocessor to use OpenAI embeddings API (COMPLETED - 2025-12-28)
+2. ⚠️ Regenerate all embeddings in `embeddings.json` using `text-embedding-3-small`
+3. ⚠️ Copy updated `embeddings.json` to `backend/Backend.API/Data/`
+4. ⚠️ Deploy to Azure with updated embeddings
+
+**Command to regenerate embeddings:**
+```bash
+# Set OpenAI API key
+$env:OPENAI_API_KEY = "sk-..."
+
+# Generate embeddings with OpenAI
+cd Preprocessor
+dotnet run -- --provider openai --embedding-model text-embedding-3-small -i ./pdfs -o ./embeddings.json
+
+# Copy to backend
+cp ./embeddings.json ../backend/Backend.API/Data/embeddings.json
+```
+
 ## Prerequisites
 
 ### Required Tools

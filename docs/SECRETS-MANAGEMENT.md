@@ -166,7 +166,7 @@ Required for CI/CD deployment via GitHub Actions.
 
 ## Preprocessor CLI Options
 
-The Preprocessor has no secrets - all configuration is via command-line arguments.
+The Preprocessor supports OpenAI embeddings for production use. For OpenAI, the API key should be set via environment variable.
 
 | Argument | Short | Default | Description |
 |----------|-------|---------|-------------|
@@ -174,25 +174,46 @@ The Preprocessor has no secrets - all configuration is via command-line argument
 | `--input` | `-i` | `pdfs` | Input directory with PDF files |
 | `--output` | `-o` | `output.json` | Output JSON file path |
 | `--append` | `-a` | `false` | Append to existing output file |
-| `--provider` | `-p` | `lmstudio` | Embedding provider (`ollama` or `lmstudio`) |
-| `--embedding-model` | - | `nomic-embed-text` | Embedding model name |
+| `--provider` | `-p` | `lmstudio` | Embedding provider (`ollama`, `lmstudio`, or `openai`) |
+| `--embedding-model` | - | `nomic-embed-text` | Embedding model name (use `text-embedding-3-small` for OpenAI) |
 | `--ollama-url` | - | Auto-detect | Provider endpoint URL override |
+| `--openai-api-key` | - | `null` | OpenAI API key (or set `OPENAI_API_KEY` env var) |
 
 ### Provider Defaults
 
-| Provider | Default URL | API Endpoint |
-|----------|-------------|--------------|
-| LM Studio | `http://localhost:1234` | `/v1/embeddings` (OpenAI-compatible) |
-| Ollama | `http://localhost:11434` | `/api/embed` (native) |
+| Provider | Default URL | API Endpoint | Cost |
+|----------|-------------|--------------|------|
+| LM Studio | `http://localhost:1234` | `/v1/embeddings` (OpenAI-compatible) | Free (local) |
+| Ollama | `http://localhost:11434` | `/api/embed` (native) | Free (local) |
+| OpenAI | `https://api.openai.com/v1` | `/v1/embeddings` (cloud) | ~$0.02 per 1M tokens |
+
+### OpenAI API Key Setup
+
+**For production embedding generation:**
+
+```bash
+# Windows (PowerShell)
+$env:OPENAI_API_KEY = "sk-..."
+
+# Linux/macOS
+export OPENAI_API_KEY="sk-..."
+```
 
 ### Example Usage
 
 ```bash
-# Using LM Studio (default)
+# Using LM Studio (default - local, free)
 dotnet run --project Preprocessor -- -i ./pdfs -o ./output.json
 
-# Using Ollama
+# Using Ollama (local, free)
 dotnet run --project Preprocessor -- --provider ollama -i ./pdfs -o ./output.json
+
+# Using OpenAI (cloud, production - set API key first)
+$env:OPENAI_API_KEY = "sk-..."
+dotnet run --project Preprocessor -- --provider openai --embedding-model text-embedding-3-small -i ./pdfs -o ./output.json
+
+# OpenAI with inline API key (not recommended)
+dotnet run --project Preprocessor -- --provider openai --openai-api-key "sk-..." --embedding-model text-embedding-3-small -i ./pdfs -o ./output.json
 
 # Custom provider URL
 dotnet run --project Preprocessor -- --ollama-url http://localhost:8080 -i ./pdfs -o ./output.json
