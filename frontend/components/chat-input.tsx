@@ -42,10 +42,10 @@ export function ChatInput({ onSubmit, isLoading, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Ask a question about your documents..."
           disabled={isLoading || disabled}
-          className="min-h-14 resize-none border-0 bg-transparent px-4 py-4 pr-14 text-base shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
+          className="placeholder:text-muted-foreground/60 min-h-14 resize-none border-0 bg-transparent px-4 py-4 pr-14 text-base shadow-none focus-visible:ring-0"
           rows={1}
         />
-        <div className="absolute bottom-2 right-2">
+        <div className="absolute right-2 bottom-2">
           <Button
             type="submit"
             disabled={!canSubmit}
@@ -53,10 +53,7 @@ export function ChatInput({ onSubmit, isLoading, disabled }: ChatInputProps) {
             className="bg-primary hover:bg-primary/90 disabled:bg-muted h-10 w-10 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50"
           >
             {isLoading ? (
-              <Loader2
-                className="h-4.5 w-4.5 animate-spin"
-                strokeWidth={2}
-              />
+              <Loader2 className="h-4.5 w-4.5 animate-spin" strokeWidth={2} />
             ) : (
               <ArrowUp className="h-4.5 w-4.5" strokeWidth={2} />
             )}

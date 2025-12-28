@@ -88,8 +88,8 @@ describe('Home Page', () => {
 
 ## Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
+| Variable              | Purpose                  | Default                 |
+| --------------------- | ------------------------ | ----------------------- |
 | `NEXT_PUBLIC_API_URL` | Backend API endpoint URL | `http://localhost:5000` |
 
 Configure in `.env.local`:

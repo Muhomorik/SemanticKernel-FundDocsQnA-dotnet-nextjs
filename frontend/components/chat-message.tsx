@@ -27,9 +27,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-warm/10 text-warm"
+          isUser ? "bg-primary text-primary-foreground" : "bg-warm/10 text-warm"
         )}
       >
         {isUser ? (
@@ -55,7 +53,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               : "bg-card border-border/50 text-card-foreground rounded-bl-md border"
           )}
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {message.content}
           </p>
         </div>
@@ -70,7 +68,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
               >
                 <FileText className="h-3 w-3" strokeWidth={1.5} />
                 <span className="max-w-32 truncate">{source.file}</span>
-                <span className="text-muted-foreground/60">p.{source.page}</span>
+                <span className="text-muted-foreground/60">
+                  p.{source.page}
+                </span>
               </span>
             ))}
           </div>

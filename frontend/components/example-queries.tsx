@@ -85,7 +85,7 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
             disabled={disabled}
             className={cn(
               "animate-fade-up rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200",
-              "border hover:border-border/80",
+              "hover:border-border/80 border",
               activeCategory === category.title
                 ? "border-primary/30 bg-primary/10 text-primary"
                 : "border-border/40 bg-card text-muted-foreground hover:text-foreground",
@@ -111,7 +111,8 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
             )}
           >
             <div className="overflow-hidden">
-              {(activeCategory === null || activeCategory === category.title) && (
+              {(activeCategory === null ||
+                activeCategory === category.title) && (
                 <div className="flex flex-wrap justify-center gap-2">
                   {category.queries
                     .slice(0, activeCategory === category.title ? undefined : 2)

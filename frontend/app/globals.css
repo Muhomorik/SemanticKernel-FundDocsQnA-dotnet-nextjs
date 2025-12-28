@@ -42,22 +42,22 @@
 
   /* Warm cream/stone palette for light mode */
   --background: oklch(0.985 0.005 80);
-  --foreground: oklch(0.20 0.02 50);
+  --foreground: oklch(0.2 0.02 50);
 
   --card: oklch(0.995 0.003 80);
-  --card-foreground: oklch(0.20 0.02 50);
+  --card-foreground: oklch(0.2 0.02 50);
 
   --popover: oklch(0.995 0.003 80);
-  --popover-foreground: oklch(0.20 0.02 50);
+  --popover-foreground: oklch(0.2 0.02 50);
 
   --primary: oklch(0.35 0.04 50);
   --primary-foreground: oklch(0.98 0.005 80);
 
   --secondary: oklch(0.96 0.008 80);
-  --secondary-foreground: oklch(0.30 0.03 50);
+  --secondary-foreground: oklch(0.3 0.03 50);
 
   --muted: oklch(0.94 0.008 80);
-  --muted-foreground: oklch(0.50 0.02 50);
+  --muted-foreground: oklch(0.5 0.02 50);
 
   --accent: oklch(0.92 0.01 80);
   --accent-foreground: oklch(0.25 0.025 50);
@@ -67,7 +67,7 @@
 
   --destructive: oklch(0.55 0.22 25);
 
-  --border: oklch(0.90 0.01 80);
+  --border: oklch(0.9 0.01 80);
   --input: oklch(0.92 0.008 80);
   --ring: oklch(0.45 0.05 50);
 }
@@ -87,7 +87,7 @@
   --primary-foreground: oklch(0.15 0.01 50);
 
   --secondary: oklch(0.22 0.015 50);
-  --secondary-foreground: oklch(0.90 0.01 80);
+  --secondary-foreground: oklch(0.9 0.01 80);
 
   --muted: oklch(0.22 0.012 50);
   --muted-foreground: oklch(0.65 0.02 80);
@@ -95,14 +95,14 @@
   --accent: oklch(0.25 0.015 50);
   --accent-foreground: oklch(0.92 0.01 80);
 
-  --warm: oklch(0.65 0.10 45);
+  --warm: oklch(0.65 0.1 45);
   --warm-foreground: oklch(0.12 0.01 50);
 
-  --destructive: oklch(0.65 0.20 25);
+  --destructive: oklch(0.65 0.2 25);
 
   --border: oklch(0.26 0.015 50);
   --input: oklch(0.24 0.012 50);
-  --ring: oklch(0.60 0.04 80);
+  --ring: oklch(0.6 0.04 80);
 }
 
 @layer base {
@@ -188,8 +188,12 @@
   }
 
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes scale-in {
@@ -215,10 +219,22 @@
   }
 
   /* Stagger animation delays */
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
-  .stagger-6 { animation-delay: 300ms; }
+  .stagger-1 {
+    animation-delay: 50ms;
+  }
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+  .stagger-3 {
+    animation-delay: 150ms;
+  }
+  .stagger-4 {
+    animation-delay: 200ms;
+  }
+  .stagger-5 {
+    animation-delay: 250ms;
+  }
+  .stagger-6 {
+    animation-delay: 300ms;
+  }
 }
