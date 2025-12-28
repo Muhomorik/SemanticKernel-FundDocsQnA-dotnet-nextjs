@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-28
+Last Updated: 2025-12-28 (CI/CD workflows added)
 
 **Tech Stack:**
 
@@ -207,20 +207,22 @@ Last Updated: 2025-12-28
 | Local Development | ✅ Working | Preprocessor and Backend run locally |
 | OpenAI API | ✅ Configured | For query embeddings (text-embedding-3-small) |
 | Groq API | ✅ Configured | Free tier LLM (llama-3.3-70b-versatile) |
-| Azure App Service | ✅ Ready | Setup script and deployment guide complete |
+| Azure App Service | ✅ Ready | Backend API hosting (F1 Free tier) |
+| Azure Static Web Apps | ✅ Ready | Frontend hosting (Free tier) |
 | Application Insights | ✅ Ready | Monitoring configured (free tier) |
 | Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
-| CI/CD | ✅ Complete | GitHub Actions workflow configured |
+| CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
 
 ### Deployment Setup Complete
 
 - ✅ Backend → Azure App Service (F1 Free tier)
-- ✅ GitHub Actions → Automated CI/CD
+- ✅ Frontend → Azure Static Web Apps (Free tier)
+- ✅ GitHub Actions → Automated CI/CD (3 workflows)
+- ✅ PR Checks → Automated lint, test, build validation
 - ✅ Azure Key Vault → Production secrets
 - ✅ Application Insights → Monitoring and telemetry
 - ✅ Health checks → Liveness and readiness probes
-- ⏳ Frontend → Ready for deployment (needs Azure Static Web Apps or App Service setup)
 
 ---
 
@@ -260,7 +262,7 @@ Last Updated: 2025-12-28
 | Backend README | ✅ Complete | `backend/README.md` |
 | Frontend README | ✅ Complete | `frontend/README.md` |
 | API Documentation | ✅ Complete | Swagger UI at `/swagger` |
-| Deployment Guide | ❌ Not Created | - |
+| Deployment Guide | ✅ Complete | `docs/AZURE-DEPLOYMENT.md` |
 | Status Tracker | ✅ Complete | This file |
 
 ---
@@ -291,9 +293,9 @@ Last Updated: 2025-12-28
 
 ### Immediate Priorities
 
-1. **Deploy Backend to Azure** (Ready to deploy - see backend/docs/AZURE-DEPLOYMENT.md)
-   - Run azure-setup.sh to create Azure resources
-   - Configure GitHub Secrets
+1. ✅ **Azure Deployment Setup Complete** (see docs/AZURE-DEPLOYMENT.md)
+   - Run `./azure-setup.sh` to create Azure resources
+   - Configure GitHub Secrets and Variables
    - Push to main branch to trigger deployment
 2. ⏳ Write unit tests for Backend services and controllers
 3. ✅ Create Next.js frontend application
@@ -335,7 +337,8 @@ Last Updated: 2025-12-28
 
 ### Planned ❌
 
-- [ ] Production deployment
+- [x] Production deployment setup (Azure resources + CI/CD workflows)
+- [ ] Actually deploy to production (run azure-setup.sh + push to main)
 - [ ] Performance optimization
 - [ ] Advanced features (MCP, caching, etc.)
 

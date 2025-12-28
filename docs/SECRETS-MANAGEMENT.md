@@ -25,7 +25,14 @@
 
 | Secret | Purpose | Required |
 |--------|---------|----------|
-| `AZURE_WEBAPP_PUBLISH_PROFILE` | Azure App Service deployment credentials | Yes |
+| `AZURE_WEBAPP_PUBLISH_PROFILE` | Azure App Service deployment credentials | Yes (Backend) |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Azure Static Web Apps deployment token | Yes (Frontend) |
+
+### GitHub Variables (CI/CD)
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL for frontend builds | Yes (Frontend) |
 
 ---
 
@@ -161,6 +168,55 @@ Required for CI/CD deployment via GitHub Actions.
 3. Click **New repository secret**
 4. Name: `AZURE_WEBAPP_PUBLISH_PROFILE`
 5. Value: Paste the entire contents of the `.PublishSettings` file
+
+### AZURE_STATIC_WEB_APPS_API_TOKEN
+
+**Purpose:** Deployment token for Azure Static Web Apps (frontend)
+
+**How to get:**
+
+Option 1 - From azure-setup.sh:
+
+- Run `./azure-setup.sh` and copy the token from the output
+
+Option 2 - From Azure Portal:
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to your Static Web App
+3. Go to **Manage deployment token**
+4. Copy the token
+
+Option 3 - From Azure CLI:
+
+```bash
+az staticwebapp secrets list \
+  --name "funddocs-frontend" \
+  --resource-group "rg-funddocs-backend" \
+  --query "properties.apiKey" -o tsv
+```
+
+**How to set:**
+
+1. Go to your GitHub repository
+2. Settings → Secrets and variables → Actions
+3. Click **New repository secret**
+4. Name: `AZURE_STATIC_WEB_APPS_API_TOKEN`
+5. Value: Paste the token
+
+### NEXT_PUBLIC_API_URL (GitHub Variable)
+
+**Purpose:** Backend API URL used during frontend builds
+
+**Value:** `https://funddocs-backend-api.azurewebsites.net`
+
+**How to set:**
+
+1. Go to your GitHub repository
+2. Settings → Secrets and variables → Actions
+3. Click **Variables** tab
+4. Click **New repository variable**
+5. Name: `NEXT_PUBLIC_API_URL`
+6. Value: Your backend API URL
 
 ---
 

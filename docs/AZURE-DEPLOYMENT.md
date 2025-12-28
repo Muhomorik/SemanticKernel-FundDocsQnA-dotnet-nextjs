@@ -1,14 +1,23 @@
 # Azure Deployment Guide
 
-Complete guide for deploying the Backend API to Azure App Service with zero-cost hosting using the F1 free tier.
+Complete guide for deploying the full-stack application (Backend API + Frontend) to Azure with zero-cost hosting.
 
 ## Overview
 
 This deployment uses:
 
+**Backend:**
+
 - **Azure App Service (F1 Free tier)** - ~$0/month
 - **Application Insights (Free tier)** - ~$0/month (5GB data/month)
 - **Azure Key Vault** - ~$0.03/month
+
+**Frontend:**
+
+- **Azure Static Web Apps (Free tier)** - $0/month
+
+**External Services:**
+
 - **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
 - **Groq LLM** - $0/month (free tier)
 
@@ -70,6 +79,8 @@ chmod +x azure-setup.sh
 
 The script will create:
 
+**Backend Resources:**
+
 - Resource Group
 - App Service Plan (F1 Free tier)
 - App Service (Linux, .NET 9)
@@ -77,21 +88,30 @@ The script will create:
 - Application Insights
 - Key Vault with secrets
 
-**Important:** Save the App Service name and Key Vault name from the output!
+**Frontend Resources:**
 
-### Step 3: Configure GitHub Secrets
+- Static Web App (Free tier)
 
-1. **Download Publish Profile:**
-   - Go to [Azure Portal](https://portal.azure.com)
-   - Navigate to App Services → Your App → Get publish profile
-   - Save the downloaded `.PublishSettings` file
+**Important:** The script outputs the deployment token and URLs needed for GitHub configuration!
 
-2. **Add GitHub Secret:**
-   - Go to your GitHub repository
-   - Settings → Secrets and variables → Actions
-   - Click "New repository secret"
-   - Name: `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - Value: Paste contents of the publish profile file
+### Step 3: Configure GitHub Secrets and Variables
+
+#### GitHub Secrets
+
+Go to your GitHub repository → Settings → Secrets and variables → Actions → **Secrets tab**
+
+| Secret Name | How to Get |
+|-------------|------------|
+| `AZURE_WEBAPP_PUBLISH_PROFILE` | Azure Portal → App Services → Your App → Get publish profile → Paste entire file contents |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Copied from `azure-setup.sh` output |
+
+#### GitHub Variables
+
+Go to your GitHub repository → Settings → Secrets and variables → Actions → **Variables tab**
+
+| Variable Name | Value |
+|---------------|-------|
+| `NEXT_PUBLIC_API_URL` | `https://funddocs-backend-api.azurewebsites.net` |
 
 ### Step 4: Prepare Embeddings
 
@@ -124,23 +144,24 @@ Monitor the deployment:
 
 ### Step 6: Verify Deployment
 
-Test the health endpoints:
+**Backend Health Checks:**
 
 ```bash
-# Replace with your actual app name
-APP_NAME="funddocs-backend-api"
-
 # Liveness probe (should return 200)
-curl https://$APP_NAME.azurewebsites.net/health/live
+curl https://funddocs-backend-api.azurewebsites.net/health/live
 
 # Readiness probe (should return 200 if embeddings loaded)
-curl https://$APP_NAME.azurewebsites.net/health/ready
+curl https://funddocs-backend-api.azurewebsites.net/health/ready
 
 # Test Q&A endpoint
-curl -X POST https://$APP_NAME.azurewebsites.net/api/ask \
+curl -X POST https://funddocs-backend-api.azurewebsites.net/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"What is this about?"}'
 ```
+
+**Frontend:**
+
+Open your Static Web App URL in a browser: `https://funddocs-frontend.azurestaticapps.net`
 
 ## Azure App Service Configuration
 
@@ -296,6 +317,51 @@ az webapp log tail \
 2. Environment is NOT Development (AI only enabled in Production)
 3. Check for ingestion errors in Application Insights
 
+## Frontend Deployment (Azure Static Web Apps)
+
+### Overview
+
+The Next.js frontend is deployed to Azure Static Web Apps, which provides:
+
+- Global CDN distribution
+- Free SSL certificates
+- Automatic deployments from GitHub
+- Preview environments for pull requests
+
+### Configuration
+
+The Next.js application uses static export mode for Azure Static Web Apps compatibility:
+
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  output: "export",
+  images: { unoptimized: true },
+  trailingSlash: true,
+};
+```
+
+### Environment Variables
+
+| Variable | Purpose | Where to Set |
+|----------|---------|--------------|
+| `NEXT_PUBLIC_API_URL` | Backend API endpoint | GitHub Repository Variables |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Deployment token | GitHub Repository Secrets |
+
+### Manual Deployment (Optional)
+
+```bash
+# Build locally
+cd frontend
+npm run build
+
+# Deploy using SWA CLI
+npm install -g @azure/static-web-apps-cli
+swa deploy ./out --deployment-token <YOUR_TOKEN>
+```
+
+---
+
 ## Cost Optimization
 
 ### Current Setup (Free/Low Cost)
@@ -303,6 +369,7 @@ az webapp log tail \
 | Resource | Tier | Monthly Cost |
 |----------|------|--------------|
 | App Service F1 | Free | $0 |
+| Static Web Apps | Free | $0 |
 | Application Insights | Free (5GB) | $0 |
 | Key Vault | Standard | ~$0.03 |
 | OpenAI Embeddings | Pay-per-use | ~$0.003 |
@@ -326,19 +393,27 @@ az webapp log tail \
 
 ## Continuous Deployment
 
+### GitHub Workflows
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| Deploy Backend | `deploy-backend.yml` | Push to main (`backend/**`) | Deploy API to App Service |
+| Deploy Frontend | `deploy-frontend.yml` | Push to main (`frontend/**`) | Deploy to Static Web Apps |
+| PR Checks | `pr-checks.yml` | Pull requests | Lint, test, build verification |
+
 ### Automatic Deployments
 
-GitHub Actions automatically deploys on:
+GitHub Actions automatically deploys on push to `main` branch:
 
-- Push to `main` branch
-- Changes in `backend/**` directory
+- **Backend:** Changes in `backend/**` trigger `deploy-backend.yml`
+- **Frontend:** Changes in `frontend/**` trigger `deploy-frontend.yml`
 
 ### Manual Deployment
 
 Trigger manually from GitHub:
 
 1. Go to Actions tab
-2. Select "Deploy Backend to Azure"
+2. Select the desired workflow (Backend or Frontend)
 3. Click "Run workflow"
 4. Select branch and run
 
@@ -365,13 +440,10 @@ To rollback to a previous version:
    - Monitor F1 tier limitations
    - Upgrade to B1 if cold starts are problematic
 
-4. **Update Preprocessor:**
-   - Ensure it uses OpenAI embeddings
-   - Regenerate all embeddings before production use
-
 ## Additional Resources
 
 - [Azure App Service Documentation](https://docs.microsoft.com/azure/app-service/)
+- [Azure Static Web Apps Documentation](https://docs.microsoft.com/azure/static-web-apps/)
 - [Application Insights Overview](https://docs.microsoft.com/azure/azure-monitor/app/app-insights-overview)
 - [Azure Key Vault Quickstart](https://docs.microsoft.com/azure/key-vault/general/quick-create-cli)
 - [GitHub Actions for Azure](https://docs.microsoft.com/azure/developer/github/github-actions)

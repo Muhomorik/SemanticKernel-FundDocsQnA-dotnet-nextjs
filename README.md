@@ -140,17 +140,38 @@ Deploy to Azure with near-zero cost (~$0.03/month):
 | Resource | Tier | Cost |
 |----------|------|------|
 | Azure App Service | F1 Free | $0 |
+| Azure Static Web Apps | Free | $0 |
 | Application Insights | Free (5GB) | $0 |
 | Azure Key Vault | Standard | ~$0.03 |
 | OpenAI Embeddings | Pay-per-use | ~$0.003 |
 | Groq LLM | Free tier | $0 |
 
+### Quick Deploy
+
 ```bash
-./azure-setup.sh  # Creates Azure resources
-git push origin main  # Triggers CI/CD deployment
+# 1. Create Azure resources (backend + frontend)
+./azure-setup.sh
+
+# 2. Add secrets to GitHub (from script output)
+#    - AZURE_WEBAPP_PUBLISH_PROFILE
+#    - AZURE_STATIC_WEB_APPS_API_TOKEN
+
+# 3. Add variable to GitHub
+#    - NEXT_PUBLIC_API_URL
+
+# 4. Push to main - triggers automatic deployment
+git push origin main
 ```
 
-See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for details.
+### GitHub Workflows
+
+| Workflow | Purpose |
+|----------|---------|
+| `deploy-backend.yml` | Deploy backend to Azure App Service |
+| `deploy-frontend.yml` | Deploy frontend to Azure Static Web Apps |
+| `pr-checks.yml` | Run tests and checks on pull requests |
+
+See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentation.
 
 ---
 
@@ -174,7 +195,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for details.
 | **Preprocessor** | .NET 9, PdfPig, Semantic Kernel, Ollama/LM Studio |
 | **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq |
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
-| **Infrastructure** | Azure App Service, Key Vault, Application Insights |
+| **Infrastructure** | Azure App Service, Static Web Apps, Key Vault, Application Insights |
 
 ---
 
