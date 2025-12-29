@@ -1,6 +1,20 @@
-@Backend.API_HostAddress = http://localhost:5094
+@Backend.API_HostAddress = http://localhost:5000
 
-GET {{Backend.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### POST /api/ask - Ask a question about PDF documents
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What is the risk level of Spiltan Globalfond?"
+}
 
 ###
+
+### GET /health/live - Liveness probe
+GET {{Backend.API_HostAddress}}/health/live
+
+###
+
+### GET /health/ready - Readiness probe
+GET {{Backend.API_HostAddress}}/health/ready
+

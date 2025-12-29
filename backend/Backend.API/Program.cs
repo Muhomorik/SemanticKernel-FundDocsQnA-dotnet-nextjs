@@ -106,51 +106,63 @@ builder.Services.AddSingleton(backendOptions);
 // ========================================
 // 3. Semantic Kernel Configuration
 // ========================================
-var kernelBuilder = Kernel.CreateBuilder();
+// Only initialize Semantic Kernel if API keys are configured
+// This allows the app to start without keys (health endpoints work, but /api/ask won't)
+var hasApiKeys = !string.IsNullOrWhiteSpace(backendOptions.GroqApiKey) &&
+                 !string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey);
 
-// Configure OpenAI for embeddings generation
-// IMPORTANT: Must use the same model as the Preprocessor for vector space compatibility
-// Using text-embedding-3-small for cost-effective embeddings (~$0.02 per 1M tokens)
+if (hasApiKeys)
+{
+    var kernelBuilder = Kernel.CreateBuilder();
+
+    // Configure OpenAI for embeddings generation
+    // IMPORTANT: Must use the same model as the Preprocessor for vector space compatibility
+    // Using text-embedding-3-small for cost-effective embeddings (~$0.02 per 1M tokens)
 #pragma warning disable SKEXP0010
-kernelBuilder.AddOpenAIEmbeddingGenerator(
-    backendOptions.OpenAIEmbeddingModel,
-    backendOptions.OpenAIApiKey);
+    kernelBuilder.AddOpenAIEmbeddingGenerator(
+        backendOptions.OpenAIEmbeddingModel,
+        backendOptions.OpenAIApiKey);
 #pragma warning restore SKEXP0010
 
-// Configure Groq for chat completion (LLM)
-// Groq provides OpenAI-compatible API, so we use AddOpenAIChatCompletion
-// with a custom HttpClient pointing to Groq's endpoint
-var groqHttpClient = new HttpClient
-{
-    BaseAddress = new Uri(backendOptions.GroqApiUrl)
-};
+    // Configure Groq for chat completion (LLM)
+    // Groq provides OpenAI-compatible API, so we use AddOpenAIChatCompletion
+    // with a custom HttpClient pointing to Groq's endpoint
+    var groqHttpClient = new HttpClient
+    {
+        BaseAddress = new Uri(backendOptions.GroqApiUrl)
+    };
 
-kernelBuilder.AddOpenAIChatCompletion(
-    backendOptions.GroqModel,
-    backendOptions.GroqApiKey,
-    httpClient: groqHttpClient);
+    kernelBuilder.AddOpenAIChatCompletion(
+        backendOptions.GroqModel,
+        backendOptions.GroqApiKey,
+        httpClient: groqHttpClient);
 
-// Build the kernel and register it as a singleton
-var kernel = kernelBuilder.Build();
-builder.Services.AddSingleton(kernel);
+    // Build the kernel and register it as a singleton
+    var kernel = kernelBuilder.Build();
+    builder.Services.AddSingleton(kernel);
 
-// Extract and register the embedding service separately
-// MemoryService needs direct access to IEmbeddingGenerator
-// to generate embeddings for search queries
-builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
-{
-    var k = sp.GetRequiredService<Kernel>();
-    return k.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
-});
+    // Extract and register the embedding service separately
+    // MemoryService needs direct access to IEmbeddingGenerator
+    // to generate embeddings for search queries
+    builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+    {
+        var k = sp.GetRequiredService<Kernel>();
+        return k.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+    });
+}
 
 // ========================================
 // 4. Application Services Registration
 // ========================================
-// MemoryService: Loads embeddings.json and performs semantic search
-builder.Services.AddSingleton<IMemoryService, MemoryService>();
+// Only register AI-dependent services if API keys are configured
+if (hasApiKeys)
+{
+    // MemoryService: Loads embeddings.json and performs semantic search
+    builder.Services.AddSingleton<IMemoryService, MemoryService>();
 
-// QuestionAnsweringService: Orchestrates search + LLM to answer questions
-builder.Services.AddSingleton<IQuestionAnsweringService, QuestionAnsweringService>();
+    // QuestionAnsweringService: Orchestrates search + LLM to answer questions
+    builder.Services.AddSingleton<IQuestionAnsweringService, QuestionAnsweringService>();
+}
 
 // ========================================
 // 5. ASP.NET Core Services Configuration
@@ -162,27 +174,40 @@ builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
 // Health Checks
-builder.Services.AddHealthChecks()
-    .AddCheck<MemoryServiceHealthCheck>(
+var healthChecksBuilder = builder.Services.AddHealthChecks();
+if (hasApiKeys)
+{
+    healthChecksBuilder.AddCheck<MemoryServiceHealthCheck>(
         "memory_service",
-        tags: new[] { "ready" })
-    .AddCheck<GroqApiHealthCheck>(
-        "groq_api",
         tags: new[] { "ready" });
+}
 
-// Swagger/OpenAPI for API documentation
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger/OpenAPI for API documentation (Development only)
+// Note: Registered only in Development to avoid Microsoft.OpenApi version conflicts in production
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+}
 
-// CORS configuration for Next.js frontend
-// Allows requests from localhost:3000 (Next.js dev) and localhost:3001 (alternative port)
+// CORS configuration for frontend
+// Origins configured via appsettings.json or Azure App Service Configuration (BackendOptions__AllowedOrigins__0, etc.)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        if (backendOptions.AllowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(backendOptions.AllowedOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
+        else
+        {
+            // No origins configured - block all cross-origin requests
+            policy.AllowAnyMethod()
+                .AllowAnyHeader();
+        }
     });
 });
 
@@ -192,21 +217,30 @@ var app = builder.Build();
 // 6. Initialize Memory Service
 // ========================================
 // Load embeddings on startup (fail fast if there are configuration issues)
-try
+if (hasApiKeys)
 {
-    var memoryService = app.Services.GetRequiredService<IMemoryService>();
-    await memoryService.InitializeAsync();
-    Console.WriteLine($"✓ Memory service initialized with {memoryService.GetEmbeddingCount()} embeddings");
+    try
+    {
+        var memoryService = app.Services.GetRequiredService<IMemoryService>();
+        await memoryService.InitializeAsync();
+        Console.WriteLine($"✓ Memory service initialized with {memoryService.GetEmbeddingCount()} embeddings");
+    }
+    catch (Exception ex)
+    {
+        // Provide helpful error messages for common issues
+        Console.WriteLine($"✗ Failed to initialize memory service: {ex.Message}");
+        Console.WriteLine($"  Make sure:");
+        Console.WriteLine($"  1. The embeddings file exists at: {backendOptions.EmbeddingsFilePath}");
+        Console.WriteLine($"  2. OpenAI API key is set and valid");
+        Console.WriteLine($"  3. Internet connectivity is available for OpenAI API");
+        throw; // Re-throw to prevent app from starting in a broken state
+    }
 }
-catch (Exception ex)
+else
 {
-    // Provide helpful error messages for common issues
-    Console.WriteLine($"✗ Failed to initialize memory service: {ex.Message}");
-    Console.WriteLine($"  Make sure:");
-    Console.WriteLine($"  1. The embeddings file exists at: {backendOptions.EmbeddingsFilePath}");
-    Console.WriteLine($"  2. OpenAI API key is set and valid");
-    Console.WriteLine($"  3. Internet connectivity is available for OpenAI API");
-    throw; // Re-throw to prevent app from starting in a broken state
+    Console.WriteLine("⚠ API keys not configured - AI services disabled");
+    Console.WriteLine("  Set GroqApiKey and OpenAIApiKey in user secrets or environment variables");
+    Console.WriteLine("  Health endpoints will work, but /api/ask will return 503");
 }
 
 // ========================================

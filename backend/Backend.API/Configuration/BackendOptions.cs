@@ -48,4 +48,10 @@ public record BackendOptions
     /// Gets or sets the memory collection name.
     /// </summary>
     public required string MemoryCollectionName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the allowed CORS origins.
+    /// Can be overridden via Azure App Service Configuration using BackendOptions__AllowedOrigins__0, etc.
+    /// </summary>
+    public string[] AllowedOrigins { get; init; } = ["http://localhost:3000", "http://localhost:3001"];
 }

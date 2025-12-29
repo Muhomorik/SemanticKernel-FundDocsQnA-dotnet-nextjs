@@ -13,12 +13,19 @@ Before starting any work:
 3. After completion: Update status to ✅ and document new features
 4. Always maintain accuracy: Keep Status.md synchronized with actual codebase state
 5. Update timestamp: Change "Last Updated" date when making significant updates
+6. Keep costs low: When suggesting infrastructure, tiers, or services, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 
 **Do not duplicate work.** Always verify current status before implementing features.
 
 ## Project Overview
 
 Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic search and AI-powered question answering over PDF documents (investment fund factsheets/PRIIP KID documents).
+
+**Project Hosting:**
+
+- **Repository:** GitHub (personal, public)
+- **Deployment:** Azure (private infrastructure)
+- **Services:** Azure App Service (backend), Azure Static Web Apps (frontend), Application Insights, Key Vault
 
 ## Documentation
 
