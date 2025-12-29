@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+
 using Backend.API.Models;
+
 using Microsoft.Extensions.Configuration;
 
 namespace Backend.Tests;
@@ -37,20 +39,17 @@ public class DeploymentVerificationTests
             .Build();
 
         _azureApiUrl = configuration["DeploymentTests:AzureApiUrl"]
-            ?? throw new InvalidOperationException(
-                "Azure API URL not configured. Set it using:\n" +
-                "cd backend/Backend.Tests\n" +
-                "dotnet user-secrets set \"DeploymentTests:AzureApiUrl\" \"https://your-app.azurewebsites.net\"");
+                       ?? throw new InvalidOperationException(
+                           "Azure API URL not configured. Set it using:\n" +
+                           "cd backend/Backend.Tests\n" +
+                           "dotnet user-secrets set \"DeploymentTests:AzureApiUrl\" \"https://your-app.azurewebsites.net\"");
 
         _httpClient = new HttpClient { BaseAddress = new Uri(_azureApiUrl) };
         _httpClient.Timeout = TimeSpan.FromSeconds(60); // Allow for cold start on free tier
     }
 
     [OneTimeTearDown]
-    public void OneTimeTearDown()
-    {
-        _httpClient?.Dispose();
-    }
+    public void OneTimeTearDown() => _httpClient?.Dispose();
 
     [Test]
     public async Task LivenessProbe_ReturnsHealthy()

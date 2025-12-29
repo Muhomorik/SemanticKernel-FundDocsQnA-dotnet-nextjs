@@ -20,6 +20,7 @@
 | `EMBEDDINGS_PATH` | Backend | Path to embeddings file | `Data/embeddings.json` |
 | `KEY_VAULT_NAME` | Backend (Prod) | Azure Key Vault name | - |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Backend (Prod) | Application Insights | - |
+| `BackendOptions__AllowedOrigins__0` | Backend (Prod) | First CORS allowed origin | - |
 
 ### GitHub Secrets (CI/CD)
 
@@ -143,6 +144,17 @@ These are set automatically by `azure-setup.sh` or can be configured in Azure Po
 | `EMBEDDINGS_PATH` | `/home/site/wwwroot/Data/embeddings.json` | Azure file path |
 | `KEY_VAULT_NAME` | `kv-funddocs-{id}` | Key Vault reference |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Auto-configured | Telemetry connection |
+| `BackendOptions__AllowedOrigins__0` | Your frontend URL | CORS allowed origin |
+
+**CORS Configuration:**
+
+To allow your frontend to call the API, add CORS origins in Azure Portal:
+
+1. Go to **App Services** → your app → **Configuration**
+2. Add application setting:
+   - **Name:** `BackendOptions__AllowedOrigins__0`
+   - **Value:** `https://your-frontend.azurestaticapps.net`
+3. For multiple origins, add `BackendOptions__AllowedOrigins__1`, etc.
 
 ---
 
@@ -289,6 +301,9 @@ Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 | `BackendOptions:OpenAIEmbeddingModel` | `text-embedding-3-small` | OpenAI embedding model |
 | `BackendOptions:MaxSearchResults` | `10` | Number of chunks to retrieve |
 | `BackendOptions:MemoryCollectionName` | `fund-documents` | Memory store collection name |
+| `BackendOptions:AllowedOrigins` | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins |
+
+**Note:** API keys are optional for local development. The app will start without them, but `/api/ask` won't work. Health endpoints (`/health/live`, `/health/ready`) will still function.
 
 ---
 
