@@ -8,6 +8,12 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 - Backend: ASP.NET Core 9 + Semantic Kernel + Groq API
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
+**Project Hosting:**
+
+- **Repository:** GitHub (personal, public)
+- **Deployment:** Azure (private infrastructure)
+- **Services:** Azure App Service (backend), Azure Static Web Apps (frontend), Application Insights, Key Vault
+
 ---
 
 ## 🤖 Instructions for AI Agents
@@ -19,6 +25,7 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 3. **After completion:** Update status to ✅ and document new features in the appropriate section
 4. **Always maintain accuracy:** Keep this document synchronized with actual codebase state
 5. **Update timestamp:** Change "Last Updated" date when making significant updates
+6. **Keep costs low:** When suggesting infrastructure, tiers, or services, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 
 **Do not duplicate work.** Always verify current status before implementing features.
 
@@ -51,6 +58,10 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 - ✅ Comprehensive error handling and logging
 - ✅ Provider abstraction (Ollama/LM Studio/OpenAI)
 - ✅ Secure API key management (environment variables + CLI args)
+
+### Future Features
+
+- ❌ API token usage tracking and logging (OpenAI embeddings)
 
 ### Not Planned
 
@@ -369,9 +380,3 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 
 - **Azure App Service B1**: ~$13/month (always-on, no cold starts, custom domains)
 - **Application Insights Pay-as-you-go**: $2.30/GB after 5GB free tier
-
----
-
-## Notes
-
-This is a hobby project focused on learning Semantic Kernel, vector search, and LLM integration. The goal is zero-cost operation while maintaining good code quality and architecture.
