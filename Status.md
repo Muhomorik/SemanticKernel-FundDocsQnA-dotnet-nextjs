@@ -1,11 +1,11 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-28 (Azure resources deployed)
+Last Updated: 2025-12-29 (Added configurable LLM provider)
 
 **Tech Stack:**
 
 - Preprocessor: .NET 9 Console App + PdfPig + Semantic Kernel
-- Backend: ASP.NET Core 9 + Semantic Kernel + Groq API
+- Backend: ASP.NET Core 9 + Semantic Kernel + OpenAI (default) / Groq API (optional)
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
 **Project Hosting:**
@@ -97,8 +97,8 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 - ✅ Load embeddings.json on startup
 - ✅ Initialize in-memory vector store with embeddings
 - ✅ Semantic search using OpenAI embeddings (text-embedding-3-small)
-- ✅ Question answering using Groq LLM (llama-3.3-70b-versatile)
-- ✅ Environment variable support (GROQ_API_KEY, OPENAI_API_KEY, EMBEDDINGS_PATH)
+- ✅ Configurable LLM provider: OpenAI (gpt-4o-mini, default) or Groq (llama-3.3-70b-versatile, optional)
+- ✅ Environment variable support (LLM_PROVIDER, GROQ_API_KEY, OPENAI_API_KEY, EMBEDDINGS_PATH)
 - ✅ Error handling and logging
 - ✅ Source references in responses
 
@@ -220,8 +220,8 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Local Development | ✅ Working | Preprocessor and Backend run locally |
-| OpenAI API | ✅ Configured | For query embeddings (text-embedding-3-small) |
-| Groq API | ✅ Configured | Free tier LLM (llama-3.3-70b-versatile) |
+| OpenAI API | ✅ Configured | Embeddings (text-embedding-3-small) + Chat (gpt-4o-mini, default) |
+| Groq API | ✅ Configured | Optional free tier LLM (llama-3.3-70b-versatile) |
 | Azure App Service | ✅ Ready | Backend API hosting (F1 Free tier) |
 | Azure Static Web Apps | ✅ Ready | Frontend hosting (Free tier) |
 | Application Insights | ✅ Ready | Monitoring configured (free tier) |
@@ -368,11 +368,23 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 
 ### Production Costs (Actual)
 
+**With OpenAI Chat (Default):**
+
 - **Azure App Service F1**: $0/month (free tier, with limitations)
 - **Application Insights**: $0/month (5GB free tier)
 - **Azure Key Vault**: ~$0.03/month (10K operations free, then $0.03 per 10K)
+- **OpenAI Chat (gpt-4o-mini)**: ~$0.50/month (100 questions/day estimate, ~$0.15 per 1M input tokens)
 - **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
+
+**Total Production Cost: ~$0.53/month**
+
+**With Groq Chat (Optional, Free Tier):**
+
+- **Azure App Service F1**: $0/month (free tier, with limitations)
+- **Application Insights**: $0/month (5GB free tier)
+- **Azure Key Vault**: ~$0.03/month (10K operations free, then $0.03 per 10K)
 - **Groq LLM**: $0/month (free tier)
+- **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
 
 **Total Production Cost: ~$0.03/month**
 

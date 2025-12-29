@@ -77,27 +77,53 @@ if (backendOptions == null)
 // This allows for secure configuration in production without committing secrets
 backendOptions = backendOptions with
 {
-    GroqApiKey = builder.Configuration["BackendOptions:GroqApiKey"]
-                 ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
-                 ?? backendOptions.GroqApiKey,
+    LlmProvider = builder.Configuration["BackendOptions:LlmProvider"]
+                  ?? Environment.GetEnvironmentVariable("LLM_PROVIDER")
+                  ?? backendOptions.LlmProvider,
     OpenAIApiKey = builder.Configuration["BackendOptions:OpenAIApiKey"]
                    ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                    ?? backendOptions.OpenAIApiKey,
+    OpenAIChatModel = builder.Configuration["BackendOptions:OpenAIChatModel"]
+                      ?? backendOptions.OpenAIChatModel,
+    GroqApiKey = builder.Configuration["BackendOptions:GroqApiKey"]
+                 ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
+                 ?? backendOptions.GroqApiKey,
     EmbeddingsFilePath = Environment.GetEnvironmentVariable("EMBEDDINGS_PATH")
                          ?? backendOptions.EmbeddingsFilePath
 };
 
-// Warn if API keys are missing (app will still start but /api/ask will fail)
-if (string.IsNullOrWhiteSpace(backendOptions.GroqApiKey))
+// Normalize and validate LLM provider
+var provider = backendOptions.LlmProvider?.ToLower();
+
+if (provider != "openai" && provider != "groq")
 {
-    Console.WriteLine(
-        "WARNING: GroqApiKey is not set. Please set it in appsettings.json or via GROQ_API_KEY environment variable.");
+    throw new InvalidOperationException(
+        $"Invalid LlmProvider: '{backendOptions.LlmProvider}'. Must be 'OpenAI' or 'Groq'.");
 }
 
-if (string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey))
+// Validate appropriate API key is set for selected provider
+if (provider == "openai" && string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey))
 {
-    Console.WriteLine(
-        "WARNING: OpenAIApiKey is not set. Please set it in appsettings.json or via OPENAI_API_KEY environment variable.");
+    Console.WriteLine("ERROR: LlmProvider is set to 'OpenAI' but OpenAIApiKey is not configured.");
+    Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:OpenAIApiKey' 'sk-...'");
+    Console.WriteLine("  Or environment variable: OPENAI_API_KEY");
+}
+
+if (provider == "groq")
+{
+    if (string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey))
+    {
+        Console.WriteLine("WARNING: OpenAIApiKey is not set. Still required for embeddings generation.");
+        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:OpenAIApiKey' 'sk-...'");
+        Console.WriteLine("  Or environment variable: OPENAI_API_KEY");
+    }
+
+    if (string.IsNullOrWhiteSpace(backendOptions.GroqApiKey))
+    {
+        Console.WriteLine("ERROR: LlmProvider is set to 'Groq' but GroqApiKey is not configured.");
+        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:GroqApiKey' 'gsk_...'");
+        Console.WriteLine("  Or environment variable: GROQ_API_KEY");
+    }
 }
 
 // Register configuration as singleton for dependency injection
@@ -108,8 +134,9 @@ builder.Services.AddSingleton(backendOptions);
 // ========================================
 // Only initialize Semantic Kernel if API keys are configured
 // This allows the app to start without keys (health endpoints work, but /api/ask won't)
-var hasApiKeys = !string.IsNullOrWhiteSpace(backendOptions.GroqApiKey) &&
-                 !string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey);
+var hasApiKeys = !string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey) &&
+                 (provider == "openai" ||
+                  (provider == "groq" && !string.IsNullOrWhiteSpace(backendOptions.GroqApiKey)));
 
 if (hasApiKeys)
 {
@@ -124,18 +151,31 @@ if (hasApiKeys)
         backendOptions.OpenAIApiKey);
 #pragma warning restore SKEXP0010
 
-    // Configure Groq for chat completion (LLM)
-    // Groq provides OpenAI-compatible API, so we use AddOpenAIChatCompletion
-    // with a custom HttpClient pointing to Groq's endpoint
-    var groqHttpClient = new HttpClient
+    // Configure Chat Completion Service based on selected provider
+    if (provider == "openai")
     {
-        BaseAddress = new Uri(backendOptions.GroqApiUrl)
-    };
+        // Use OpenAI directly for chat completion
+        Console.WriteLine($"Configuring OpenAI chat completion: {backendOptions.OpenAIChatModel}");
 
-    kernelBuilder.AddOpenAIChatCompletion(
-        backendOptions.GroqModel,
-        backendOptions.GroqApiKey,
-        httpClient: groqHttpClient);
+        kernelBuilder.AddOpenAIChatCompletion(
+            backendOptions.OpenAIChatModel,
+            backendOptions.OpenAIApiKey);
+    }
+    else if (provider == "groq")
+    {
+        // Use Groq via OpenAI-compatible API
+        Console.WriteLine($"Configuring Groq chat completion: {backendOptions.GroqModel}");
+
+        var groqHttpClient = new HttpClient
+        {
+            BaseAddress = new Uri(backendOptions.GroqApiUrl ?? "https://api.groq.com/openai/v1")
+        };
+
+        kernelBuilder.AddOpenAIChatCompletion(
+            backendOptions.GroqModel ?? "llama-3.3-70b-versatile",
+            backendOptions.GroqApiKey!,
+            httpClient: groqHttpClient);
+    }
 
     // Build the kernel and register it as a singleton
     var kernel = kernelBuilder.Build();
@@ -281,7 +321,18 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 Console.WriteLine($"Backend API starting...");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine($"Embeddings: {backendOptions.EmbeddingsFilePath}");
-Console.WriteLine($"Groq Model: {backendOptions.GroqModel}");
+Console.WriteLine($"LLM Provider: {backendOptions.LlmProvider}");
+
+if (provider == "openai")
+{
+    Console.WriteLine($"OpenAI Chat Model: {backendOptions.OpenAIChatModel}");
+}
+else if (provider == "groq")
+{
+    Console.WriteLine($"Groq Model: {backendOptions.GroqModel}");
+    Console.WriteLine($"Groq API URL: {backendOptions.GroqApiUrl}");
+}
+
 Console.WriteLine($"OpenAI Embedding Model: {backendOptions.OpenAIEmbeddingModel}");
 
 // Run the application

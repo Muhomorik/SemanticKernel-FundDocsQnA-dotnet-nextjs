@@ -18,6 +18,15 @@ This deployment uses:
 
 **External Services:**
 
+**With OpenAI Chat (Default):**
+
+- **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
+- **OpenAI Chat** - ~$0.50/month (gpt-4o-mini)
+
+**Total Cost: ~$0.53/month**
+
+**With Groq Chat (Optional, Free Tier):**
+
 - **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
 - **Groq LLM** - $0/month (free tier)
 
@@ -57,8 +66,8 @@ cp ./embeddings.json ../backend/Backend.API/Data/embeddings.json
 
 ### Required API Keys
 
-1. **Groq API Key** - [Get free key](https://console.groq.com)
-2. **OpenAI API Key** - [Sign up](https://platform.openai.com/signup)
+1. **OpenAI API Key** - [Sign up](https://platform.openai.com/signup) (required for embeddings and chat, default provider)
+2. **Groq API Key** - [Get free key](https://console.groq.com) (optional, only if using Groq as LLM provider)
 
 ## Deployment Steps
 
@@ -219,18 +228,42 @@ Access via: Azure Portal → Application Insights → `ai-funddocs`
 
 ### Using Azure CLI
 
+**Option 1: Use OpenAI (default, recommended):**
+
 ```bash
-# Update Groq API Key
+# Set LLM Provider to OpenAI
 az keyvault secret set \
   --vault-name "your-keyvault-name" \
-  --name "BackendOptions--GroqApiKey" \
-  --value "new-groq-api-key"
+  --name "BackendOptions--LlmProvider" \
+  --value "OpenAI"
 
-# Update OpenAI API Key
+# Set OpenAI API Key (required for embeddings and chat)
 az keyvault secret set \
   --vault-name "your-keyvault-name" \
   --name "BackendOptions--OpenAIApiKey" \
-  --value "new-openai-api-key"
+  --value "sk-your-openai-api-key"
+```
+
+**Option 2: Use Groq (free tier alternative):**
+
+```bash
+# Set LLM Provider to Groq
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--LlmProvider" \
+  --value "Groq"
+
+# Set OpenAI API Key (still required for embeddings)
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--OpenAIApiKey" \
+  --value "sk-your-openai-api-key"
+
+# Set Groq API Key (required for Groq chat completion)
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--GroqApiKey" \
+  --value "gsk-your-groq-api-key"
 ```
 
 ### Restarting the App

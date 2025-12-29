@@ -6,21 +6,22 @@
 
 ### Secrets (API Keys)
 
-| Key | Environment Variable | Where to Get | Local Dev | Production |
-|-----|---------------------|--------------|-----------|------------|
-| `BackendOptions:GroqApiKey` | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | User Secrets | Azure Key Vault |
-| `BackendOptions:OpenAIApiKey` | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) | User Secrets | Azure Key Vault |
+| Key                              | Environment Variable | Where to Get                                          | Local Dev    | Production       | Required                    |
+| -------------------------------- | -------------------- | ----------------------------------------------------- | ------------ | ---------------- | --------------------------- |
+| `BackendOptions:OpenAIApiKey`    | `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com)    | User Secrets | Azure Key Vault  | Yes                         |
+| `BackendOptions:GroqApiKey`      | `GROQ_API_KEY`       | [console.groq.com](https://console.groq.com)          | User Secrets | Azure Key Vault  | Only if LlmProvider=Groq    |
 
 ### Environment Variables
 
-| Variable | Component | Purpose | Default |
-|----------|-----------|---------|---------|
-| `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL | `http://localhost:5000` |
-| `ASPNETCORE_ENVIRONMENT` | Backend | Runtime environment | `Development` |
-| `EMBEDDINGS_PATH` | Backend | Path to embeddings file | `Data/embeddings.json` |
-| `KEY_VAULT_NAME` | Backend (Prod) | Azure Key Vault name | - |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Backend (Prod) | Application Insights | - |
-| `BackendOptions__AllowedOrigins__0` | Backend (Prod) | First CORS allowed origin | - |
+| Variable                               | Component      | Purpose                      | Default                |
+| -------------------------------------- | -------------- | ---------------------------- | ---------------------- |
+| `NEXT_PUBLIC_API_URL`                  | Frontend       | Backend API URL              | `http://localhost:5000`|
+| `ASPNETCORE_ENVIRONMENT`               | Backend        | Runtime environment          | `Development`          |
+| `LLM_PROVIDER`                         | Backend        | LLM provider selection       | `OpenAI`               |
+| `EMBEDDINGS_PATH`                      | Backend        | Path to embeddings file      | `Data/embeddings.json` |
+| `KEY_VAULT_NAME`                       | Backend (Prod) | Azure Key Vault name         | -                      |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING`| Backend (Prod) | Application Insights         | -                      |
+| `BackendOptions__AllowedOrigins__0`    | Backend (Prod) | First CORS allowed origin    | -                      |
 
 ### GitHub Secrets (CI/CD)
 
@@ -41,7 +42,7 @@
 
 ### Groq API Key
 
-**Purpose:** LLM chat completion for answering questions (free tier available)
+**Purpose:** LLM chat completion for answering questions (optional, only needed if using Groq provider, free tier available)
 
 **Where to get:**
 
@@ -67,7 +68,7 @@ az keyvault secret set \
 
 ### OpenAI API Key
 
-**Purpose:** Generate embeddings for semantic search (pay-per-use)
+**Purpose:** Generate embeddings for semantic search + LLM chat completion (default provider, pay-per-use)
 
 **Where to get:**
 
@@ -75,7 +76,10 @@ az keyvault secret set \
 2. Navigate to API Keys in your account settings
 3. Create a new secret key
 
-**Important:** Use the same embedding model (`text-embedding-3-small`) as used during preprocessing for vector space compatibility.
+**Important:**
+
+- Use the same embedding model (`text-embedding-3-small`) as used during preprocessing for vector space compatibility
+- Default chat model is `gpt-4o-mini` (~$0.15 per 1M input tokens)
 
 **Local Development:**
 
@@ -99,12 +103,13 @@ az keyvault secret set \
 
 ### Backend
 
-| Variable | Purpose | Default | Required |
-|----------|---------|---------|----------|
-| `ASPNETCORE_ENVIRONMENT` | Runtime mode (`Development`/`Production`) | `Development` | Yes |
-| `EMBEDDINGS_PATH` | Override path to embeddings JSON file | `Data/embeddings.json` | No |
-| `KEY_VAULT_NAME` | Azure Key Vault name for loading secrets | - | Production only |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Application Insights telemetry | - | Production only |
+| Variable                                | Purpose                                    | Default                 | Required         |
+| --------------------------------------- | ------------------------------------------ | ----------------------- | ---------------- |
+| `ASPNETCORE_ENVIRONMENT`                | Runtime mode (`Development`/`Production`)  | `Development`           | Yes              |
+| `LLM_PROVIDER`                          | LLM provider selection (`OpenAI`/`Groq`)   | `OpenAI`                | No               |
+| `EMBEDDINGS_PATH`                       | Override path to embeddings JSON file      | `Data/embeddings.json`  | No               |
+| `KEY_VAULT_NAME`                        | Azure Key Vault name for loading secrets   | -                       | Production only  |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Application Insights telemetry             | -                       | Production only  |
 
 **Setting environment variables:**
 
@@ -293,17 +298,105 @@ dotnet run --project Preprocessor -- --ollama-url http://localhost:8080 -i ./pdf
 
 Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `BackendOptions:EmbeddingsFilePath` | `Data/embeddings.json` | Path to embeddings file |
-| `BackendOptions:GroqModel` | `llama-3.3-70b-versatile` | Groq LLM model for chat |
-| `BackendOptions:GroqApiUrl` | `https://api.groq.com/openai/v1` | Groq API endpoint |
-| `BackendOptions:OpenAIEmbeddingModel` | `text-embedding-3-small` | OpenAI embedding model |
-| `BackendOptions:MaxSearchResults` | `10` | Number of chunks to retrieve |
-| `BackendOptions:MemoryCollectionName` | `fund-documents` | Memory store collection name |
-| `BackendOptions:AllowedOrigins` | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins |
+| Setting                                  | Default                                            | Description                                       |
+| ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                             | Path to embeddings file                           |
+| `BackendOptions:LlmProvider`             | `OpenAI`                                           | LLM provider ("OpenAI" or "Groq")                 |
+| `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                           | OpenAI embedding model                            |
+| `BackendOptions:OpenAIChatModel`         | `gpt-4o-mini`                                      | OpenAI chat model (when LlmProvider is "OpenAI")  |
+| `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                          | Groq LLM model (when LlmProvider is "Groq")       |
+| `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                   | Groq API endpoint (when LlmProvider is "Groq")    |
+| `BackendOptions:MaxSearchResults`        | `10`                                               | Number of chunks to retrieve                      |
+| `BackendOptions:MemoryCollectionName`    | `fund-documents`                                   | Memory store collection name                      |
+| `BackendOptions:AllowedOrigins`          | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins                            |
 
 **Note:** API keys are optional for local development. The app will start without them, but `/api/ask` won't work. Health endpoints (`/health/live`, `/health/ready`) will still function.
+
+### LLM Provider Selection
+
+The backend supports two LLM providers for question answering:
+
+#### OpenAI (Default, Recommended)
+
+**Advantages:**
+
+- Higher quality responses
+- More reliable availability
+- Broader model selection
+- Official API support
+
+**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4o-mini)
+
+**Setup (Local Development):**
+
+```bash
+cd backend/Backend.API
+dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
+dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"
+dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4o-mini"
+```
+
+**Setup (Production):**
+
+```bash
+# Set in Azure Key Vault
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--LlmProvider" \
+  --value "OpenAI"
+
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--OpenAIApiKey" \
+  --value "sk-your-openai-api-key"
+```
+
+#### Groq (Free Tier Alternative)
+
+**Advantages:**
+
+- Zero cost (free tier)
+- Fast inference
+- OpenAI-compatible API
+
+**Limitations:**
+
+- Rate limits on free tier
+- Limited model selection
+- Third-party service
+
+**Setup (Local Development):**
+
+```bash
+cd backend/Backend.API
+dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
+dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"  # Still needed for embeddings
+dotnet user-secrets set "BackendOptions:GroqApiKey" "gsk-your-groq-api-key"
+```
+
+**Setup (Production):**
+
+```bash
+# Set in Azure Key Vault
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--LlmProvider" \
+  --value "Groq"
+
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--OpenAIApiKey" \
+  --value "sk-your-openai-api-key"  # Still needed for embeddings
+
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--GroqApiKey" \
+  --value "gsk-your-groq-api-key"
+```
+
+**Validation:**
+
+The backend validates the selected provider on startup and shows clear error messages if the appropriate API key is missing.
 
 ---
 
@@ -313,10 +406,21 @@ Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 
 1. **Set API keys using User Secrets:**
 
+   **Option 1: Use OpenAI (default, recommended):**
+
    ```bash
    cd backend/Backend.API
-   dotnet user-secrets set "BackendOptions:GroqApiKey" "your-groq-key"
-   dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-openai-key"
+   dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
+   dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-key"
+   ```
+
+   **Option 2: Use Groq (free tier alternative):**
+
+   ```bash
+   cd backend/Backend.API
+   dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
+   dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-key"  # Still needed for embeddings
+   dotnet user-secrets set "BackendOptions:GroqApiKey" "gsk-your-groq-key"
    ```
 
 2. **Configure frontend:**

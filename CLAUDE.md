@@ -70,8 +70,15 @@ cd backend
 
 # Set API keys (local development)
 cd Backend.API
-dotnet user-secrets set "BackendOptions:GroqApiKey" "gsk_..."
+
+# Option 1: Use OpenAI (default, recommended)
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-..."
+dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
+
+# Option 2: Use Groq (free tier alternative)
+dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-..."  # Still needed for embeddings
+dotnet user-secrets set "BackendOptions:GroqApiKey" "gsk_..."
+dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
 
 # Copy embeddings from Preprocessor
 cp ../../Preprocessor/Preprocessor/output.json Data/embeddings.json
@@ -130,7 +137,7 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
          Extract text +                  REST API:
          Generate embeddings             1. Embed query (OpenAI)
          (Ollama/OpenAI)                 2. Semantic search (cosine similarity)
-                                         3. Context + question → Groq LLM
+                                         3. Context + question → LLM (OpenAI/Groq)
                                          4. Return answer + sources
 ```
 
@@ -140,7 +147,8 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 - `MemoryService` - Loads embeddings.json, performs cosine similarity search
 - `QuestionAnsweringService` - Orchestrates embedding generation, retrieval, and LLM response
-- Uses Semantic Kernel with OpenAI embeddings (text-embedding-3-small) and Groq LLM (llama-3.3-70b-versatile)
+- Uses Semantic Kernel with OpenAI embeddings (text-embedding-3-small)
+- Configurable LLM provider: OpenAI (gpt-4o-mini, default) or Groq (llama-3.3-70b-versatile, optional)
 
 **Frontend:**
 
@@ -151,8 +159,10 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 **Backend config** (`appsettings.json` / User Secrets / Environment Variables):
 
-- `BackendOptions:GroqApiKey` - Groq API key for LLM
-- `BackendOptions:OpenAIApiKey` - OpenAI API key for embeddings
+- `BackendOptions:LlmProvider` - LLM provider selection ("OpenAI" or "Groq", default: "OpenAI")
+- `BackendOptions:OpenAIApiKey` - OpenAI API key for embeddings and chat (required)
+- `BackendOptions:OpenAIChatModel` - OpenAI chat model (default: "gpt-4o-mini")
+- `BackendOptions:GroqApiKey` - Groq API key for LLM (only if using Groq provider)
 - `BackendOptions:EmbeddingsFilePath` - Path to embeddings.json (default: `Data/embeddings.json`)
 
 **Frontend config** (`.env.local`):
