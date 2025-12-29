@@ -165,9 +165,6 @@ builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks()
     .AddCheck<MemoryServiceHealthCheck>(
         "memory_service",
-        tags: new[] { "ready" })
-    .AddCheck<GroqApiHealthCheck>(
-        "groq_api",
         tags: new[] { "ready" });
 
 // Swagger/OpenAPI for API documentation
