@@ -167,9 +167,13 @@ builder.Services.AddHealthChecks()
         "memory_service",
         tags: new[] { "ready" });
 
-// Swagger/OpenAPI for API documentation
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger/OpenAPI for API documentation (Development only)
+// Note: Registered only in Development to avoid Microsoft.OpenApi version conflicts in production
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+}
 
 // CORS configuration for Next.js frontend
 // Allows requests from localhost:3000 (Next.js dev) and localhost:3001 (alternative port)
