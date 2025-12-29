@@ -189,6 +189,10 @@ Last Updated: 2025-12-28 (Azure resources deployed)
 - ✅ Example queries (clickable)
 - ✅ Footer with GitHub link and tech info
 
+### Planned Enhancements
+
+- ❌ Handle 503 Service Unavailable errors (show user-friendly message explaining Azure free tier quota limits)
+
 ### Not Planned
 
 - No file upload functionality

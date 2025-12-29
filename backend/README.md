@@ -203,6 +203,35 @@ cd Backend.Tests
 dotnet test
 ```
 
+### Deployment Verification Tests
+
+These tests verify the live Azure deployment is working correctly. They use NUnit's `[Explicit]` attribute, so they **won't run** with `dotnet test` or "Run All Tests" - you must select and run them manually.
+
+**Setup (one-time):**
+
+```bash
+cd Backend.Tests
+dotnet user-secrets set "DeploymentTests:AzureApiUrl" "https://replace-me-from-deployment-url"
+```
+
+**Running in Visual Studio:**
+
+1. Open the solution in Visual Studio
+2. Open Test Explorer (Test → Test Explorer)
+3. Find "DeploymentVerificationTests" in the test list
+4. Right-click → Run Selected Tests
+
+**What gets tested:**
+
+- `GET /health/live` - Liveness probe returns "Healthy"
+- `GET /health/ready` - Readiness probe returns "Healthy"
+- `POST /api/ask` - Valid question returns an answer
+- `POST /api/ask` - Invalid question returns 400 Bad Request
+
+**Note:** Azure App Service free tier has cold start delays (up to 30+ seconds) when the app is idle. The first test may take longer due to this warm-up time.
+
+**Important:** Azure free tier (F1) has daily quotas (60 CPU minutes, 1 GB memory). When exceeded, tests will fail with 503 errors until the quota resets at UTC midnight. Check Azure Portal → App Service → Overview for "Quota exceeded" status.
+
 ## Troubleshooting
 
 ### Issue: "Failed to initialize memory service"
