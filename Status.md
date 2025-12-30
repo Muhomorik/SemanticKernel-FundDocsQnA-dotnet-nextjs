@@ -343,9 +343,8 @@ Last Updated: 2025-12-30 (Refactored to DDD architecture)
 
 ### Future Enhancements
 
+- Migrate to modern Vector Store abstractions (VectorStore, VectorStoreCollection, VectorStoreTextSearch) to replace manual cosine similarity implementation
 - Implement caching layer
-- Add authentication (optional)
-- Create MCP server integration
 - Support multiple languages
 - Add streaming responses for better UX
 - Implement chat history

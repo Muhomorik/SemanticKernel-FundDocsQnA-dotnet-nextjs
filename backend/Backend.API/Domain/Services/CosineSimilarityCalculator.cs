@@ -6,6 +6,15 @@ namespace Backend.API.Domain.Services;
 /// Pure domain service for calculating cosine similarity.
 /// No I/O dependencies - pure computation.
 /// </summary>
+/// <remarks>
+/// Semantic Kernel provides built-in vector search capabilities through the Vector Store
+/// abstractions (VectorStore, VectorStoreCollection). 
+/// 
+/// Legacy alternatives (IMemoryStore, SemanticTextMemory) are deprecated.
+/// 
+/// This manual implementation is used for simplicity,
+/// explicit control, and working with pre-computed embeddings from JSON.
+/// </remarks>
 public static class CosineSimilarityCalculator
 {
     public static float Calculate(EmbeddingVector vector1, EmbeddingVector vector2)
