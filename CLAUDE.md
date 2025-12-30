@@ -182,8 +182,251 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 4. **CORS:** Backend allows localhost:3000, localhost:3001 for development.
 
-## Testing Status
+## Testing Guidelines
 
-- Preprocessor: ✅ Unit tests implemented
-- Backend: ⏳ Tests pending (services and controllers)
-- Frontend: ✅ Basic component tests with Jest
+### Framework & Libraries
+
+**Backend (.NET/C#):**
+
+- **Test Framework:** NUnit
+- **Mocking:** AutoFixture.AutoMoq (automatic mock creation)
+- **Test Data:** AutoFixture (generates realistic test data)
+
+**Required NuGet Packages:**
+
+```bash
+dotnet add package NUnit
+dotnet add package NUnit3TestAdapter
+dotnet add package Microsoft.NET.Test.Sdk
+dotnet add package AutoFixture
+dotnet add package AutoFixture.AutoMoq
+dotnet add package Moq
+```
+
+### Test Structure (AAA Pattern)
+
+Always structure tests using the **Arrange, Act, Assert** pattern:
+
+```csharp
+[Test]
+public void MethodName_Scenario_ExpectedBehavior()
+{
+    // Arrange - Set up test data and dependencies
+    var fixture = new Fixture().Customize(new AutoMoqCustomization());
+    var dependency = fixture.Freeze<Mock<IDependency>>();
+    dependency.Setup(x => x.Method()).Returns("expected");
+
+    var sut = fixture.Create<ServiceUnderTest>(); // System Under Test
+
+    // Act - Execute the method being tested
+    var result = sut.MethodToTest();
+
+    // Assert - Verify expected outcomes
+    Assert.That(result, Is.EqualTo("expected"));
+    dependency.Verify(x => x.Method(), Times.Once);
+}
+```
+
+### AutoFixture Best Practices
+
+#### 1. Always Resolve SUT from AutoFixture
+
+**Do this:**
+
+```csharp
+private IFixture _fixture;
+private ServiceUnderTest _sut;
+
+[SetUp]
+public void SetUp()
+{
+    _fixture = new Fixture().Customize(new AutoMoqCustomization());
+
+    // Configure dependencies
+    _fixture.Freeze<Mock<IDependency>>();
+
+    // Resolve SUT from fixture
+    _sut = _fixture.Create<ServiceUnderTest>();
+}
+```
+
+**Don't do this:**
+
+```csharp
+// ❌ Manually constructing SUT
+_sut = new ServiceUnderTest(dependency1, dependency2);
+```
+
+#### 2. Create Custom ISpecimenBuilder for Complex Objects
+
+When you need to reuse complex object creation logic:
+
+```csharp
+public class EmbeddingRecordBuilder : ISpecimenBuilder
+{
+    public object Create(object request, ISpecimenContext context)
+    {
+        if (request is Type type && type == typeof(EmbeddingRecord))
+        {
+            return new EmbeddingRecord
+            {
+                Id = context.Create<string>(),
+                Content = context.Create<string>(),
+                Embedding = context.CreateMany<float>(1536).ToArray(),
+                SourceFile = context.Create<string>(),
+                PageNumber = context.Create<int>()
+            };
+        }
+
+        return new NoSpecimen();
+    }
+}
+
+// Usage in test setup
+_fixture.Customizations.Add(new EmbeddingRecordBuilder());
+var record = _fixture.Create<EmbeddingRecord>();
+```
+
+#### 3. Create Custom ICustomization for Reusable Configurations
+
+Group related customizations into a single reusable class:
+
+```csharp
+public class BackendDomainCustomization : ICustomization
+{
+    public void Customize(IFixture fixture)
+    {
+        // Add custom specimen builders
+        fixture.Customizations.Add(new EmbeddingRecordBuilder());
+        fixture.Customizations.Add(new AskRequestBuilder());
+
+        // Configure specific behaviors
+        fixture.Register<IEmbeddingRepository>(() =>
+            fixture.Freeze<Mock<IEmbeddingRepository>>().Object);
+
+        // Set default values
+        fixture.Inject(new BackendOptions
+        {
+            OpenAIApiKey = "test-key",
+            LlmProvider = LlmProvider.OpenAI
+        });
+    }
+}
+
+// Usage in test class
+[SetUp]
+public void SetUp()
+{
+    _fixture = new Fixture()
+        .Customize(new AutoMoqCustomization())
+        .Customize(new BackendDomainCustomization());
+}
+```
+
+#### 4. Use Freeze for Shared Dependencies
+
+When multiple tests need the same mock instance:
+
+```csharp
+[SetUp]
+public void SetUp()
+{
+    _fixture = new Fixture().Customize(new AutoMoqCustomization());
+
+    // Freeze creates a singleton instance that all Create<T>() calls will reuse
+    _loggerMock = _fixture.Freeze<Mock<ILogger<MyService>>>();
+    _repositoryMock = _fixture.Freeze<Mock<IRepository>>();
+
+    _sut = _fixture.Create<MyService>(); // Uses frozen mocks
+}
+
+[Test]
+public void Test_UsesSharedMocks()
+{
+    // Arrange
+    _repositoryMock.Setup(x => x.GetData()).Returns("data");
+
+    // Act & Assert
+    var result = _sut.ProcessData();
+    _loggerMock.Verify(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<string>()), Times.AtLeastOnce);
+}
+```
+
+### Example Test Class Template
+
+```csharp
+using AutoFixture;
+using AutoFixture.AutoMoq;
+using Moq;
+using NUnit.Framework;
+
+namespace Backend.Tests.ApplicationCore.Services
+{
+    [TestFixture]
+    public class QuestionAnsweringServiceTests
+    {
+        private IFixture _fixture;
+        private Mock<IMemoryService> _memoryServiceMock;
+        private Mock<ILogger<QuestionAnsweringService>> _loggerMock;
+        private QuestionAnsweringService _sut;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _fixture = new Fixture()
+                .Customize(new AutoMoqCustomization())
+                .Customize(new BackendDomainCustomization());
+
+            // Freeze dependencies for reuse across tests
+            _memoryServiceMock = _fixture.Freeze<Mock<IMemoryService>>();
+            _loggerMock = _fixture.Freeze<Mock<ILogger<QuestionAnsweringService>>>();
+
+            // Resolve SUT from fixture
+            _sut = _fixture.Create<QuestionAnsweringService>();
+        }
+
+        [Test]
+        public async Task AskQuestionAsync_ValidQuestion_ReturnsAnswer()
+        {
+            // Arrange
+            var question = _fixture.Create<string>();
+            var searchResults = _fixture.CreateMany<EmbeddingRecord>(3).ToList();
+
+            _memoryServiceMock
+                .Setup(x => x.SearchAsync(question, It.IsAny<int>()))
+                .ReturnsAsync(searchResults);
+
+            // Act
+            var result = await _sut.AskQuestionAsync(question);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Answer, Is.Not.Empty);
+            _memoryServiceMock.Verify(x => x.SearchAsync(question, 5), Times.Once);
+        }
+
+        [Test]
+        public async Task AskQuestionAsync_EmptyQuestion_ThrowsArgumentException()
+        {
+            // Arrange
+            var emptyQuestion = string.Empty;
+
+            // Act & Assert
+            var ex = Assert.ThrowsAsync<ArgumentException>(
+                async () => await _sut.AskQuestionAsync(emptyQuestion));
+
+            Assert.That(ex.ParamName, Is.EqualTo("question"));
+        }
+    }
+}
+```
+
+### Naming Conventions
+
+Test method names should follow: `MethodName_Scenario_ExpectedBehavior`
+
+Examples:
+
+- `AskQuestionAsync_ValidQuestion_ReturnsAnswer`
+- `SearchAsync_EmptyQuery_ThrowsArgumentException`
+- `LoadEmbeddings_InvalidFile_LogsWarningAndReturnsEmpty`
