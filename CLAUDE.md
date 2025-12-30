@@ -185,12 +185,32 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 ## Testing Guidelines
 
 ### Framework & Libraries
-
+  
 **Backend (.NET/C#):**
 
 - **Test Framework:** NUnit
 - **Mocking:** AutoFixture.AutoMoq (automatic mock creation)
 - **Test Data:** AutoFixture (generates realistic test data)
+
+Key Principles
+
+✅ Always resolve SUT from AutoFixture (never new).
+✅ Use Freeze() for shared dependencies.
+✅ Follow AAA pattern (Arrange, Act, Assert).
+✅ Test naming: MethodName_Scenario_ExpectedBehavior.
+✅ Mock all external dependencies (file system, APIs, Semantic Kernel).
+✅ One test focus (but multiple Assert.That() OK).
+✅ Test happy paths and valid scenarios.
+✅ Verify mock interactions for orchestration.
+✅ Keep tests fast (no real I/O, no network).
+✅ Isolated tests (no shared state).
+❌ Don't manually construct objects.
+❌ Don't use real file system.
+❌ Don't call real APIs.
+❌ Don't share state between tests.
+❌ Don't test framework code.
+❌ Don't over-mock (only interfaces).
+❌ Don't test exception throwing (no Assert.Throws, no validation failure tests).
 
 **Required NuGet Packages:**
 
