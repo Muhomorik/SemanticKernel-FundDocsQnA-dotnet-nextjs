@@ -1,14 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Backend.API.Models;
+namespace Backend.API.ApplicationCore.DTOs;
 
 /// <summary>
-/// Request model for the /api/ask endpoint.
+/// Application DTO for question asking request.
+/// Decoupled from presentation layer concerns.
 /// </summary>
-public class AskRequest
+public record AskQuestionRequest
 {
     /// <summary>
-    /// Gets or sets the question to ask about the documents.
+    /// Gets the question to ask about the documents.
     /// </summary>
     [Required(ErrorMessage = "Question is required")]
     [MinLength(3, ErrorMessage = "Question must be at least 3 characters")]
