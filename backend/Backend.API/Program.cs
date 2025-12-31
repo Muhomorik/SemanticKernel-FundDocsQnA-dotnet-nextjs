@@ -13,6 +13,7 @@ using Backend.API.Infrastructure.Search;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 /*
  * Backend API for PDF Q&A Application
@@ -84,10 +85,10 @@ if (backendOptions == null)
 backendOptions = backendOptions with
 {
     LlmProvider = LlmProviderExtensions.TryParse(
-                      builder.Configuration["BackendOptions:LlmProvider"] ?? Environment.GetEnvironmentVariable("LLM_PROVIDER"),
-                      out var parsedProvider)
-                  ? parsedProvider
-                  : backendOptions.LlmProvider,
+        builder.Configuration["BackendOptions:LlmProvider"] ?? Environment.GetEnvironmentVariable("LLM_PROVIDER"),
+        out var parsedProvider)
+        ? parsedProvider
+        : backendOptions.LlmProvider,
     OpenAIApiKey = builder.Configuration["BackendOptions:OpenAIApiKey"]
                    ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                    ?? backendOptions.OpenAIApiKey,
@@ -135,7 +136,8 @@ builder.Services.AddSingleton(backendOptions);
 // This allows the app to start without keys (health endpoints work, but /api/ask won't)
 var hasApiKeys = !string.IsNullOrWhiteSpace(backendOptions.OpenAIApiKey) &&
                  (backendOptions.LlmProvider == LlmProvider.OpenAI ||
-                  (backendOptions.LlmProvider == LlmProvider.Groq && !string.IsNullOrWhiteSpace(backendOptions.GroqApiKey)));
+                  (backendOptions.LlmProvider == LlmProvider.Groq &&
+                   !string.IsNullOrWhiteSpace(backendOptions.GroqApiKey)));
 
 if (hasApiKeys)
 {
@@ -190,6 +192,14 @@ if (hasApiKeys)
         var k = sp.GetRequiredService<Kernel>();
         return k.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     });
+
+    // Extract and register the chat completion service separately
+    // LLM providers need direct access to IChatCompletionService
+    builder.Services.AddSingleton<IChatCompletionService>(sp =>
+    {
+        var k = sp.GetRequiredService<Kernel>();
+        return k.GetRequiredService<IChatCompletionService>();
+    });
 }
 
 // ========================================
@@ -200,8 +210,8 @@ if (hasApiKeys)
 var openAiConfig = OpenAiConfiguration.FromBackendOptions(backendOptions);
 var groqConfig = GroqConfiguration.FromBackendOptions(backendOptions);
 var appOptions = ApplicationOptions.Create(
-    maxSearchResults: backendOptions.MaxSearchResults,
-    systemPrompt: builder.Configuration["BackendOptions:SystemPrompt"]);
+    backendOptions.MaxSearchResults,
+    builder.Configuration["BackendOptions:SystemPrompt"]);
 
 builder.Services.AddSingleton<IOpenAiConfiguration>(openAiConfig);
 builder.Services.AddSingleton<IGroqConfiguration>(groqConfig);
