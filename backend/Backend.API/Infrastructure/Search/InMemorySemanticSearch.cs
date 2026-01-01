@@ -1,6 +1,7 @@
 using Backend.API.Domain.Interfaces;
 using Backend.API.Domain.Models;
 using Backend.API.Domain.Services;
+
 using Microsoft.Extensions.Logging;
 
 namespace Backend.API.Infrastructure.Search;
@@ -12,12 +13,12 @@ namespace Backend.API.Infrastructure.Search;
 public class InMemorySemanticSearch : ISemanticSearch
 {
     private readonly IDocumentRepository _repository;
-    private readonly Domain.Interfaces.IEmbeddingGenerator _embeddingGenerator;
+    private readonly IEmbeddingGenerator _embeddingGenerator;
     private readonly ILogger<InMemorySemanticSearch> _logger;
 
     public InMemorySemanticSearch(
         IDocumentRepository repository,
-        Domain.Interfaces.IEmbeddingGenerator embeddingGenerator,
+        IEmbeddingGenerator embeddingGenerator,
         ILogger<InMemorySemanticSearch> logger)
     {
         _repository = repository;
@@ -42,9 +43,11 @@ public class InMemorySemanticSearch : ISemanticSearch
 
         // Calculate similarities and rank
         var results = chunks
-            .Select(chunk => new SearchResult(
-                chunk,
-                CosineSimilarityCalculator.Calculate(queryVector, chunk.Vector)))
+            .Select(chunk => {
+                var cosine = CosineSimilarityCalculator.Calculate(queryVector, chunk.Vector);
+                var normalized = (cosine + 1f) / 2f; // Map from [-1,1] to [0,1]
+                return new SearchResult(chunk, normalized);
+            })
             .OrderByDescending(r => r.SimilarityScore)
             .Take(maxResults)
             .ToList();

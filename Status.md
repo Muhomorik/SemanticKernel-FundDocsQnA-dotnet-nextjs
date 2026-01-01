@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-31 (Added token usage tracking plan)
+Last Updated: 2026-01-01 (Added comprehensive unit tests for QuestionAnsweringService and InMemorySemanticSearch)
 
 **Tech Stack:**
 
@@ -98,7 +98,7 @@ Last Updated: 2025-12-31 (Added token usage tracking plan)
 | Secrets Management | ✅ Complete | User Secrets (local), Azure Key Vault (prod), GitHub Secrets (CI/CD) |
 | Azure Deployment | ✅ Complete | App Service F1, CI/CD with GitHub Actions |
 | Documentation | ✅ Complete | README with DDD architecture details |
-| Unit Tests | ⏳ Pending | Test projects created, tests needed |
+| Unit Tests | ✅ Complete | Comprehensive test coverage for services and infrastructure |
 
 ### Features Implemented
 
@@ -320,10 +320,13 @@ Last Updated: 2025-12-31 (Added token usage tracking plan)
 
 | Test Suite | Status | Coverage |
 |-------------|--------|----------|
-| Domain Layer Tests | ❌ Not Implemented | Models, value objects, domain services |
-| ApplicationCore Tests | ❌ Not Implemented | QuestionAnsweringService, DTOs |
-| Infrastructure Tests | ❌ Not Implemented | Providers, repository, search |
+| Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests), UserQuestionSanitizer (13 tests), models, value objects |
+| ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (8 tests), RAG pipeline orchestration |
+| Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (7 tests), LINQ sorting, semantic search |
+| Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
+| Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
+| **Total Backend Tests** | **✅ 51 Complete** | 51 tests passing, 2 new test files created |
 
 ### Frontend
 
@@ -379,10 +382,13 @@ Last Updated: 2025-12-31 (Added token usage tracking plan)
    - Configure GitHub Secrets and Variables
    - Push to main branch to trigger deployment
 2. ✅ **DDD Refactoring Complete** (Domain, ApplicationCore, Infrastructure layers)
-3. ⏳ Write unit tests for Backend DDD layers (Domain, ApplicationCore, Infrastructure, Controllers)
+3. ✅ **Unit Tests Complete** (51 tests: Domain, ApplicationCore, Infrastructure layers)
+   - New test files: QuestionAnsweringServiceTests.cs (8 tests), InMemorySemanticSearchTests.cs (7 tests)
+   - Existing tests: 13 sanitizer tests, 8 validation tests, 6 calculator tests, 6 integration tests, 4 model tests
 4. ✅ Create Next.js frontend application
 5. ✅ Implement chat interface UI components
 6. ⏳ Test end-to-end integration
+7. ⏳ Controller tests (AskController, health checks) - optional enhancement
 
 ### Future Enhancements
 
