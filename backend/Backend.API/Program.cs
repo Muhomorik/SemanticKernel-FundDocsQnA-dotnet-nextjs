@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System.Threading.RateLimiting;
 
 /*
  * Backend API for PDF Q&A Application
@@ -209,9 +210,7 @@ if (hasApiKeys)
 // Register Configuration Interfaces (extracted from BackendOptions)
 var openAiConfig = OpenAiConfiguration.FromBackendOptions(backendOptions);
 var groqConfig = GroqConfiguration.FromBackendOptions(backendOptions);
-var appOptions = ApplicationOptions.Create(
-    backendOptions.MaxSearchResults,
-    builder.Configuration["BackendOptions:SystemPrompt"]);
+var appOptions = ApplicationOptions.Create(backendOptions);
 
 builder.Services.AddSingleton<IOpenAiConfiguration>(openAiConfig);
 builder.Services.AddSingleton<IGroqConfiguration>(groqConfig);
@@ -220,7 +219,9 @@ builder.Services.AddSingleton(appOptions);
 // Only register AI-dependent services if API keys are configured
 if (hasApiKeys)
 {
-    // Domain layer - no registrations (pure logic)
+    // Domain layer services
+    builder.Services.AddSingleton<Backend.API.Domain.Interfaces.IUserQuestionSanitizer,
+        Backend.API.Domain.Services.UserQuestionSanitizer>();
 
     // Infrastructure layer - Repository
     builder.Services.AddSingleton<IDocumentRepository, FileBasedDocumentRepository>();
@@ -293,6 +294,27 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Rate limiting (built-in ASP.NET Core .NET 8+) - DoS protection
+builder.Services.AddRateLimiter(limiterOptions =>
+{
+    limiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10, // 10 requests per minute
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 2 // Allow 2 requests to queue
+            }));
+});
+
+// Kestrel request limits - DoS protection against large payloads
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 10 * 1024; // 10KB max request size
+});
+
 var app = builder.Build();
 
 // ========================================
@@ -338,6 +360,9 @@ if (app.Environment.IsDevelopment())
 
 // Enable CORS before authorization
 app.UseCors();
+
+// Enable rate limiting middleware - DoS protection
+app.UseRateLimiter();
 
 // Authorization middleware (currently no auth, but prepared for future)
 app.UseAuthorization();

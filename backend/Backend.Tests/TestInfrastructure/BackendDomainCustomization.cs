@@ -20,6 +20,7 @@ public class BackendDomainCustomization : ICustomization
         fixture.Customizations.Add(new SearchResultBuilder());
         fixture.Customizations.Add(new AskQuestionRequestBuilder());
         fixture.Customizations.Add(new AskQuestionResponseBuilder());
+        fixture.Customizations.Add(new UserQuestionSanitizerBuilder());
 
         // Configure default test values
         fixture.Inject(CreateDefaultApplicationOptions());

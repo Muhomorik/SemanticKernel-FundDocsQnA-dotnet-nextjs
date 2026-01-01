@@ -162,13 +162,41 @@ Last Updated: 2025-12-31 (Added token usage tracking plan)
   - Custom metrics to Application Insights for production cost analysis
   - Support for both OpenAI (gpt-4o-mini) and Groq (llama-3.3-70b-versatile) providers
 
+### Input Validation & Prompt Injection Protection ✅ (2026-01-01)
+
+**Defense-in-Depth Security Implementation:**
+
+| Component | Status | Details |
+| --- | --- | --- |
+| Input Validation | ✅ Complete | ASP.NET Core Data Annotations: [MaxLength(500)], [Required], [MinLength(3)] |
+| Custom Validation | ✅ Complete | [SafeQuestion] attribute detects: "IGNORE PREVIOUS", "SYSTEM:", special tokens, excessive repetition |
+| Input Sanitization | ✅ Complete | Domain service removes control chars, normalizes whitespace/newlines |
+| System Prompt | ✅ Complete | Environment-based with factory pattern, hardened default prompt with anti-jailbreak instructions |
+| Rate Limiting | ✅ Complete | 10 requests per minute per IP, 2 request queue, IP-based partitioning |
+| Request Size Limits | ✅ Complete | Kestrel configured for 10KB max body size |
+
+**Test Coverage:**
+
+- ✅ 13 unit tests for UserQuestionSanitizer (control chars, whitespace, newlines, injection attempts)
+- ✅ 8 unit tests for SafeQuestionAttribute validation (patterns, tokens, repetition)
+- ✅ 6 integration tests for full pipeline (jailbreak, role-play, control chars, newlines, tokens, legitimate questions)
+- ✅ Test infrastructure with AutoFixture builders and customizations
+- ✅ All 51 tests passing
+
+**Security Features:**
+
+- Input validated at DTO level with ASP.NET Core pipeline
+- Sanitization applied before semantic search and LLM processing
+- XML-delimited prompts with explicit security instructions
+- Rate limiting prevents DoS via request flooding
+- Request size limits prevent DoS via large payloads
+
 ### Not Yet Implemented
 
-- ❌ Unit tests (need updates for DDD layers: Domain, ApplicationCore, Infrastructure, Controllers)
-- ❌ Integration tests
+- ❌ Integration tests for controller endpoints
 - ❌ Caching layer
 - ❌ Authentication/Authorization
-- ❌ Rate limiting
+- ❌ Indirect prompt injection detection (via PDF content)
 
 ---
 

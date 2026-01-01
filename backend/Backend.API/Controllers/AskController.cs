@@ -2,6 +2,7 @@ using Backend.API.ApplicationCore.DTOs;
 using Backend.API.ApplicationCore.Services;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend.API.Controllers;
 
@@ -11,6 +12,7 @@ namespace Backend.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("ApiRateLimit")] // DoS protection - 10 requests per minute
 public class AskController : ControllerBase
 {
     private readonly IQuestionAnsweringService _qaService;

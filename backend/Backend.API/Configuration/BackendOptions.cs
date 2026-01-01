@@ -69,4 +69,11 @@ public record BackendOptions
     /// Can be overridden via Azure App Service Configuration using BackendOptions__AllowedOrigins__0, etc.
     /// </summary>
     public string[] AllowedOrigins { get; init; } = ["http://localhost:3000", "http://localhost:3001"];
+
+    /// <summary>
+    /// Gets or sets an optional custom system prompt for the LLM.
+    /// If not set, uses the default hardened prompt from SystemPromptFactory.
+    /// Can be set via environment variable: BackendOptions:SystemPrompt or BackendOptions__SystemPrompt
+    /// </summary>
+    public string? SystemPrompt { get; init; }
 }

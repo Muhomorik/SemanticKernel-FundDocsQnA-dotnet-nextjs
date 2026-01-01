@@ -1,3 +1,5 @@
+using Backend.API.Configuration;
+
 namespace Backend.API.ApplicationCore.Configuration;
 
 /// <summary>
@@ -21,10 +23,25 @@ public record ApplicationOptions
     public required string SystemPrompt { get; init; }
 
     /// <summary>
-    /// Creates ApplicationOptions with default system prompt.
+    /// Creates ApplicationOptions from BackendOptions using SystemPromptFactory.
+    /// Uses environment-based system prompt if configured, otherwise uses hardened default.
+    /// </summary>
+    /// <param name="backendOptions">Backend configuration options</param>
+    /// <returns>Configured ApplicationOptions instance</returns>
+    public static ApplicationOptions Create(BackendOptions backendOptions)
+    {
+        return new ApplicationOptions
+        {
+            MaxSearchResults = backendOptions.MaxSearchResults,
+            SystemPrompt = SystemPromptFactory.Create(backendOptions)
+        };
+    }
+
+    /// <summary>
+    /// Creates ApplicationOptions with custom parameters (used primarily for testing).
     /// </summary>
     /// <param name="maxSearchResults">Maximum number of search results (default: 10)</param>
-    /// <param name="systemPrompt">Custom system prompt (optional, uses default if not provided)</param>
+    /// <param name="systemPrompt">Custom system prompt (optional, uses factory default if not provided)</param>
     /// <returns>Configured ApplicationOptions instance</returns>
     public static ApplicationOptions Create(
         int maxSearchResults = 10,
@@ -33,18 +50,13 @@ public record ApplicationOptions
         return new ApplicationOptions
         {
             MaxSearchResults = maxSearchResults,
-            SystemPrompt = systemPrompt ?? GetDefaultSystemPrompt()
+            SystemPrompt = systemPrompt ?? SystemPromptFactory.Create(new BackendOptions
+            {
+                EmbeddingsFilePath = "",
+                OpenAIApiKey = "",
+                OpenAIEmbeddingModel = "",
+                MemoryCollectionName = ""
+            })
         };
     }
-
-    /// <summary>
-    /// Gets the default system prompt for financial document Q&amp;A.
-    /// </summary>
-    /// <returns>Default system prompt string</returns>
-    public static string GetDefaultSystemPrompt() =>
-        @"You are a helpful assistant that answers questions about financial fund documents.
-
-Use the following context to answer the question. If the answer is not in the context, say ""I don't have enough information to answer this question.""
-
-Always base your answer strictly on the provided context. Do not make up information.";
 }
