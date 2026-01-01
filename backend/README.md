@@ -371,7 +371,7 @@ dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
 Update `Program.cs` to include your frontend URL:
 
 ```csharp
-policy.WithOrigins("http://localhost:3000", "https://your-frontend-url.com")
+policy.WithOrigins("http://localhost:3000", "https://<your-static-web-app-name>.azurestaticapps.net")
 ```
 
 ## Customizing the System Prompt

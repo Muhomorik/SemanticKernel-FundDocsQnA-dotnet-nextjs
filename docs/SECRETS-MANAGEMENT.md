@@ -158,7 +158,7 @@ To allow your frontend to call the API, add CORS origins in Azure Portal:
 1. Go to **App Services** → your app → **Configuration**
 2. Add application setting:
    - **Name:** `BackendOptions__AllowedOrigins__0`
-   - **Value:** `https://your-frontend.azurestaticapps.net`
+   - **Value:** `https://<your-static-web-app-name>.azurestaticapps.net`
 3. For multiple origins, add `BackendOptions__AllowedOrigins__1`, etc.
 
 ---
@@ -224,7 +224,7 @@ az staticwebapp secrets list \
 
 **Purpose:** Backend API URL used during frontend builds
 
-**Value:** `https://funddocs-backend-api.azurewebsites.net`
+**Value:** `https://<your-backend-app-service-name>.azurewebsites.net`
 
 **How to set:**
 
