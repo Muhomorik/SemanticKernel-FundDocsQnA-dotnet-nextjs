@@ -32,6 +32,9 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Ensure environment variables are loaded (required for Azure App Service settings)
+builder.Configuration.AddEnvironmentVariables();
+
 // ========================================
 // 1. Azure Key Vault Configuration (Production Only)
 // ========================================
@@ -129,6 +132,14 @@ if (backendOptions.LlmProvider == LlmProvider.Groq)
 
 // Register configuration as a singleton for dependency injection
 builder.Services.AddSingleton(backendOptions);
+
+// Log CORS configuration for debugging
+Console.WriteLine($"CORS Configuration:");
+Console.WriteLine($"  AllowedOrigins count: {backendOptions.AllowedOrigins.Length}");
+foreach (var origin in backendOptions.AllowedOrigins)
+{
+    Console.WriteLine($"  - {origin}");
+}
 
 // ========================================
 // 3. Semantic Kernel Configuration
@@ -285,10 +296,19 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod()
                 .AllowAnyHeader();
         }
+        else if (builder.Environment.IsProduction())
+        {
+            // Production: require explicit CORS configuration
+            // This prevents unintended cross-origin requests in production
+            policy.WithOrigins() // Empty origins list - all CORS requests blocked
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
         else
         {
-            // No origins configured - block all cross-origin requests
-            policy.AllowAnyMethod()
+            // Development: allow all origins for easier testing
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
                 .AllowAnyHeader();
         }
     });
@@ -297,7 +317,8 @@ builder.Services.AddCors(options =>
 // Rate limiting (built-in ASP.NET Core .NET 8+) - DoS protection
 builder.Services.AddRateLimiter(limiterOptions =>
 {
-    limiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    // Create the ApiRateLimit policy required by [EnableRateLimiting("ApiRateLimit")] attribute
+    limiterOptions.AddPolicy("ApiRateLimit", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.User.Identity?.Name ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
             factory: _ => new FixedWindowRateLimiterOptions
@@ -307,6 +328,13 @@ builder.Services.AddRateLimiter(limiterOptions =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 2 // Allow 2 requests to queue
             }));
+
+    // Set OnRejected handler to return proper HTTP 429 response
+    limiterOptions.OnRejected = (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return ValueTask.CompletedTask;
+    };
 });
 
 // Kestrel request limits - DoS protection against large payloads
