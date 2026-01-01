@@ -78,6 +78,17 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full flex-col">
+      {/* Info Banner - always visible */}
+      <div className="border-border/30 bg-muted/20 border-b px-4 py-2">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-muted-foreground text-center text-xs leading-relaxed">
+            <span className="font-medium">Demo Notice:</span> This site runs on
+            free tier resources and may experience downtime when limits are
+            reached. Currently processing 15 of 68 SEB funds.
+          </p>
+        </div>
+      </div>
+
       {/* Hero section - only shown when no messages */}
       {!hasMessages && !isLoading && (
         <div className="flex flex-col items-center px-6 pt-6 pb-4">

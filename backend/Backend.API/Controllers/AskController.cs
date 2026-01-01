@@ -1,15 +1,18 @@
-using Backend.API.Models;
-using Backend.API.Services;
+using Backend.API.ApplicationCore.DTOs;
+using Backend.API.ApplicationCore.Services;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend.API.Controllers;
 
 /// <summary>
 /// Controller for asking questions about documents.
+/// Thin controller that validates requests and delegates to application service.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("ApiRateLimit")] // DoS protection - 10 requests per minute
 public class AskController : ControllerBase
 {
     private readonly IQuestionAnsweringService _qaService;
@@ -30,11 +33,11 @@ public class AskController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>An answer with source references.</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(AskResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AskQuestionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<AskResponse>> Ask(
-        [FromBody] AskRequest request,
+    public async Task<ActionResult<AskQuestionResponse>> Ask(
+        [FromBody] AskQuestionRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -46,7 +49,7 @@ public class AskController : ControllerBase
 
             _logger.LogInformation("Received question: {Question}", request.Question);
 
-            var response = await _qaService.AnswerQuestionAsync(request.Question, cancellationToken);
+            var response = await _qaService.AnswerQuestionAsync(request, cancellationToken);
 
             return Ok(response);
         }

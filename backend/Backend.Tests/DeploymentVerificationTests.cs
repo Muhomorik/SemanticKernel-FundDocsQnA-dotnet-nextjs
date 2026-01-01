@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-using Backend.API.Models;
+using Backend.API.ApplicationCore.DTOs;
 
 using Microsoft.Extensions.Configuration;
 
@@ -85,11 +85,11 @@ public class DeploymentVerificationTests
     public async Task AskEndpoint_WithValidQuestion_ReturnsAnswer()
     {
         // Arrange
-        var request = new AskRequest { Question = "What is the risk level of the funds?" };
+        var request = new AskQuestionRequest { Question = "What is the risk level of the funds?" };
 
         // Act
         var response = await _httpClient.PostAsJsonAsync("/api/ask", request);
-        var result = await response.Content.ReadFromJsonAsync<AskResponse>();
+        var result = await response.Content.ReadFromJsonAsync<AskQuestionResponse>();
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -101,7 +101,7 @@ public class DeploymentVerificationTests
     public async Task AskEndpoint_WithShortQuestion_ReturnsBadRequest()
     {
         // Arrange
-        var request = new AskRequest { Question = "ab" }; // Less than 3 chars minimum
+        var request = new AskQuestionRequest { Question = "ab" }; // Less than 3 chars minimum
 
         // Act
         var response = await _httpClient.PostAsJsonAsync("/api/ask", request);

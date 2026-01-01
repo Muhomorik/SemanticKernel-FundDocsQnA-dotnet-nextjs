@@ -118,9 +118,9 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
 
 Go to your GitHub repository → Settings → Secrets and variables → Actions → **Variables tab**
 
-| Variable Name | Value |
-|---------------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://funddocs-backend-api.azurewebsites.net` |
+| Variable Name                | Value                                                      |
+|------------------------------|--------------------------------------------------------|
+| `NEXT_PUBLIC_API_URL`        | `https://<your-backend-app-service-name>.azurewebsites.net` |
 
 ### Step 4: Prepare Embeddings
 
@@ -157,20 +157,20 @@ Monitor the deployment:
 
 ```bash
 # Liveness probe (should return 200)
-curl https://funddocs-backend-api.azurewebsites.net/health/live
+curl https://<your-backend-app-service-name>.azurewebsites.net/health/live
 
 # Readiness probe (should return 200 if embeddings loaded)
-curl https://funddocs-backend-api.azurewebsites.net/health/ready
+curl https://<your-backend-app-service-name>.azurewebsites.net/health/ready
 
 # Test Q&A endpoint
-curl -X POST https://funddocs-backend-api.azurewebsites.net/api/ask \
+curl -X POST https://<your-backend-app-service-name>.azurewebsites.net/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"What is this about?"}'
 ```
 
 **Frontend:**
 
-Open your Static Web App URL in a browser: `https://funddocs-frontend.azurestaticapps.net`
+Open your Static Web App URL in a browser: `https://<your-static-web-app-name>.azurestaticapps.net`
 
 ## Azure App Service Configuration
 

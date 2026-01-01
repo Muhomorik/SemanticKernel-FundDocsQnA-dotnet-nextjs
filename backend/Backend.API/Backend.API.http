@@ -10,6 +10,69 @@ Content-Type: application/json
 
 ###
 
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What is the risk level of Korträntefond?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What fonds have risk level of 4?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What fonds invest in asian markets?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What fonds invest in security?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What fonds have lowest risk?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What ISIN of SEB Global High Yield?"
+}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/ask
+Content-Type: application/json
+
+{
+  "question": "What are costs of SEB Global High Yield?"
+}
+
+###
+
 ### GET /health/live - Liveness probe
 GET {{Backend.API_HostAddress}}/health/live
 

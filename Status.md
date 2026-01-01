@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-29 (Added configurable LLM provider)
+Last Updated: 2025-12-31 (Added token usage tracking plan)
 
 **Tech Stack:**
 
@@ -59,9 +59,13 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
 - ✅ Provider abstraction (Ollama/LM Studio/OpenAI)
 - ✅ Secure API key management (environment variables + CLI args)
 
-### Future Features
+### Planned Features
 
-- ❌ API token usage tracking and logging (OpenAI embeddings)
+- ⏳ **Token usage tracking and cost monitoring:**
+  - Extract token counts from OpenAI embedding API responses
+  - Calculate and log estimated API costs per batch
+  - Structured logging to console for development monitoring
+  - Custom metrics to Application Insights for production monitoring
 
 ### Not Planned
 
@@ -76,31 +80,53 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Solution Structure | ✅ Complete | Separate Backend.sln with API and Tests projects |
-| Configuration | ✅ Complete | appsettings.json with BackendOptions, User Secrets support |
-| Models | ✅ Complete | All request/response models |
-| MemoryService | ✅ Complete | Loads embeddings, semantic search |
-| QuestionAnsweringService | ✅ Complete | Orchestrates search + LLM |
-| AskController | ✅ Complete | POST /api/ask endpoint |
+| DDD Architecture | ✅ Complete | Domain-Driven Design with layered architecture |
+| Domain Layer | ✅ Complete | Pure business logic (models, value objects, interfaces, services) |
+| ApplicationCore Layer | ✅ Complete | Use cases and orchestration (DTOs, services) |
+| Infrastructure Layer | ✅ Complete | External dependencies (LLM providers, repository, search) |
+| Configuration | ✅ Complete | BackendOptions + LLM-specific interfaces (IOpenAiConfiguration, IGroqConfiguration) |
+| DocumentRepository | ✅ Complete | File-based repository with domain model mapping |
+| QuestionAnsweringService | ✅ Complete | RAG pipeline orchestration in ApplicationCore |
+| LLM Provider Abstraction | ✅ Complete | Factory pattern for OpenAI/Groq provider selection |
+| AskController | ✅ Complete | POST /api/ask endpoint with ApplicationCore DTOs |
 | Health Checks | ✅ Complete | ASP.NET Core health checks (/health/live, /health/ready) |
-| Program.cs | ✅ Complete | Application Insights, Key Vault, OpenAI embeddings |
-| Semantic Kernel Setup | ✅ Complete | OpenAI embeddings + Groq chat |
+| Program.cs | ✅ Complete | DDD layers DI registration, Application Insights, Key Vault |
+| Semantic Kernel Setup | ✅ Complete | OpenAI embeddings + configurable LLM providers |
 | CORS Configuration | ✅ Complete | Configured for Next.js frontend |
 | Swagger/OpenAPI | ✅ Complete | Auto-generated API docs |
 | Application Insights | ✅ Complete | Monitoring for production (free tier) |
 | Secrets Management | ✅ Complete | User Secrets (local), Azure Key Vault (prod), GitHub Secrets (CI/CD) |
 | Azure Deployment | ✅ Complete | App Service F1, CI/CD with GitHub Actions |
-| Documentation | ✅ Complete | README, AZURE-DEPLOYMENT.md, SECRETS-MANAGEMENT.md |
+| Documentation | ✅ Complete | README with DDD architecture details |
 | Unit Tests | ⏳ Pending | Test projects created, tests needed |
 
 ### Features Implemented
 
-- ✅ Load embeddings.json on startup
+**Core Functionality:**
+
+- ✅ Load embeddings.json on startup via DocumentRepository
 - ✅ Initialize in-memory vector store with embeddings
 - ✅ Semantic search using OpenAI embeddings (text-embedding-3-small)
 - ✅ Configurable LLM provider: OpenAI (gpt-4o-mini, default) or Groq (llama-3.3-70b-versatile, optional)
 - ✅ Environment variable support (LLM_PROVIDER, GROQ_API_KEY, OPENAI_API_KEY, EMBEDDINGS_PATH)
 - ✅ Error handling and logging
 - ✅ Source references in responses
+
+**DDD Architecture Benefits:**
+
+- ✅ **Domain Layer**: Pure business logic with zero external dependencies
+  - DocumentChunk, EmbeddingVector, DocumentMetadata value objects
+  - ILlmProvider, IDocumentRepository, ISemanticSearch abstractions
+  - CosineSimilarityCalculator domain service
+- ✅ **ApplicationCore Layer**: Use case orchestration
+  - QuestionAnsweringService coordinates RAG pipeline
+  - DTOs for API contracts (AskQuestionRequest, AskQuestionResponse)
+- ✅ **Infrastructure Layer**: External integrations
+  - OpenAiProvider and GroqProvider implementations
+  - LlmProviderFactory for runtime provider selection
+  - FileBasedDocumentRepository for embeddings persistence
+  - SemanticKernelEmbeddingGenerator adapter
+- ✅ **Clear separation of concerns**: Easy to test, swap providers, maintain code
 
 ### Production-Ready Features ✅
 
@@ -126,20 +152,59 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
 
 **Total Monthly Cost: ~$0.03**
 
+### Planned Features
+
+- ⏳ **Token usage tracking and cost monitoring:**
+  - Extract token counts from LLM responses via `ChatMessageContent.InnerContent` property
+  - Track both chat completion tokens (OpenAI/Groq) and embedding tokens
+  - Calculate estimated API costs per request based on provider pricing
+  - Structured logging to console for development monitoring
+  - Custom metrics to Application Insights for production cost analysis
+  - Support for both OpenAI (gpt-4o-mini) and Groq (llama-3.3-70b-versatile) providers
+
+### Input Validation & Prompt Injection Protection ✅ (2026-01-01)
+
+**Defense-in-Depth Security Implementation:**
+
+| Component | Status | Details |
+| --- | --- | --- |
+| Input Validation | ✅ Complete | ASP.NET Core Data Annotations: [MaxLength(500)], [Required], [MinLength(3)] |
+| Custom Validation | ✅ Complete | [SafeQuestion] attribute detects: "IGNORE PREVIOUS", "SYSTEM:", special tokens, excessive repetition |
+| Input Sanitization | ✅ Complete | Domain service removes control chars, normalizes whitespace/newlines |
+| System Prompt | ✅ Complete | Environment-based with factory pattern, hardened default prompt with anti-jailbreak instructions |
+| Rate Limiting | ✅ Complete | 10 requests per minute per IP, 2 request queue, IP-based partitioning |
+| Request Size Limits | ✅ Complete | Kestrel configured for 10KB max body size |
+
+**Test Coverage:**
+
+- ✅ 13 unit tests for UserQuestionSanitizer (control chars, whitespace, newlines, injection attempts)
+- ✅ 8 unit tests for SafeQuestionAttribute validation (patterns, tokens, repetition)
+- ✅ 6 integration tests for full pipeline (jailbreak, role-play, control chars, newlines, tokens, legitimate questions)
+- ✅ Test infrastructure with AutoFixture builders and customizations
+- ✅ All 51 tests passing
+
+**Security Features:**
+
+- Input validated at DTO level with ASP.NET Core pipeline
+- Sanitization applied before semantic search and LLM processing
+- XML-delimited prompts with explicit security instructions
+- Rate limiting prevents DoS via request flooding
+- Request size limits prevent DoS via large payloads
+
 ### Not Yet Implemented
 
-- ❌ Unit tests (MemoryServiceTests, QuestionAnsweringServiceTests, Controller tests)
-- ❌ Integration tests
+- ❌ Integration tests for controller endpoints
 - ❌ Caching layer
 - ❌ Authentication/Authorization
-- ❌ Rate limiting
-- ❌ Token usage tracking (OpenAI + Groq → Application Insights custom metrics)
+- ❌ Indirect prompt injection detection (via PDF content)
 
 ---
 
 ## Part 3: Frontend ✅ COMPLETED
 
 **Current Phase:** All core features implemented - chat interface with theme support, responsive design, and error handling
+
+**IMPORTANT for AI Agents:** When working on frontend features or UI components, you MUST use the [Frontend Design Plugin](https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/README.md) to ensure production-grade design quality and avoid generic AI aesthetics.
 
 ### Implementation Status
 
@@ -255,10 +320,10 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
 
 | Test Suite | Status | Coverage |
 |-------------|--------|----------|
-| MemoryServiceTests | ❌ Not Implemented | - |
-| QuestionAnsweringServiceTests | ❌ Not Implemented | - |
-| AskControllerTests | ❌ Not Implemented | - |
-| HealthControllerTests | ❌ Not Implemented | - |
+| Domain Layer Tests | ❌ Not Implemented | Models, value objects, domain services |
+| ApplicationCore Tests | ❌ Not Implemented | QuestionAnsweringService, DTOs |
+| Infrastructure Tests | ❌ Not Implemented | Providers, repository, search |
+| Controller Tests | ❌ Not Implemented | AskController, health checks |
 
 ### Frontend
 
@@ -290,10 +355,11 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
 
 ### Backend
 
-1. VolatileMemoryStore = data lost on restart (by design)
+1. In-memory DocumentRepository = data lost on restart (by design)
 2. No caching = every search generates new embedding
 3. No request throttling or rate limiting
-4. Missing unit tests
+4. Missing unit tests for DDD layers
+5. More files and abstractions due to DDD structure (trade-off for maintainability)
 
 ### General
 
@@ -312,21 +378,20 @@ Last Updated: 2025-12-29 (Added configurable LLM provider)
    - Run `./azure-setup.sh` to create Azure resources
    - Configure GitHub Secrets and Variables
    - Push to main branch to trigger deployment
-2. ⏳ Write unit tests for Backend services and controllers
-3. ✅ Create Next.js frontend application
-4. ✅ Implement chat interface UI components
-5. ⏳ Test end-to-end integration
+2. ✅ **DDD Refactoring Complete** (Domain, ApplicationCore, Infrastructure layers)
+3. ⏳ Write unit tests for Backend DDD layers (Domain, ApplicationCore, Infrastructure, Controllers)
+4. ✅ Create Next.js frontend application
+5. ✅ Implement chat interface UI components
+6. ⏳ Test end-to-end integration
 
 ### Future Enhancements
 
+- Migrate to modern Vector Store abstractions (VectorStore, VectorStoreCollection, VectorStoreTextSearch) to replace manual cosine similarity implementation
 - Implement caching layer
-- Add authentication (optional)
-- Create MCP server integration
 - Support multiple languages
 - Add streaming responses for better UX
 - Implement chat history
 - Upgrade to Azure App Service B1 tier if F1 limitations are problematic
-- Track token usage and pricing (OpenAI embeddings + Groq LLM → Application Insights custom metrics)
 
 ---
 
