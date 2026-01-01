@@ -18,33 +18,36 @@ describe("Home Page", () => {
     expect(description).toBeInTheDocument();
   });
 
-  it("shows example query categories and hint", () => {
+  it("shows example query groups and hint", () => {
     render(<Home />);
-    // Check for category buttons
-    const categories = [
-      "Fund Basics",
-      "Risk & Returns",
-      "Costs",
-      "Investing",
-      "Practical",
-      "Comparison",
+
+    // Check for group buttons (new hierarchical structure)
+    const groups = [
+      "Quick Start",
+      "Comparison Questions",
+      "Specific Funds",
+      "Single Fund Questions",
     ];
-    categories.forEach((cat) => {
-      expect(screen.getByRole("button", { name: cat })).toBeInTheDocument();
+
+    groups.forEach((group) => {
+      expect(screen.getByRole("button", { name: group })).toBeInTheDocument();
     });
-    // Check for the hint text
+
+    // Check for updated hint text
     expect(
       screen.getByText(
-        /Click a category to see more questions, or click any question to ask it/i
+        /Select a topic group, then choose a category to see questions/i
       )
     ).toBeInTheDocument();
   });
 
-  it("renders example query buttons", () => {
+  it("shows Quick Start group expanded by default", () => {
     render(<Home />);
-    const fundButton = screen.getByRole("button", {
-      name: /What is this fund and what does it invest in/i,
+
+    // Quick Start should be expanded, showing "Getting Started" category
+    const gettingStartedButton = screen.getByRole("button", {
+      name: "Getting Started",
     });
-    expect(fundButton).toBeInTheDocument();
+    expect(gettingStartedButton).toBeInTheDocument();
   });
 });

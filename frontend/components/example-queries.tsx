@@ -193,7 +193,9 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
   const [activeGroup, setActiveGroup] = React.useState<string | null>(
     QUERY_GROUPS[0]?.title ?? null
   );
-  const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = React.useState<string | null>(
+    null
+  );
 
   return (
     <div className="w-full space-y-4">
@@ -208,11 +210,11 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
             disabled={disabled}
             className={cn(
               "animate-fade-up rounded-lg px-5 py-3 text-base font-bold transition-all duration-300",
-              "border-2 flex items-center justify-between w-full max-w-2xl",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
+              "flex w-full max-w-2xl items-center justify-between border-2",
+              "focus-visible:ring-primary/50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
               activeGroup === group.title
-                ? "border-primary bg-gradient-to-r from-primary/15 to-primary/10 text-primary shadow-lg shadow-primary/10"
-                : "border-border/60 bg-card text-foreground shadow-md hover:shadow-lg hover:border-primary/30",
+                ? "border-primary from-primary/15 to-primary/10 text-primary shadow-primary/10 bg-gradient-to-r shadow-lg"
+                : "border-border/60 bg-card text-foreground hover:border-primary/30 shadow-md hover:shadow-lg",
               disabled && "pointer-events-none opacity-50"
             )}
             style={{ animationDelay: `${groupIndex * 50}ms` }}
@@ -253,11 +255,11 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
                         disabled={disabled}
                         className={cn(
                           "animate-scale-in rounded-md px-4 py-2.5 text-sm font-semibold transition-all duration-300",
-                          "border-2 flex items-center gap-1.5",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warm/50 focus-visible:ring-offset-2",
+                          "flex items-center gap-1.5 border-2",
+                          "focus-visible:ring-warm/50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                           activeCategory === category.title
-                            ? "border-warm/40 bg-gradient-to-b from-warm/10 to-warm/15 text-warm shadow-[0_2px_8px_-2px] shadow-warm/20 hover:shadow-warm/30 hover:scale-[1.01]"
-                            : "border-border bg-gradient-to-b from-card to-accent/50 text-foreground shadow-sm hover:shadow-md hover:border-border/80",
+                            ? "border-warm/40 from-warm/10 to-warm/15 text-warm shadow-warm/20 hover:shadow-warm/30 bg-gradient-to-b shadow-[0_2px_8px_-2px] hover:scale-[1.01]"
+                            : "border-border from-card to-accent/50 text-foreground hover:border-border/80 bg-gradient-to-b shadow-sm hover:shadow-md",
                           disabled && "pointer-events-none opacity-50"
                         )}
                         style={{ animationDelay: `${catIndex * 30}ms` }}
@@ -265,7 +267,7 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
                         {category.title}
                         <ChevronDown
                           className={cn(
-                            "h-4 w-4 transition-transform duration-400 ease-out ml-auto",
+                            "ml-auto h-4 w-4 transition-transform duration-400 ease-out",
                             activeCategory === category.title && "rotate-180"
                           )}
                           strokeWidth={2.5}
@@ -275,7 +277,7 @@ export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
                       {/* Level 3: Queries (collapse/expand) */}
                       <div
                         className={cn(
-                          "grid gap-2 overflow-hidden transition-all duration-300 mt-2",
+                          "mt-2 grid gap-2 overflow-hidden transition-all duration-300",
                           activeCategory === category.title
                             ? "grid-rows-[1fr] opacity-100"
                             : "grid-rows-[0fr] opacity-0"
