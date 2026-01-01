@@ -16,7 +16,6 @@ export function Footer() {
     "Next.js 16",
     "ASP.NET Core 9",
     "Semantic Kernel",
-    "Groq API",
     "OpenAI Embeddings",
   ];
 

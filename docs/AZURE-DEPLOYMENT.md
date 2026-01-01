@@ -18,6 +18,15 @@ This deployment uses:
 
 **External Services:**
 
+**With OpenAI Chat (Default):**
+
+- **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
+- **OpenAI Chat** - ~$0.50/month (gpt-4o-mini)
+
+**Total Cost: ~$0.53/month**
+
+**With Groq Chat (Optional, Free Tier):**
+
 - **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
 - **Groq LLM** - $0/month (free tier)
 
@@ -57,8 +66,8 @@ cp ./embeddings.json ../backend/Backend.API/Data/embeddings.json
 
 ### Required API Keys
 
-1. **Groq API Key** - [Get free key](https://console.groq.com)
-2. **OpenAI API Key** - [Sign up](https://platform.openai.com/signup)
+1. **OpenAI API Key** - [Sign up](https://platform.openai.com/signup) (required for embeddings and chat, default provider)
+2. **Groq API Key** - [Get free key](https://console.groq.com) (optional, only if using Groq as LLM provider)
 
 ## Deployment Steps
 
@@ -109,9 +118,9 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
 
 Go to your GitHub repository → Settings → Secrets and variables → Actions → **Variables tab**
 
-| Variable Name | Value |
-|---------------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://funddocs-backend-api.azurewebsites.net` |
+| Variable Name                | Value                                                      |
+|------------------------------|--------------------------------------------------------|
+| `NEXT_PUBLIC_API_URL`        | `https://<your-backend-app-service-name>.azurewebsites.net` |
 
 ### Step 4: Prepare Embeddings
 
@@ -148,20 +157,20 @@ Monitor the deployment:
 
 ```bash
 # Liveness probe (should return 200)
-curl https://funddocs-backend-api.azurewebsites.net/health/live
+curl https://<your-backend-app-service-name>.azurewebsites.net/health/live
 
 # Readiness probe (should return 200 if embeddings loaded)
-curl https://funddocs-backend-api.azurewebsites.net/health/ready
+curl https://<your-backend-app-service-name>.azurewebsites.net/health/ready
 
 # Test Q&A endpoint
-curl -X POST https://funddocs-backend-api.azurewebsites.net/api/ask \
+curl -X POST https://<your-backend-app-service-name>.azurewebsites.net/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"What is this about?"}'
 ```
 
 **Frontend:**
 
-Open your Static Web App URL in a browser: `https://funddocs-frontend.azurestaticapps.net`
+Open your Static Web App URL in a browser: `https://<your-static-web-app-name>.azurestaticapps.net`
 
 ## Azure App Service Configuration
 
@@ -219,18 +228,42 @@ Access via: Azure Portal → Application Insights → `ai-funddocs`
 
 ### Using Azure CLI
 
+**Option 1: Use OpenAI (default, recommended):**
+
 ```bash
-# Update Groq API Key
+# Set LLM Provider to OpenAI
 az keyvault secret set \
   --vault-name "your-keyvault-name" \
-  --name "BackendOptions--GroqApiKey" \
-  --value "new-groq-api-key"
+  --name "BackendOptions--LlmProvider" \
+  --value "OpenAI"
 
-# Update OpenAI API Key
+# Set OpenAI API Key (required for embeddings and chat)
 az keyvault secret set \
   --vault-name "your-keyvault-name" \
   --name "BackendOptions--OpenAIApiKey" \
-  --value "new-openai-api-key"
+  --value "sk-your-openai-api-key"
+```
+
+**Option 2: Use Groq (free tier alternative):**
+
+```bash
+# Set LLM Provider to Groq
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--LlmProvider" \
+  --value "Groq"
+
+# Set OpenAI API Key (still required for embeddings)
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--OpenAIApiKey" \
+  --value "sk-your-openai-api-key"
+
+# Set Groq API Key (required for Groq chat completion)
+az keyvault secret set \
+  --vault-name "your-keyvault-name" \
+  --name "BackendOptions--GroqApiKey" \
+  --value "gsk-your-groq-api-key"
 ```
 
 ### Restarting the App

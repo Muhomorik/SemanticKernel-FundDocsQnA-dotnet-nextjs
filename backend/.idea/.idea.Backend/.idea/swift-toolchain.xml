@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SwiftToolchain">
+    <option name="toolchain" value="system-C:\Users\dmitr\AppData\Local\Programs\Swift\Toolchains\5.10.1+Asserts\usr\bin\swift.exe" />
+  </component>
+</project>
