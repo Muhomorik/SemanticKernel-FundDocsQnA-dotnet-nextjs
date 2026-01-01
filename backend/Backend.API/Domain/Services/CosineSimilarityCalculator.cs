@@ -42,8 +42,8 @@ public static class CosineSimilarityCalculator
         if (magnitude1 == 0 || magnitude2 == 0)
             return 0;
 
-        // Clamp result to [0, 1] to handle floating-point precision errors
+        // Clamp result to [-1, 1] to handle floating-point precision errors
         var similarity = dotProduct / (magnitude1 * magnitude2);
-        return Math.Clamp(similarity, 0f, 1f);
+        return Math.Clamp(similarity, -1f, 1f);
     }
 }
