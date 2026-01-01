@@ -11,6 +11,24 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 
 ---
 
+## 🎬 Demo
+
+**Try it live:** [Fund Q&A Chatbot](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
+
+> ⚠️ **Demo Notice:** This site runs on free tier resources and may experience downtime when limits are reached. Currently processing 15 of 68 SEB funds.
+
+[![Main Page Screenshot](docs/images/main_page.png)](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
+
+**Supported Languages:** All PDF files are in Swedish, but questions can be asked in any language. The AI will respond in the language of your question.
+
+**Example PDF:** [SEB Emerging Marketsfond C USD - Lux.pdf](docs/images/SEB%20Emerging%20Marketsfond%20C%20USD%20-%20Lux.pdf)
+
+### Chat Interface Example
+
+![Chat Interface](docs/images/chat_emerging_market_options.png)
+
+---
+
 ## 🤖 For AI Agents
 
 **IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md) to understand:

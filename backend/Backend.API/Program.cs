@@ -14,7 +14,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+
 using System.Threading.RateLimiting;
+
+using Microsoft.AspNetCore.RateLimiting;
 
 /*
  * Backend API for PDF Q&A Application
@@ -231,7 +234,7 @@ builder.Services.AddSingleton(appOptions);
 if (hasApiKeys)
 {
     // Domain layer services
-    builder.Services.AddSingleton<Backend.API.Domain.Interfaces.IUserQuestionSanitizer,
+    builder.Services.AddSingleton<IUserQuestionSanitizer,
         Backend.API.Domain.Services.UserQuestionSanitizer>();
 
     // Infrastructure layer - Repository
@@ -315,22 +318,21 @@ builder.Services.AddCors(options =>
 });
 
 // Rate limiting (built-in ASP.NET Core .NET 8+) - DoS protection
-builder.Services.AddRateLimiter(limiterOptions =>
+builder.Services.AddRateLimiter(options =>
 {
     // Create the ApiRateLimit policy required by [EnableRateLimiting("ApiRateLimit")] attribute
-    limiterOptions.AddPolicy("ApiRateLimit", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10, // 10 requests per minute
-                Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 2 // Allow 2 requests to queue
-            }));
+    options.AddFixedWindowLimiter(
+        "ApiRateLimit",
+        rateLimitOptions =>
+        {
+            rateLimitOptions.PermitLimit = 60; // 60 requests per minute
+            rateLimitOptions.Window = TimeSpan.FromMinutes(1);
+            rateLimitOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            rateLimitOptions.QueueLimit = 5; // Allow 5 requests to queue
+        });
 
     // Set OnRejected handler to return proper HTTP 429 response
-    limiterOptions.OnRejected = (context, token) =>
+    options.OnRejected = (context, token) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         return ValueTask.CompletedTask;
