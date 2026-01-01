@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2025-12-30 (Refactored to DDD architecture)
+Last Updated: 2025-12-31 (Added token usage tracking plan)
 
 **Tech Stack:**
 
@@ -59,9 +59,13 @@ Last Updated: 2025-12-30 (Refactored to DDD architecture)
 - ✅ Provider abstraction (Ollama/LM Studio/OpenAI)
 - ✅ Secure API key management (environment variables + CLI args)
 
-### Future Features
+### Planned Features
 
-- ❌ API token usage tracking and logging (OpenAI embeddings)
+- ⏳ **Token usage tracking and cost monitoring:**
+  - Extract token counts from OpenAI embedding API responses
+  - Calculate and log estimated API costs per batch
+  - Structured logging to console for development monitoring
+  - Custom metrics to Application Insights for production monitoring
 
 ### Not Planned
 
@@ -148,6 +152,16 @@ Last Updated: 2025-12-30 (Refactored to DDD architecture)
 
 **Total Monthly Cost: ~$0.03**
 
+### Planned Features
+
+- ⏳ **Token usage tracking and cost monitoring:**
+  - Extract token counts from LLM responses via `ChatMessageContent.InnerContent` property
+  - Track both chat completion tokens (OpenAI/Groq) and embedding tokens
+  - Calculate estimated API costs per request based on provider pricing
+  - Structured logging to console for development monitoring
+  - Custom metrics to Application Insights for production cost analysis
+  - Support for both OpenAI (gpt-4o-mini) and Groq (llama-3.3-70b-versatile) providers
+
 ### Not Yet Implemented
 
 - ❌ Unit tests (need updates for DDD layers: Domain, ApplicationCore, Infrastructure, Controllers)
@@ -155,13 +169,14 @@ Last Updated: 2025-12-30 (Refactored to DDD architecture)
 - ❌ Caching layer
 - ❌ Authentication/Authorization
 - ❌ Rate limiting
-- ❌ Token usage tracking (OpenAI + Groq → Application Insights custom metrics)
 
 ---
 
 ## Part 3: Frontend ✅ COMPLETED
 
 **Current Phase:** All core features implemented - chat interface with theme support, responsive design, and error handling
+
+**IMPORTANT for AI Agents:** When working on frontend features or UI components, you MUST use the [Frontend Design Plugin](https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/README.md) to ensure production-grade design quality and avoid generic AI aesthetics.
 
 ### Implementation Status
 
@@ -349,7 +364,6 @@ Last Updated: 2025-12-30 (Refactored to DDD architecture)
 - Add streaming responses for better UX
 - Implement chat history
 - Upgrade to Azure App Service B1 tier if F1 limitations are problematic
-- Track token usage and pricing (OpenAI embeddings + Groq LLM → Application Insights custom metrics)
 
 ---
 
