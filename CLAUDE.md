@@ -127,6 +127,20 @@ npm run test:coverage
 npm run build
 ```
 
+## Claude Code Plugins
+
+Recommended plugins to enhance development experience:
+
+**Frontend Development:**
+
+- `frontend-design` - Use when building or refining UI components, layouts, or design systems. Provides guidance on design patterns, typography, animations, and responsive behavior.
+
+**Security:**
+
+- `security-guidance` - Monitors 9 security patterns (injection, XSS, eval, pickle, os.system, etc.) via PreToolUse hook. Catches potential vulnerabilities during development.
+
+Install: `/plugin install <plugin-name>`
+
 ## Architecture
 
 ### Data Flow
