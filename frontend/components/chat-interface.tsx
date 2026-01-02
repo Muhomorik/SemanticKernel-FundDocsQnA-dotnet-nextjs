@@ -7,12 +7,23 @@ import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
 import { askQuestion, ApiError } from "@/lib/api";
 import { AlertCircle, RotateCcw } from "lucide-react";
+import { useChatContext } from "./chat-context";
 
 export function ChatInterface() {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const { shouldReset, clearReset } = useChatContext();
+
+  React.useEffect(() => {
+    if (shouldReset) {
+      setMessages([]);
+      setError(null);
+      setIsLoading(false);
+      clearReset();
+    }
+  }, [shouldReset, clearReset]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
