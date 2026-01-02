@@ -22,6 +22,8 @@ public class InMemorySemanticSearchTests
     private Mock<ILogger<InMemorySemanticSearch>> _loggerMock;
     private InMemorySemanticSearch _sut;
 
+    private const int VectorDimensions = 1536;
+
     [SetUp]
     public void SetUp()
     {
@@ -32,38 +34,160 @@ public class InMemorySemanticSearchTests
         _repositoryMock = _fixture.Freeze<Mock<IDocumentRepository>>();
         _embeddingGeneratorMock = _fixture.Freeze<Mock<IEmbeddingGenerator>>();
         _loggerMock = _fixture.Freeze<Mock<ILogger<InMemorySemanticSearch>>>();
-        _sut = _fixture.Create<InMemorySemanticSearch>();
+
+        // Create a fresh SUT for each test to avoid VectorStore state leaking between tests
+        _sut = new InMemorySemanticSearch(
+            _repositoryMock.Object,
+            _embeddingGeneratorMock.Object,
+            _loggerMock.Object);
     }
 
     [Test]
-    public void SearchAsync_NegativeCosineSimilarity_ThrowsArgumentOutOfRangeException()
+    public async Task SearchAsync_WithMatchingChunks_ReturnsResultsWithNormalizedScores()
     {
-        // Use two vectors that are exact opposites to guarantee cosine similarity of -1
-        var queryEmbedding = new float[] { 1.0f, 0.0f };
-        var chunkEmbedding = new float[] { -1.0f, 0.0f };
-        var query = "test";
-        var queryVector = new EmbeddingVector(queryEmbedding);
-        var chunk = DocumentChunk.Create("1", "text", chunkEmbedding, "source", 1);
-
-        _embeddingGeneratorMock
-            .Setup(x => x.GenerateEmbeddingAsync(query, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(queryVector);
+        // Arrange - Create vectors that are similar (same direction)
+        var embedding = CreateNormalizedVector(1.0f);
+        var queryVector = new EmbeddingVector(embedding);
+        var chunk = DocumentChunk.Create("1", "matching text", embedding, "source.pdf", 1);
 
         _repositoryMock
             .Setup(x => x.GetAllChunksAsync())
             .ReturnsAsync(new List<DocumentChunk> { chunk });
 
+        _embeddingGeneratorMock
+            .Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryVector);
+
         // Act
-        // With correct normalization, similarity should be 0.0 (not exception)
-        var resultsTask = _sut.SearchAsync(query, 1, CancellationToken.None);
+        var results = await _sut.SearchAsync("test query", 10, CancellationToken.None);
+
         // Assert
-        Assert.That(async () => await resultsTask, Throws.Nothing,
-            "Should not throw for negative cosine similarity after normalization");
-        if (resultsTask.IsCompletedSuccessfully)
-        {
-            var results = resultsTask.Result;
-            Assert.That(results, Has.Count.EqualTo(1));
-            Assert.That(results[0].SimilarityScore, Is.EqualTo(0.0f).Within(0.0001f));
-        }
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results[0].SimilarityScore, Is.InRange(0.0f, 1.0f));
+        Assert.That(results[0].Chunk.Id, Is.EqualTo("1"));
+    }
+
+    [Test]
+    public async Task SearchAsync_NegativeCosineSimilarity_ReturnsNormalizedScoreNearZero()
+    {
+        // Arrange - Use opposite vectors to get cosine similarity of -1
+        var queryEmbedding = CreateNormalizedVector(1.0f);
+        var chunkEmbedding = CreateNormalizedVector(-1.0f); // Opposite direction
+        var queryVector = new EmbeddingVector(queryEmbedding);
+        var chunk = DocumentChunk.Create("1", "opposite text", chunkEmbedding, "source.pdf", 1);
+
+        _repositoryMock
+            .Setup(x => x.GetAllChunksAsync())
+            .ReturnsAsync(new List<DocumentChunk> { chunk });
+
+        _embeddingGeneratorMock
+            .Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryVector);
+
+        // Act
+        var results = await _sut.SearchAsync("test", 1, CancellationToken.None);
+
+        // Assert - Score should be normalized to [0,1], near 0 for opposite vectors
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results[0].SimilarityScore, Is.InRange(0.0f, 1.0f),
+            "Score should be normalized to [0,1] range");
+        Assert.That(results[0].SimilarityScore, Is.EqualTo(0.0f).Within(0.01f),
+            "Opposite vectors should have score near 0 after normalization");
+    }
+
+    [Test]
+    public async Task SearchAsync_WithEmptyRepository_ReturnsEmptyResults()
+    {
+        // Arrange
+        var queryVector = new EmbeddingVector(new float[VectorDimensions]);
+
+        _repositoryMock
+            .Setup(x => x.GetAllChunksAsync())
+            .ReturnsAsync(new List<DocumentChunk>());
+
+        _embeddingGeneratorMock
+            .Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryVector);
+
+        // Act
+        var results = await _sut.SearchAsync("test", 10, CancellationToken.None);
+
+        // Assert
+        Assert.That(results, Is.Empty);
+    }
+
+    [Test]
+    public async Task SearchAsync_RespectsMaxResultsLimit()
+    {
+        // Arrange
+        var chunks = Enumerable.Range(1, 10)
+            .Select(i => DocumentChunk.Create(
+                $"id-{i}",
+                $"text-{i}",
+                CreateRandomVector(),
+                "source.pdf",
+                i))
+            .ToList();
+        var queryVector = new EmbeddingVector(CreateRandomVector());
+
+        _repositoryMock
+            .Setup(x => x.GetAllChunksAsync())
+            .ReturnsAsync(chunks);
+
+        _embeddingGeneratorMock
+            .Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryVector);
+
+        // Act
+        var results = await _sut.SearchAsync("query", maxResults: 3, CancellationToken.None);
+
+        // Assert
+        Assert.That(results, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public async Task SearchAsync_GeneratesEmbeddingForQuery()
+    {
+        // Arrange
+        var query = "specific search query";
+        var queryVector = new EmbeddingVector(CreateRandomVector());
+        var chunk = DocumentChunk.Create("1", "text", CreateRandomVector(), "source.pdf", 1);
+
+        _repositoryMock
+            .Setup(x => x.GetAllChunksAsync())
+            .ReturnsAsync(new List<DocumentChunk> { chunk });
+
+        _embeddingGeneratorMock
+            .Setup(x => x.GenerateEmbeddingAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryVector);
+
+        // Act
+        await _sut.SearchAsync(query, 10, CancellationToken.None);
+
+        // Assert
+        _embeddingGeneratorMock.Verify(
+            x => x.GenerateEmbeddingAsync(query, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Creates a normalized vector with all elements set to the same value (for testing similarity).
+    /// </summary>
+    private static float[] CreateNormalizedVector(float value)
+    {
+        var vector = new float[VectorDimensions];
+        Array.Fill(vector, value);
+        return vector;
+    }
+
+    /// <summary>
+    /// Creates a random vector for testing (normalized).
+    /// </summary>
+    private static float[] CreateRandomVector()
+    {
+        var random = Random.Shared;
+        return Enumerable.Range(0, VectorDimensions)
+            .Select(_ => (float)(random.NextDouble() * 2 - 1))
+            .ToArray();
     }
 }
