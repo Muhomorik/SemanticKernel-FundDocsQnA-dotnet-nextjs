@@ -20,8 +20,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Fund Insights — AI-powered investment analysis",
-  description:
-    "Get AI-powered insights from investment fund documents.",
+  description: "Get AI-powered insights from investment fund documents.",
 };
 
 export default function RootLayout({
