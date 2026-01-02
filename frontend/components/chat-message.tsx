@@ -79,7 +79,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {/* Chat history notice - only for assistant messages */}
         {!isUser && (
           <p className="text-muted-foreground/70 text-xs italic">
-            This response is independent and doesn&apos;t consider previous messages.
+            {
+              "This response is independent. Previous messages are not considered."
+            }
           </p>
         )}
       </div>

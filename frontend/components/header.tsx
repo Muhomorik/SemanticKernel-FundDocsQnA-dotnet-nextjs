@@ -18,7 +18,7 @@ export function Header() {
       <div className="relative mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
         <button
           onClick={handleHeaderClick}
-          className="flex items-center gap-3 transition-opacity hover:opacity-80 cursor-pointer"
+          className="flex cursor-pointer items-center gap-3 transition-opacity hover:opacity-80"
         >
           <div className="bg-primary/10 flex h-9 w-9 items-center justify-center rounded-xl">
             <TrendingUp className="text-primary h-5 w-5" strokeWidth={1.5} />
