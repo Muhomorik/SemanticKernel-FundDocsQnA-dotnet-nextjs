@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { FileText } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { useChatContext } from "./chat-context";
 
 export function Header() {
@@ -21,10 +21,10 @@ export function Header() {
           className="flex items-center gap-3 transition-opacity hover:opacity-80 cursor-pointer"
         >
           <div className="bg-primary/10 flex h-9 w-9 items-center justify-center rounded-xl">
-            <FileText className="text-primary h-5 w-5" strokeWidth={1.5} />
+            <TrendingUp className="text-primary h-5 w-5" strokeWidth={1.5} />
           </div>
           <span className="font-serif text-lg font-medium tracking-tight">
-            PDF Q&A
+            Fund Insights
           </span>
         </button>
         <ThemeToggle />
