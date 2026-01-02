@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import Home from "@/app/page";
+import { ChatProvider } from "@/components/chat-context";
 
 describe("Home Page", () => {
+  const renderWithProvider = (component: React.ReactElement) => {
+    return render(<ChatProvider>{component}</ChatProvider>);
+  };
+
   it("renders the main heading", () => {
-    render(<Home />);
+    renderWithProvider(<Home />);
     const heading = screen.getByRole("heading", {
       name: /Ask about your documents/i,
     });
@@ -11,7 +16,7 @@ describe("Home Page", () => {
   });
 
   it("displays the description text", () => {
-    render(<Home />);
+    renderWithProvider(<Home />);
     const description = screen.getByText(
       /Get AI-powered answers from your pre-processed PDF documents/i
     );
@@ -19,7 +24,7 @@ describe("Home Page", () => {
   });
 
   it("shows example query groups and hint", () => {
-    render(<Home />);
+    renderWithProvider(<Home />);
 
     // Check for group buttons (new hierarchical structure)
     const groups = [
@@ -42,7 +47,7 @@ describe("Home Page", () => {
   });
 
   it("shows Quick Start group expanded by default", () => {
-    render(<Home />);
+    renderWithProvider(<Home />);
 
     // Quick Start should be expanded, showing "Getting Started" category
     const gettingStartedButton = screen.getByRole("button", {
