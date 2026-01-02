@@ -19,9 +19,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "PDF Q&A — Ask questions about your documents",
+  title: "Fund Insights — AI-powered investment analysis",
   description:
-    "Get AI-powered answers from your PDF documents. Built with Semantic Kernel and modern web technologies.",
+    "Get AI-powered insights from investment fund documents.",
 };
 
 export default function RootLayout({
