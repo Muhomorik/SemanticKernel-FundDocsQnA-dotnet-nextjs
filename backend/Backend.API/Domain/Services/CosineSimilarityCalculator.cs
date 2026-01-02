@@ -7,14 +7,12 @@ namespace Backend.API.Domain.Services;
 /// No I/O dependencies - pure computation.
 /// </summary>
 /// <remarks>
-/// Semantic Kernel provides built-in vector search capabilities through the Vector Store
-/// abstractions (VectorStore, VectorStoreCollection). 
-/// 
-/// Legacy alternatives (IMemoryStore, SemanticTextMemory) are deprecated.
-/// 
-/// This manual implementation is used for simplicity,
-/// explicit control, and working with pre-computed embeddings from JSON.
+/// DEPRECATED: This manual implementation has been replaced by Semantic Kernel's
+/// InMemoryVectorStore which provides built-in cosine similarity calculation.
+///
+/// Kept temporarily for reference. Will be removed in next major version.
 /// </remarks>
+[Obsolete("Use InMemoryVectorStore with DistanceFunction.CosineSimilarity instead. This class will be removed in a future version.")]
 public static class CosineSimilarityCalculator
 {
     public static float Calculate(EmbeddingVector vector1, EmbeddingVector vector2)

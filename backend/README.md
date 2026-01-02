@@ -11,7 +11,7 @@ This backend API loads pre-generated embeddings from the Preprocessor, stores th
 ## Tech Stack
 
 - **ASP.NET Core 9** - Web API framework
-- **Semantic Kernel 1.68.0** - AI orchestration
+- **Semantic Kernel 1.68.0** - AI orchestration with InMemoryVectorStore
 - **OpenAI** - Query embeddings (text-embedding-3-small) + Chat completion (gpt-4o-mini, default)
 - **Groq** - Optional cloud LLM (llama-3.3-70b-versatile, free tier)
 - **Azure Application Insights** - Monitoring and telemetry (free tier)
@@ -30,7 +30,7 @@ This backend API loads pre-generated embeddings from the Preprocessor, stores th
 ```plaintext
 1. POST /api/ask with question
 2. Generate embedding for question (OpenAI text-embedding-3-small)
-3. Semantic search for similar chunks using cosine similarity
+3. Semantic search via InMemoryVectorStore (built-in cosine similarity)
 4. Build context from top K results
 5. Send context + question to LLM (OpenAI gpt-4o-mini or Groq llama-3.3-70b-versatile)
 6. Return answer + source references
@@ -395,7 +395,7 @@ The backend follows **Domain-Driven Design** principles to ensure maintainabilit
 - **Interfaces**: Define contracts (ILlmProvider, IDocumentRepository, ISemanticSearch)
 - **Models**: Core entities (DocumentChunk, SearchResult, QuestionAnswer)
 - **Value Objects**: Immutable, validated data (DocumentMetadata, EmbeddingVector)
-- **Domain Services**: Pure computation (CosineSimilarityCalculator)
+- **Domain Services**: Pure computation (CosineSimilarityCalculator - deprecated, replaced by VectorStore)
 
 **ApplicationCore Layer** (`ApplicationCore/`)
 
@@ -408,8 +408,9 @@ The backend follows **Domain-Driven Design** principles to ensure maintainabilit
 - **Implements domain interfaces** with external dependencies
 - **LLM Providers**: OpenAiProvider, GroqProvider (implements ILlmProvider)
 - **Repository**: FileBasedDocumentRepository (implements IDocumentRepository)
-- **Search**: InMemorySemanticSearch (implements ISemanticSearch)
+- **Search**: InMemorySemanticSearch using Semantic Kernel VectorStore (implements ISemanticSearch)
 - **Adapters**: SemanticKernelEmbeddingGenerator (adapts Semantic Kernel to domain interface)
+- **Models**: DocumentChunkRecord (VectorStore record with SK attributes)
 
 **Presentation Layer** (`Controllers/`)
 
