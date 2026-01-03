@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector search)
+Last Updated: 2026-01-03 (Restructured to consistent table format)
 
 **Tech Stack:**
 
@@ -31,251 +31,131 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 
 ---
 
+## Icon Legend
+
+| Icon | Meaning |
+| ------ | --------- |
+| ✅ | Complete |
+| ⏳ | In Progress |
+| ❌ | Not Planned |
+
+---
+
 ## Part 1: Preprocessor ✅ COMPLETED
 
 ### Implementation Status
 
 | Component | Status | Notes |
-|-----------|--------|-------|
-| Console Application | ✅ Complete | .NET 9 with CommandLineParser |
-| PdfPig Extraction | ✅ Complete | Word-based text extraction with smart chunking |
-| Embedding Generation | ✅ Complete | Supports Ollama, LM Studio, and OpenAI |
-| OllamaEmbeddingService | ✅ Complete | With connection testing and error handling |
-| JSON Export | ✅ Complete | Structured format with id, text, embedding, source, page |
-| CLI Options | ✅ Complete | All parameters implemented and validated |
-| Unit Tests | ✅ Complete | NUnit tests for services and extraction |
-| Documentation | ✅ Complete | README with usage examples |
-
-### Features Implemented
-
-- ✅ Extract text from PDFs using PdfPig
-- ✅ Generate embeddings using Ollama (nomic-embed-text)
-- ✅ Generate embeddings using LM Studio (OpenAI-compatible API)
-- ✅ Generate embeddings using OpenAI (text-embedding-3-small)
-- ✅ Export to JSON format
-- ✅ Append mode for incremental processing
-- ✅ Configurable chunking and models
-- ✅ Comprehensive error handling and logging
-- ✅ Provider abstraction (Ollama/LM Studio/OpenAI)
-- ✅ Secure API key management (environment variables + CLI args)
+| ----------- | -------- | ------- |
+| Console Application | ✅ | .NET 9 with CommandLineParser |
+| PDF Text Extraction | ✅ | PdfPig with word-based smart chunking |
+| Embedding Generation | ✅ | Supports Ollama, LM Studio, OpenAI |
+| JSON Export | ✅ | Structured format (id, text, embedding, source, page) |
+| Append Mode | ✅ | Incremental processing of new PDFs |
+| CLI Options | ✅ | All parameters implemented and validated |
+| Provider Abstraction | ✅ | Ollama/LM Studio/OpenAI with secure API key management |
+| Unit Tests | ✅ | NUnit tests for services and extraction |
+| Documentation | ✅ | README with usage examples |
 
 ### Planned Features
 
-- ⏳ **Token usage tracking and cost monitoring:**
-  - Extract token counts from OpenAI embedding API responses
-  - Calculate and log estimated API costs per batch
-  - Structured logging to console for development monitoring
-  - Custom metrics to Application Insights for production monitoring
+| Feature | Status | Notes |
+| --------- | -------- | ------- |
+| Token Usage Tracking | ⏳ | Extract token counts from OpenAI API responses |
+| Cost Monitoring | ⏳ | Calculate/log estimated API costs per batch |
+| Application Insights Metrics | ⏳ | Custom metrics for production monitoring |
 
 ### Not Planned
 
-- ❌ Other cloud embedding providers (Azure OpenAI, etc.)
+| Feature | Reason |
+| --------- | -------- |
+| Azure OpenAI Provider | Out of scope for hobby project |
+| Other Cloud Providers | OpenAI sufficient for current needs |
 
 ---
 
-## Part 2: Backend API ✅ COMPLETED (Production-Ready)
+## Part 2: Backend API ✅ COMPLETED
 
 ### Implementation Status
 
 | Component | Status | Notes |
-|-----------|--------|-------|
-| Solution Structure | ✅ Complete | Separate Backend.sln with API and Tests projects |
-| DDD Architecture | ✅ Complete | Domain-Driven Design with layered architecture |
-| Domain Layer | ✅ Complete | Pure business logic (models, value objects, interfaces, services) |
-| ApplicationCore Layer | ✅ Complete | Use cases and orchestration (DTOs, services) |
-| Infrastructure Layer | ✅ Complete | External dependencies (LLM providers, repository, search) |
-| Configuration | ✅ Complete | BackendOptions + LLM-specific interfaces (IOpenAiConfiguration, IGroqConfiguration) |
-| DocumentRepository | ✅ Complete | File-based repository with domain model mapping |
-| QuestionAnsweringService | ✅ Complete | RAG pipeline orchestration in ApplicationCore |
-| LLM Provider Abstraction | ✅ Complete | Factory pattern for OpenAI/Groq provider selection |
-| AskController | ✅ Complete | POST /api/ask endpoint with ApplicationCore DTOs |
-| Health Checks | ✅ Complete | ASP.NET Core health checks (/health/live, /health/ready) |
-| Program.cs | ✅ Complete | DDD layers DI registration, Application Insights, Key Vault |
-| Semantic Kernel Setup | ✅ Complete | OpenAI embeddings + configurable LLM providers |
-| CORS Configuration | ✅ Complete | Configured for Next.js frontend |
-| Swagger/OpenAPI | ✅ Complete | Auto-generated API docs |
-| Application Insights | ✅ Complete | Monitoring for production (free tier) |
-| Secrets Management | ✅ Complete | User Secrets (local), Azure Key Vault (prod), GitHub Secrets (CI/CD) |
-| Azure Deployment | ✅ Complete | App Service F1, CI/CD with GitHub Actions |
-| Documentation | ✅ Complete | README with DDD architecture details |
-| Unit Tests | ✅ Complete | Comprehensive test coverage for services and infrastructure |
+| ----------- | -------- | ------- |
+| Solution Structure | ✅ | Backend.sln with API and Tests projects |
+| DDD Architecture | ✅ | Domain, ApplicationCore, Infrastructure layers |
+| RAG Pipeline | ✅ | DocumentRepository → VectorStore → LLM Provider |
+| LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
+| Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore |
+| API Endpoints | ✅ | POST /api/ask, health checks, Swagger |
+| Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP) |
+| Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights |
+| CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
+| Unit Tests | ✅ | 69 tests passing (Domain, ApplicationCore, Infrastructure) |
+| Documentation | ✅ | README with DDD architecture details |
 
-### Features Implemented
+### Security Implementation ✅ (2026-01-01)
 
-**Core Functionality:**
-
-- ✅ Load embeddings.json on startup via DocumentRepository
-- ✅ Initialize in-memory vector store with embeddings
-- ✅ Semantic search using OpenAI embeddings (text-embedding-3-small)
-- ✅ Configurable LLM provider: OpenAI (gpt-4o-mini, default) or Groq (llama-3.3-70b-versatile, optional)
-- ✅ Environment variable support (LLM_PROVIDER, GROQ_API_KEY, OPENAI_API_KEY, EMBEDDINGS_PATH)
-- ✅ Error handling and logging
-- ✅ Source references in responses
-
-**DDD Architecture Benefits:**
-
-- ✅ **Domain Layer**: Pure business logic with zero external dependencies
-  - DocumentChunk, EmbeddingVector, DocumentMetadata value objects
-  - ILlmProvider, IDocumentRepository, ISemanticSearch abstractions
-  - CosineSimilarityCalculator domain service (deprecated - replaced by VectorStore)
-- ✅ **ApplicationCore Layer**: Use case orchestration
-  - QuestionAnsweringService coordinates RAG pipeline
-  - DTOs for API contracts (AskQuestionRequest, AskQuestionResponse)
-- ✅ **Infrastructure Layer**: External integrations
-  - OpenAiProvider and GroqProvider implementations
-  - LlmProviderFactory for runtime provider selection
-  - FileBasedDocumentRepository for embeddings persistence
-  - SemanticKernelEmbeddingGenerator adapter
-  - InMemorySemanticSearch using Semantic Kernel VectorStore
-- ✅ **Clear separation of concerns**: Easy to test, swap providers, maintain code
-
-### Production-Ready Features ✅
-
-- ✅ ASP.NET Core Health Checks (liveness + readiness probes)
-- ✅ OpenAI embeddings for query generation
-- ✅ Application Insights telemetry (free tier, 5GB/month)
-- ✅ Azure Key Vault integration (production secrets via Managed Identity)
-- ✅ GitHub Actions CI/CD pipeline (.github/workflows/deploy-backend.yml)
-- ✅ Azure App Service deployment ready (F1 free tier)
-- ✅ Azure setup script (backend/azure-setup.sh)
-- ✅ Comprehensive deployment documentation
-- ✅ Secrets management guide
-
-### Production Deployment Ready
-
-**Azure Resources Created:**
-
-- Azure App Service (F1 Free tier) - Zero-cost hosting
-- Application Insights - Free tier monitoring (5GB/month)
-- Azure Key Vault - Secure secrets management (~$0.03/month)
-- Managed Identity - Secure access to Key Vault
-- GitHub Actions - Automated CI/CD
-
-**Total Monthly Cost: ~$0.03**
+| Component | Status | Notes |
+| ----------- | -------- | ------- |
+| Input Validation | ✅ | [MaxLength(500)], [Required], [MinLength(3)] |
+| Custom Validation | ✅ | [SafeQuestion] detects injection patterns |
+| Input Sanitization | ✅ | Removes control chars, normalizes whitespace |
+| System Prompt | ✅ | Hardened with anti-jailbreak instructions |
+| Rate Limiting | ✅ | 10 req/min/IP, 2 request queue |
+| Request Size Limits | ✅ | 10KB max body size |
 
 ### Planned Features
 
-- ⏳ **Token usage tracking and cost monitoring:**
-  - Extract token counts from LLM responses via `ChatMessageContent.InnerContent` property
-  - Track both chat completion tokens (OpenAI/Groq) and embedding tokens
-  - Calculate estimated API costs per request based on provider pricing
-  - Structured logging to console for development monitoring
-  - Custom metrics to Application Insights for production cost analysis
-  - Support for both OpenAI (gpt-4o-mini) and Groq (llama-3.3-70b-versatile) providers
+| Feature | Status | Notes |
+| --------- | -------- | ------- |
+| Token Usage Tracking | ⏳ | Extract counts via ChatMessageContent.InnerContent |
+| Cost Monitoring | ⏳ | Estimate API costs per request |
+| Application Insights Metrics | ⏳ | Custom metrics for production cost analysis |
 
-### Input Validation & Prompt Injection Protection ✅ (2026-01-01)
+### Not Planned
 
-**Defense-in-Depth Security Implementation:**
-
-| Component | Status | Details |
-| --- | --- | --- |
-| Input Validation | ✅ Complete | ASP.NET Core Data Annotations: [MaxLength(500)], [Required], [MinLength(3)] |
-| Custom Validation | ✅ Complete | [SafeQuestion] attribute detects: "IGNORE PREVIOUS", "SYSTEM:", special tokens, excessive repetition |
-| Input Sanitization | ✅ Complete | Domain service removes control chars, normalizes whitespace/newlines |
-| System Prompt | ✅ Complete | Environment-based with factory pattern, hardened default prompt with anti-jailbreak instructions |
-| Rate Limiting | ✅ Complete | 10 requests per minute per IP, 2 request queue, IP-based partitioning |
-| Request Size Limits | ✅ Complete | Kestrel configured for 10KB max body size |
-
-**Test Coverage:**
-
-- ✅ 13 unit tests for UserQuestionSanitizer (control chars, whitespace, newlines, injection attempts)
-- ✅ 8 unit tests for SafeQuestionAttribute validation (patterns, tokens, repetition)
-- ✅ 6 integration tests for full pipeline (jailbreak, role-play, control chars, newlines, tokens, legitimate questions)
-- ✅ Test infrastructure with AutoFixture builders and customizations
-- ✅ All 51 tests passing
-
-**Security Features:**
-
-- Input validated at DTO level with ASP.NET Core pipeline
-- Sanitization applied before semantic search and LLM processing
-- XML-delimited prompts with explicit security instructions
-- Rate limiting prevents DoS via request flooding
-- Request size limits prevent DoS via large payloads
-
-### Not Yet Implemented
-
-- ❌ Integration tests for controller endpoints
-- ❌ Caching layer
-- ❌ Authentication/Authorization
-- ❌ Indirect prompt injection detection (via PDF content)
+| Feature | Reason |
+| --------- | -------- |
+| Controller Integration Tests | Low priority, manual testing sufficient |
+| Caching Layer | Premature optimization for current scale |
+| Authentication/Authorization | Out of scope for demo app |
+| Indirect Prompt Injection Detection | Complex, low ROI for hobby project |
 
 ---
 
 ## Part 3: Frontend ✅ COMPLETED
 
-**Current Phase:** All core features implemented - chat interface with theme support, responsive design, and error handling
-
-**IMPORTANT for AI Agents:** When working on frontend features or UI components, you MUST use the [Frontend Design Plugin](https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/README.md) to ensure production-grade design quality and avoid generic AI aesthetics.
+**IMPORTANT for AI Agents:** Use the `frontend-design` plugin for UI work.
 
 ### Implementation Status
 
 | Component | Status | Notes |
-|-----------|--------|-------|
-| Next.js 16 Project Setup | ✅ Complete | App Router, TypeScript, Tailwind CSS, ESLint |
-| EditorConfig | ✅ Complete | .editorconfig for consistent formatting |
-| Prettier Configuration | ✅ Complete | .prettierrc and .prettierignore with Tailwind plugin |
-| Environment Configuration | ✅ Complete | .env.local for API URL, .env.example template |
-| shadcn/ui Integration | ✅ Complete | Initialized with New York style, Neutral theme |
-| Basic UI Components | ✅ Complete | 8 shadcn components installed |
-| Project Structure | ✅ Complete | App directory, components, lib utilities |
-| API Service Client | ✅ Complete | Type-safe API client in lib/api.ts |
-| Homepage Placeholder | ✅ Complete | Basic landing page |
-| Root Layout | ✅ Complete | Inter font, metadata, global styles |
-| Frontend README | ✅ Complete | Basic setup instructions and tech stack |
-| Testing Infrastructure | ✅ Complete | Jest + React Testing Library |
-| Sample Test | ✅ Complete | Homepage test with 4 passing tests |
-| Theme Toggle (Light/Dark) | ✅ Complete | next-themes integration |
-| Header Component | ✅ Complete | Title + theme toggle |
-| Footer Component | ✅ Complete | GitHub link + tech stack info |
-| Chat Interface Component | ✅ Complete | Main orchestrator |
-| ChatMessage Component | ✅ Complete | User/AI messages with sources |
-| ChatInput Component | ✅ Complete | Textarea + submit button |
-| ExampleQueries Component | ✅ Complete | Clickable example questions |
-| Loading States | ✅ Complete | Skeleton loading |
-| Error Handling UI | ✅ Complete | Alert with retry |
-| Responsive Design | ✅ Complete | Mobile-first approach |
-
-### Features Implemented
-
-- ✅ Next.js 16 project with App Router
-- ✅ TypeScript configuration
-- ✅ Tailwind CSS styling
-- ✅ EditorConfig for consistent editor settings
-- ✅ Prettier with Tailwind CSS plugin
-- ✅ shadcn/ui component library (New York style, Neutral theme)
-- ✅ Environment variable configuration (.env.local, .env.example)
-- ✅ API service client with type safety
-- ✅ Custom error handling (ApiError class)
-- ✅ Health check utility
-- ✅ Basic project structure and documentation
-- ✅ 8 UI components installed (button, input, card, textarea, skeleton, alert, badge, separator)
-- ✅ Jest testing framework
-- ✅ React Testing Library
-- ✅ Sample test with 3 passing tests
+| ----------- | -------- | ------- |
+| Next.js 16 Setup | ✅ | App Router, TypeScript, Tailwind CSS, ESLint |
+| shadcn/ui Integration | ✅ | New York style, Neutral theme, 8 components |
+| Chat Interface | ✅ | ChatMessage, ChatInput, ExampleQueries components |
+| Theme Support | ✅ | Light/dark toggle via next-themes |
+| API Client | ✅ | Type-safe client in lib/api.ts with error handling |
+| Loading States | ✅ | Skeleton loading for messages |
+| Error Handling | ✅ | Alert with retry functionality |
+| Responsive Design | ✅ | Mobile-first approach |
+| Testing | ✅ | Jest + React Testing Library, 4 tests passing |
+| Code Quality | ✅ | EditorConfig, Prettier with Tailwind plugin |
+| Documentation | ✅ | README with setup instructions |
 
 ### Planned Features
 
-- ✅ Next.js application setup
-- ✅ Light/dark theme toggle
-- ✅ Chat interface component
-- ✅ Question input and submit
-- ✅ Answer display with source references
-- ✅ Loading states (skeleton)
-- ✅ Error handling with retry
-- ✅ Responsive design (mobile-first)
-- ✅ Example queries (clickable)
-- ✅ Footer with GitHub link and tech info
-
-### Planned Enhancements
-
-- ❌ Handle 503 Service Unavailable errors (show user-friendly message explaining Azure free tier quota limits)
+| Feature | Status | Notes |
+| --------- | -------- | ------- |
+| 503 Error Handling | ⏳ | User-friendly message for Azure free tier quota limits |
 
 ### Not Planned
 
-- No file upload functionality
-- No authentication
-- No chat persistence
-- No user accounts
+| Feature | Reason |
+| --------- | -------- |
+| File Upload | Out of scope for Q&A demo |
+| Authentication | Not needed for public demo |
+| Chat Persistence | Stateless design by choice |
+| User Accounts | Out of scope |
 
 ---
 
@@ -284,7 +164,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 ### Current State
 
 | Component | Status | Notes |
-|-----------|--------|-------|
+| ----------- | -------- | ------- |
 | Local Development | ✅ Working | Preprocessor and Backend run locally |
 | OpenAI API | ✅ Configured | Embeddings (text-embedding-3-small) + Chat (gpt-4o-mini, default) |
 | Groq API | ✅ Configured | Optional free tier LLM (llama-3.3-70b-versatile) |
@@ -312,7 +192,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 ### Preprocessor
 
 | Test Suite | Status | Coverage |
-|-------------|--------|----------|
+| ------------- | -------- | ---------- |
 | PreprocessorServiceTests | ✅ Complete | Core functionality |
 | OllamaEmbeddingServiceTests | ✅ Complete | Service integration |
 | PdfPigExtractorTests | ⚠️ Partial | Basic tests |
@@ -320,7 +200,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 ### Backend
 
 | Test Suite | Status | Coverage |
-|-------------|--------|----------|
+| ------------- | -------- | ---------- |
 | Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests, deprecated), UserQuestionSanitizer (13 tests), models, value objects |
 | ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (10 tests), RAG pipeline orchestration |
 | Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (5 tests), DocumentChunkMapper (4 tests), VectorStore integration |
@@ -332,7 +212,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 ### Frontend
 
 | Test Suite | Status | Coverage |
-|-------------|--------|----------|
+| ------------- | -------- | ---------- |
 | page.test.tsx | ✅ Complete | Homepage rendering, example queries |
 
 ---
@@ -340,8 +220,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 ## Documentation Status
 
 | Document | Status | Location |
-|----------|--------|----------|
-| Project Plan | ✅ Complete | `C:\Users\dmitr\Documents\Projects_Docs\PDF-QA-App-Plan.md` |
+| ---------- | -------- | ---------- |
 | Preprocessor README | ✅ Complete | `Preprocessor/README.md` |
 | Backend README | ✅ Complete | `backend/README.md` |
 | Frontend README | ✅ Complete | `frontend/README.md` |
@@ -393,7 +272,7 @@ Last Updated: 2026-01-02 (Migrated to Semantic Kernel VectorStore for vector sea
 
 ### Future Enhancements
 
-- ✅ ~~Migrate to modern Vector Store abstractions~~ - Completed 2026-01-02: Using InMemoryVectorStore with VectorStoreCollection for built-in cosine similarity
+- ✅ Migrate to modern Vector Store abstractions - Completed 2026-01-02: Using InMemoryVectorStore with VectorStoreCollection for built-in cosine similarity
 - Implement caching layer
 - Support multiple languages
 - Add streaming responses for better UX

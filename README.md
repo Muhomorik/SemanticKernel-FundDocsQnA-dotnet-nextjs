@@ -1,9 +1,9 @@
-# Fund Factsheet Q&A Generator
+# Fund Insights
 
 A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates relevant questions, and provides answers to common investor queries about fund basics, risk profiles, costs, performance scenarios, and investment terms.
 
 | Feature | Description |
-|---------|-------------|
+| --------- | ------------- |
 | **Semantic Search** | Vector embeddings for accurate document retrieval |
 | **Natural Language Q&A** | Ask questions, get answers with source citations |
 | **Low Cost** | Free-tier cloud services (Groq, OpenAI) |
@@ -13,19 +13,15 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 
 ## 🎬 Demo
 
-**Try it live:** [Fund Q&A Chatbot](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
+**Try it live:** [Fund Insights](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
 
 > ⚠️ **Demo Notice:** This site runs on free tier resources and may experience downtime when limits are reached. Currently processing 15 of 68 SEB funds.
 
-[![Main Page Screenshot](docs/images/main_page.png)](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
+![Main demo](docs/images/main_demo.gif)
 
 **Supported Languages:** All PDF files are in Swedish, but questions can be asked in any language. The AI will respond in the language of your question.
 
 **Example PDF:** [SEB Emerging Marketsfond C USD - Lux.pdf](docs/images/SEB%20Emerging%20Marketsfond%20C%20USD%20-%20Lux.pdf)
-
-### Chat Interface Example
-
-![Chat Interface](docs/images/chat_emerging_market_options.png)
 
 ---
 
@@ -66,24 +62,21 @@ flowchart LR
     subgraph Preprocessing
         PDF[PDF Files] --> PRE[Preprocessor]
         PRE --> EMB[embeddings.json]
+        PRE -.->|local| LOCAL[Ollama / LM Studio]
     end
 
     subgraph Runtime
-        EMB --> API[Backend API]
-        FE[Frontend] --> API
-        API --> OAI[OpenAI Embeddings]
-        API --> GROQ[Groq LLM]
-    end
-
-    subgraph Local
-        PRE --> LMS[LM Studio / Ollama]
+        FE[Frontend] --> API[Backend API]
+        EMB --> API
+        API -->|embeddings & LLM| OAI[OpenAI API]
+        API -.->|LLM alt| GROQ[Groq API]
     end
 ```
 
 ### Components
 
 | Component | Tech Stack | Description |
-|-----------|------------|-------------|
+| ----------- | ------------ | ------------- |
 | [Preprocessor](Preprocessor/README.md) | .NET 9, PdfPig, Semantic Kernel | Extract text from PDFs, generate embeddings |
 | [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel | Semantic search + Q&A API |
 | [Frontend](frontend/README.md) | Next.js 16, TypeScript, shadcn/ui | Chat interface |
@@ -95,7 +88,7 @@ flowchart LR
 ### Prerequisites
 
 | Requirement | Version | Notes |
-|-------------|---------|-------|
+| ------------- | --------- | ------- |
 | .NET SDK | 9.0+ | [Download](https://dotnet.microsoft.com/download) |
 | Node.js | 18+ | [Download](https://nodejs.org/) |
 | LM Studio or Ollama | Latest | For local embedding generation |
@@ -156,7 +149,7 @@ Open [http://localhost:3000](http://localhost:3000)
 Deploy to Azure with near-zero cost (~$0.03/month):
 
 | Resource | Tier | Cost |
-|----------|------|------|
+| ---------- | ------ | ------ |
 | Azure App Service | F1 Free | $0 |
 | Azure Static Web Apps | Free | $0 |
 | Application Insights | Free (5GB) | $0 |
@@ -184,7 +177,7 @@ git push origin main
 ### GitHub Workflows
 
 | Workflow | Purpose |
-|----------|---------|
+| ---------- | --------- |
 | `deploy-backend.yml` | Deploy backend to Azure App Service |
 | `deploy-frontend.yml` | Deploy frontend to Azure Static Web Apps |
 | `pr-checks.yml` | Run tests and checks on pull requests |
@@ -196,7 +189,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 ## 📚 Documentation
 
 | Document | Description |
-|----------|-------------|
+| ---------- | ------------- |
 | [Configuration & Secrets](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, settings |
 | [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
 | [Backend API](backend/README.md) | API endpoints and configuration |
@@ -209,7 +202,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 ## 🛠️ Tech Stack
 
 | Layer | Technologies |
-|-------|--------------|
+| ------- | -------------- |
 | **Preprocessor** | .NET 9, PdfPig, Semantic Kernel, Ollama/LM Studio |
 | **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq |
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |

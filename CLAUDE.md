@@ -30,7 +30,7 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 ## Documentation
 
 | Document | Description |
-|----------|-------------|
+| ---------- | ------------- |
 | [Status.md](Status.md) | Implementation progress tracker (check first!) |
 | [README.md](README.md) | Project overview, quick start, architecture |
 | [Preprocessor/README.md](Preprocessor/README.md) | PDF processing and embedding options |
@@ -133,7 +133,7 @@ Recommended plugins to enhance development experience:
 
 **Frontend Development:**
 
-- `frontend-design` - Use when building or refining UI components, layouts, or design systems. Provides guidance on design patterns, typography, animations, and responsive behavior.
+- `frontend-design` - **MUST** Use the `frontend-design` plugin for UI work.
 
 **Security:**
 
