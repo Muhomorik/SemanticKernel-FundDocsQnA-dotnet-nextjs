@@ -159,6 +159,122 @@ Last Updated: 2026-01-07 (Added token usage tracking to Preprocessor)
 
 ---
 
+## Part 4: Cosmos DB Vector Database Integration ⏳ PLANNED
+
+Add Azure Cosmos DB as optional vector database backend for persistent embeddings storage. Default remains `embeddings.json` (InMemory). Switch via strictly typed enum with configuration priority: CLI > User Secrets > Environment variable > Default. Full backward compatibility maintained.
+
+### Design Decisions
+
+| Decision | Details |
+| --------- | ------- |
+| **Storage Type** | Strictly typed enum: `VectorStorageType { InMemory = 0, CosmosDb = 1 }` |
+| **Enum Conversion** | Early binding in Program.cs (environment variable → enum during startup) |
+| **Configuration Priority** | CLI argument > User Secrets > Environment variable > Default (InMemory) |
+| **Default Behavior** | Unchanged: InMemory with embeddings.json (backward compatible) |
+| **Preprocessor Verbs** | `json` (→ embeddings.json file) and `cosmosdb` (→ Cosmos DB database) |
+
+### Implementation Status
+
+| Phase | Component | Status | Notes |
+| ------ | ----------- | -------- | ------- |
+| **Phase 1** | Backend Infrastructure | ❌ | Add Cosmos DB NuGet packages, IVectorStore interface, CosmosDbVectorStore implementation, VectorStorageType enum, auth middleware |
+| **Phase 2** | Backend Integration | ❌ | Refactor QuestionAnsweringService to use IVectorStore, health check for Cosmos DB, DI configuration with enum-based provider selection |
+| **Phase 3** | Preprocessor Updates | ❌ | New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client |
+| **Phase 4** | Azure Infrastructure | ❌ | Update azure-setup.sh, Managed Identity configuration, Key Vault secrets, deployment docs |
+| **Phase 5** | Testing & Documentation | ❌ | Unit tests, integration tests, README updates, SECRETS-MANAGEMENT.md, Status.md |
+
+### Architecture
+
+**Default (InMemory):** `Preprocessor → embeddings.json → Backend (in-memory) → Frontend`
+
+**Optional (Cosmos DB):** `Preprocessor ←(API)→ Backend ←→ Cosmos DB (Vector Store) → Frontend`
+
+### Preprocessor CLI Verbs
+
+| Verb | Purpose | Output | Command |
+| --- | --- | --- | --- |
+| **`json`** | Generate embeddings → save to local JSON file | `embeddings.json` | `dotnet run -- json -i ./pdfs -o ./embeddings.json` |
+| **`cosmosdb`** | Generate embeddings → upload to Cosmos DB | Cosmos DB database | `dotnet run -- cosmosdb -i ./pdfs --url https://backend.app --key apikey123` |
+
+### JSON Verb Options
+
+- `-i, --input` - Input PDF folder (default: `pdfs`)
+- `-o, --output` - Output JSON file path (default: `./embeddings.json`)
+- `-a, --append` - Append to existing embeddings.json (default: false)
+- `-p, --provider` - Embedding provider: openai/ollama/lmstudio (default: openai)
+- `-e, --embedding-model` - Embedding model name (default: text-embedding-3-small)
+- `-m, --method` - PDF extraction method (default: pdfpig)
+
+### CosmosDB Verb Options
+
+- `-i, --input` - Input PDF folder (default: `pdfs`)
+- `-u, --url` - Backend API URL (default: `http://localhost:5000`)
+- `-k, --key` - API key or env: `FUNDDOCS_API_KEY` (required)
+- `-o, --operation` - Operation: `add` (default), `update`, `replace-all`
+- `-p, --provider` - Embedding provider: openai/ollama/lmstudio (default: openai)
+- `-e, --embedding-model` - Embedding model name (default: text-embedding-3-small)
+- `-b, --batch-size` - Embeddings per API request (default: 100)
+
+### Backend Configuration
+
+**VectorStorageType Enum:**
+
+```csharp
+public enum VectorStorageType
+{
+    InMemory = 0,    // Default: embeddings.json
+    CosmosDb = 1     // Persistent vector database
+}
+```
+
+**Configuration Priority (highest to lowest):**
+
+1. CLI argument (Preprocessor only)
+2. User Secrets (development)
+3. Environment variable (`BackendOptions__VectorStorageType`)
+4. Default: InMemory
+
+**Backend Environment Variables:**
+
+- `BackendOptions__VectorStorageType` - InMemory (default) | CosmosDb
+- `BackendOptions__CosmosDbEndpoint` - Cosmos DB endpoint URL
+- `BackendOptions__CosmosDbDatabaseName` - Database name
+- `BackendOptions__CosmosDbContainerName` - Container name (default: embeddings)
+- `BackendOptions__EmbeddingApiKey` - API key for preprocessor authentication
+
+### Backend API Endpoints (Protected by API Key)
+
+| Endpoint | Method | Purpose | Auth |
+| --- | --- | --- | --- |
+| `/api/embeddings` | POST | Add new embeddings | ApiKey |
+| `/api/embeddings/{sourceFile}` | PUT | Update embeddings for a file | ApiKey |
+| `/api/embeddings/{sourceFile}` | DELETE | Delete embeddings for a file | ApiKey |
+| `/api/embeddings/replace-all` | POST | Replace all embeddings | ApiKey |
+
+**Authentication Header:** `Authorization: ApiKey <your-api-key>`
+
+### Cosmos DB Schema
+
+| Setting | Value |
+| --- | --- |
+| Database | `<your-database-name>` |
+| Container | `embeddings` |
+| Partition Key | `/sourceFile` |
+| Vector Dimensions | 1536 (OpenAI text-embedding-3-small) |
+| Vector Index Type | `quantizedFlat` (cost optimized) |
+
+### Cost Analysis
+
+| Tier | Throughput | Storage | Monthly Cost | Best For |
+| --- | --- | --- | --- | --- |
+| **Free Tier** | 1000 RU/s | 25 GB | **$0** | Hobby projects, development |
+| Serverless | Pay per RU | 1 TB max | ~$0.25 per 1M RU | Sporadic workloads |
+| Provisioned (400 RU/s) | 400 RU/s | Variable | ~$23/month | Consistent low traffic |
+
+**Estimated for this project:** $0/month (within free tier limits)
+
+---
+
 ## Infrastructure & Deployment
 
 ### Current State
@@ -174,6 +290,7 @@ Last Updated: 2026-01-07 (Added token usage tracking to Preprocessor)
 | Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
+| Cosmos DB Vector Database | ⏳ Planned | Optional persistent vector storage via `cosmosdb` verb (backward compatible with embeddings.json) |
 
 ### Deployment Setup Complete
 
