@@ -10,6 +10,7 @@ using Preprocessor.Services;
 namespace Preprocessor.Tests.Services;
 
 [TestFixture]
+[TestOf(typeof(PreprocessorService))]
 public class PreprocessorServiceTests
 {
     private Mock<IPdfExtractor> _extractorMock = null!;

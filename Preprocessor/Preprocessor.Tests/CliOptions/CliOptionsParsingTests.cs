@@ -7,6 +7,8 @@ namespace Preprocessor.Tests.CliOptions;
 /// Tests for CLI options parsing (verb-based commands).
 /// </summary>
 [TestFixture]
+[TestOf(typeof(JsonOptions))]
+[TestOf(typeof(CosmosDbOptions))]
 public class CliOptionsParsingTests
 {
     #region JSON Verb Tests
