@@ -2,20 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## CRITICAL: Status Tracking
+**🚨 MANDATORY:** All implementation work requires updating [Status.md](Status.md). This is **NOT OPTIONAL** and is part of the Definition of Done. See workflow below.
 
-**Source of truth for project status: [Status.md](Status.md)**
+## 🚨 MANDATORY WORKFLOW: Status.md Updates
 
-Before starting any work:
+REQUIRED FOR EVERY IMPLEMENTATION TASK - NOT OPTIONAL
 
-1. Review Status.md to understand what's implemented, in-progress, or planned
-2. During implementation: Update relevant status from ❌ to ⏳ (in progress)
-3. After completion: Update status to ✅ and document new features
-4. Always maintain accuracy: Keep Status.md synchronized with actual codebase state
-5. Update timestamp: Change "Last Updated" date when making significant updates
-6. Keep costs low: When suggesting infrastructure, tiers, or services, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
+Source of truth for project status: **[Status.md](Status.md)**
 
-**Do not duplicate work.** Always verify current status before implementing features.
+### Before Starting ANY Work
+
+- [ ] Read Status.md to understand what's implemented, in-progress, or planned
+- [ ] Check if your feature/task is already listed in Status.md
+- [ ] **Avoid duplicating work:** If listed as ✅ or ⏳, do not restart from scratch
+- [ ] If starting new work listed in Status.md: Update status from ❌/⏳ to ⏳ (in progress)
+- [ ] If new work not in Status.md: Add entry with ⏳ status before implementing
+
+### After Completing ANY Work
+
+- [ ] Update Status.md status from ⏳ to ✅
+- [ ] Document what was implemented in the Notes column
+- [ ] Update "Last Updated" timestamp at top of Status.md (format: YYYY-MM-DD)
+- [ ] Verify Status.md accurately reflects actual codebase state
+
+### ⚠️ CRITICAL Definition of Done
+
+**A task is NOT complete until Status.md is updated.** Status.md is the source of truth and must stay synchronized with the codebase at all times.
+
+### Additional Guidance:
+
+- Keep costs low: When suggesting infrastructure, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 
 ## Project Overview
 
