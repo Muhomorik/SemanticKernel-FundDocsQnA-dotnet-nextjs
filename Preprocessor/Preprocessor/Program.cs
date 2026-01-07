@@ -11,45 +11,171 @@ using OpenAI;
 using System.ClientModel;
 
 using Preprocessor;
+using Preprocessor.CliOptions;
 using Preprocessor.Extractors;
+using Preprocessor.Outputs;
 using Preprocessor.Services;
 
-// Parse command line arguments
-var result = await Parser.Default.ParseArguments<CliOptions>(args)
+// Parse command line arguments for verb-based commands
+var result = await Parser.Default.ParseArguments<JsonOptions, CosmosDbOptions>(args)
     .MapResult(
-        async options => await RunAsync(options),
+        (JsonOptions opts) => RunJsonVerbAsync(opts),
+        (CosmosDbOptions opts) => RunCosmosDbVerbAsync(opts),
         errors => Task.FromResult(1));
 
 return result;
 
-static async Task<int> RunAsync(CliOptions cliOptions)
+/// <summary>
+/// Handles the 'json' verb - generates embeddings and saves to local JSON file.
+/// </summary>
+static async Task<int> RunJsonVerbAsync(JsonOptions opts)
 {
+    var logger = CreateLogger<Program>();
+    logger.LogInformation("Running 'json' verb: Generate embeddings → save to local JSON file");
+
+    // Validate options
+    var errors = opts.Validate().ToList();
+    if (errors.Count > 0)
+    {
+        foreach (var error in errors)
+        {
+            logger.LogError("Validation error: {Error}", error);
+        }
+
+        return 1;
+    }
+
+    // Resolve OpenAI API key
+    var openAIApiKey = await ResolveOpenAIApiKeyAsync(opts, logger);
+    if (opts.Provider == EmbeddingProvider.OpenAI && string.IsNullOrWhiteSpace(openAIApiKey))
+    {
+        return 1;
+    }
+
+    // Build services
+    var services = BuildServiceCollection(opts, openAIApiKey);
+    var serviceProvider = services.BuildServiceProvider();
+
+    // Create JSON output handler
+    var jsonOutput = new JsonEmbeddingOutput(
+        opts.Output,
+        opts.Append,
+        serviceProvider.GetRequiredService<ILogger<JsonEmbeddingOutput>>());
+
+    // Create processing options (data only)
+    var processingOptions = new ProcessingOptions
+    {
+        Method = opts.Method,
+        InputDirectory = opts.Input
+    };
+
+    // Log configuration
+    LogConfiguration(serviceProvider.GetRequiredService<ILogger<Program>>(), opts, openAIApiKey);
+
+    // Run preprocessor (pass output handler as separate parameter)
+    var preprocessor = serviceProvider.GetRequiredService<PreprocessorService>();
+    return await preprocessor.ProcessAsync(processingOptions, jsonOutput);
+}
+
+/// <summary>
+/// Handles the 'cosmosdb' verb - generates embeddings and uploads to backend API (Cosmos DB).
+/// </summary>
+static async Task<int> RunCosmosDbVerbAsync(CosmosDbOptions opts)
+{
+    var logger = CreateLogger<Program>();
+    logger.LogInformation("Running 'cosmosdb' verb: Generate embeddings → upload to backend API");
+
+    // Validate options
+    var errors = opts.Validate().ToList();
+    if (errors.Count > 0)
+    {
+        foreach (var error in errors)
+        {
+            logger.LogError("Validation error: {Error}", error);
+        }
+
+        return 1;
+    }
+
+    // Resolve OpenAI API key
+    var openAIApiKey = await ResolveOpenAIApiKeyAsync(opts, logger);
+    if (opts.Provider == EmbeddingProvider.OpenAI && string.IsNullOrWhiteSpace(openAIApiKey))
+    {
+        return 1;
+    }
+
+    // Build services
+    var services = BuildServiceCollection(opts, openAIApiKey);
+    var serviceProvider = services.BuildServiceProvider();
+
+    // Create HTTP client for Cosmos DB output
+    var httpClient = new HttpClient();
+
+    // Create Cosmos DB output handler
+    var cosmosDbOutput = new CosmosDbEmbeddingOutput(
+        httpClient,
+        opts.Url,
+        opts.EffectiveApiKey!,
+        opts.Operation,
+        opts.BatchSize,
+        serviceProvider.GetRequiredService<ILogger<CosmosDbEmbeddingOutput>>());
+
+    // Create processing options (data only)
+    var processingOptions = new ProcessingOptions
+    {
+        Method = "pdfpig", // CosmosDB verb always uses pdfpig
+        InputDirectory = opts.Input
+    };
+
+    // Log configuration
+    LogConfiguration(serviceProvider.GetRequiredService<ILogger<Program>>(), opts, openAIApiKey);
+    logger.LogInformation("Backend URL: {Url}", opts.Url);
+    logger.LogInformation("Operation: {Operation}", opts.Operation);
+    logger.LogInformation("Batch Size: {BatchSize}", opts.BatchSize);
+
+    // Run preprocessor (pass output handler as separate parameter)
+    var preprocessor = serviceProvider.GetRequiredService<PreprocessorService>();
+    return await preprocessor.ProcessAsync(processingOptions, cosmosDbOutput);
+}
+
+/// <summary>
+/// Resolves OpenAI API key from CLI argument, environment variable, or user secrets.
+/// </summary>
+static Task<string?> ResolveOpenAIApiKeyAsync(BaseEmbeddingOptions opts, ILogger logger)
+{
+    if (opts.Provider != EmbeddingProvider.OpenAI)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
     // Build configuration for user secrets
     var configuration = new ConfigurationBuilder()
-        .AddUserSecrets<Program>(optional: true)
+        .AddUserSecrets<Program>(true)
         .Build();
 
-    // Resolve OpenAI API key with priority: CLI argument → Environment variable → User secrets → Error
-    string? openAIApiKey = null;
-    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
-    {
-        openAIApiKey = cliOptions.OpenAIApiKey
+    var openAIApiKey = opts.OpenAIApiKey
                        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                        ?? configuration["OpenAIApiKey"];
 
-        if (string.IsNullOrWhiteSpace(openAIApiKey))
-        {
-            Console.Error.WriteLine("ERROR: OpenAI provider requires an API key.");
-            Console.Error.WriteLine("Set via one of:");
-            Console.Error.WriteLine("  1. --openai-api-key argument");
-            Console.Error.WriteLine("  2. OPENAI_API_KEY environment variable");
-            Console.Error.WriteLine("  3. User secrets: dotnet user-secrets set \"OpenAIApiKey\" \"sk-...\"");
-            Console.Error.WriteLine("Get your API key from: https://platform.openai.com/api-keys");
-            return 1;
-        }
+    if (string.IsNullOrWhiteSpace(openAIApiKey))
+    {
+        logger.LogError("ERROR: OpenAI provider requires an API key.");
+        logger.LogError("Set via one of:");
+        logger.LogError("  1. --openai-api-key argument");
+        logger.LogError("  2. OPENAI_API_KEY environment variable");
+        logger.LogError("  3. User secrets: dotnet user-secrets set \"OpenAIApiKey\" \"sk-...\"");
+        logger.LogError("Get your API key from: https://platform.openai.com/api-keys");
+        return Task.FromResult<string?>(null);
     }
 
-    // Build service collection
+    return Task.FromResult<string?>(openAIApiKey);
+}
+
+/// <summary>
+/// Builds the service collection with common services (embedding, extractor, preprocessor).
+/// </summary>
+static IServiceCollection BuildServiceCollection(BaseEmbeddingOptions opts, string? openAIApiKey)
+{
     var services = new ServiceCollection();
 
     // Configure logging
@@ -64,17 +190,17 @@ static async Task<int> RunAsync(CliOptions cliOptions)
     {
         var builder = Kernel.CreateBuilder();
 
-        switch (cliOptions.Provider)
+        switch (opts.Provider)
         {
             case EmbeddingProvider.Ollama:
                 builder.AddOllamaEmbeddingGenerator(
-                    cliOptions.EmbeddingModel,
-                    new Uri(cliOptions.EffectiveUrl));
+                    opts.EmbeddingModel,
+                    new Uri(opts.EffectiveUrl));
                 break;
 
             case EmbeddingProvider.LMStudio:
                 // CRITICAL: Work around OpenAI BaseAddress bug by including /v1 in URL
-                var lmStudioEndpoint = cliOptions.EffectiveUrl.TrimEnd('/');
+                var lmStudioEndpoint = opts.EffectiveUrl.TrimEnd('/');
                 if (!lmStudioEndpoint.EndsWith("/v1"))
                 {
                     lmStudioEndpoint += "/v1";
@@ -91,26 +217,25 @@ static async Task<int> RunAsync(CliOptions cliOptions)
                         });
 
                     return openAIClient
-                        .GetEmbeddingClient(cliOptions.EmbeddingModel)
+                        .GetEmbeddingClient(opts.EmbeddingModel)
                         .AsIEmbeddingGenerator();
                 });
                 break;
 
             case EmbeddingProvider.OpenAI:
                 // Use OpenAI's text-embedding-3-small for production compatibility
-                #pragma warning disable SKEXP0010
+#pragma warning disable SKEXP0010
                 builder.AddOpenAIEmbeddingGenerator(
-                    cliOptions.EmbeddingModel,
-                    openAIApiKey);
-                #pragma warning restore SKEXP0010
+                    opts.EmbeddingModel,
+                    openAIApiKey!); // Null-checked before this point
+#pragma warning restore SKEXP0010
                 break;
         }
 
         return builder.Build();
     });
 
-
-    // Register embedding generator service from kernel (new API)
+    // Register embedding generator service from kernel
     services.AddSingleton(sp =>
     {
         var kernel = sp.GetRequiredService<Kernel>();
@@ -124,45 +249,46 @@ static async Task<int> RunAsync(CliOptions cliOptions)
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
     services.AddSingleton<PreprocessorService>();
 
-    // Build service provider
-    var serviceProvider = services.BuildServiceProvider();
+    return services;
+}
 
-    // Get the preprocessor service and run
-    var preprocessor = serviceProvider.GetRequiredService<PreprocessorService>();
-    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-
+/// <summary>
+/// Logs configuration information for the preprocessor.
+/// </summary>
+static void LogConfiguration(ILogger logger, BaseEmbeddingOptions opts, string? openAIApiKey)
+{
     logger.LogInformation("Starting Preprocessor");
-    logger.LogInformation("Method: {Method}", cliOptions.Method);
-    logger.LogInformation("Input: {Input}", cliOptions.Input);
-    logger.LogInformation("Output: {Output}", cliOptions.Output);
-    logger.LogInformation("Provider: {Provider}", cliOptions.Provider);
-    logger.LogInformation("Endpoint URL: {Url}", cliOptions.EffectiveUrl);
-    logger.LogInformation("Embedding Model: {EmbeddingModel}", cliOptions.EmbeddingModel);
+    logger.LogInformation("Input: {Input}", opts.Input);
+    logger.LogInformation("Provider: {Provider}", opts.Provider);
+    logger.LogInformation("Endpoint URL: {Url}", opts.EffectiveUrl);
+    logger.LogInformation("Embedding Model: {EmbeddingModel}", opts.EmbeddingModel);
 
-    if (cliOptions.Provider == EmbeddingProvider.OpenAI)
+    if (opts.Provider == EmbeddingProvider.OpenAI && !string.IsNullOrWhiteSpace(openAIApiKey))
     {
         var maskedKey = openAIApiKey!.Length > 8
             ? $"{openAIApiKey.Substring(0, 7)}...{openAIApiKey.Substring(openAIApiKey.Length - 4)}"
             : "sk-****";
         logger.LogInformation("OpenAI API Key: {ApiKey}", maskedKey);
-        var keySource = cliOptions.OpenAIApiKey != null
+
+        var keySource = opts.OpenAIApiKey != null
             ? "CLI argument"
             : Environment.GetEnvironmentVariable("OPENAI_API_KEY") != null
                 ? "Environment variable"
                 : "User secrets";
         logger.LogInformation("API Key Source: {Source}", keySource);
     }
+}
 
-    var exitCode = await preprocessor.ProcessAsync(cliOptions);
-
-    if (exitCode == 0)
+/// <summary>
+/// Creates a logger for the specified type.
+/// </summary>
+static ILogger<T> CreateLogger<T>()
+{
+    var loggerFactory = LoggerFactory.Create(builder =>
     {
-        logger.LogInformation("Preprocessing completed successfully");
-    }
-    else
-    {
-        logger.LogError("Preprocessing failed with exit code {ExitCode}", exitCode);
-    }
+        builder.AddConsole();
+        builder.SetMinimumLevel(LogLevel.Information);
+    });
 
-    return exitCode;
+    return loggerFactory.CreateLogger<T>();
 }

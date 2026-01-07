@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-07 (Added token usage tracking to Preprocessor)
+Last Updated: 2026-01-07 (Phase 3: Cosmos DB Integration - Preprocessor Updates Complete)
 
 **Tech Stack:**
 
@@ -179,7 +179,7 @@ Add Azure Cosmos DB as optional vector database backend for persistent embedding
 | ------ | ----------- | -------- | ------- |
 | **Phase 1** | Backend Infrastructure | ❌ | Add Cosmos DB NuGet packages, IVectorStore interface, CosmosDbVectorStore implementation, VectorStorageType enum, auth middleware |
 | **Phase 2** | Backend Integration | ❌ | Refactor QuestionAnsweringService to use IVectorStore, health check for Cosmos DB, DI configuration with enum-based provider selection |
-| **Phase 3** | Preprocessor Updates | ❌ | New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client |
+| **Phase 3** | Preprocessor Updates | ✅ | New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client |
 | **Phase 4** | Azure Infrastructure | ❌ | Update azure-setup.sh, Managed Identity configuration, Key Vault secrets, deployment docs |
 | **Phase 5** | Testing & Documentation | ❌ | Unit tests, integration tests, README updates, SECRETS-MANAGEMENT.md, Status.md |
 

@@ -10,15 +10,36 @@ A .NET Console application that extracts text from PDF documents and generates e
 
 Convert PDFs into searchable embeddings (run once, or when adding new PDFs).
 
-## Quick Start (F5)
+## Quick Start
 
-All parameters have defaults. Just press F5 to debug:
+The Preprocessor supports two modes (verbs):
 
-- Reads PDFs from `pdfs/` (relative to working directory)
-- Writes output to `./embeddings.json`
-- Uses `pdfpig` extraction method
-- **Default provider: OpenAI** with `text-embedding-3-small` model
-- Use `--provider ollama` or `--provider lmstudio` to switch to local providers
+1. **`json` verb** - Generate embeddings → save to local JSON file (default workflow)
+2. **`cosmosdb` verb** - Generate embeddings → upload to backend API (Cosmos DB)
+
+### Quick Start: JSON Mode (Local File)
+
+```bash
+# Default: OpenAI provider, reads from pdfs/, writes to embeddings.json
+dotnet run -- json
+
+# With Ollama (local, free)
+dotnet run -- json --provider ollama --embedding-model nomic-embed-text
+
+# With custom paths
+dotnet run -- json -i ./my-pdfs -o ./output.json
+```
+
+### Quick Start: Cosmos DB Mode (Upload to Backend)
+
+```bash
+# Upload to backend API (requires backend running with Cosmos DB support)
+dotnet run -- cosmosdb --url http://localhost:5000 --key your-api-key
+
+# Or set API key via environment variable
+$env:FUNDDOCS_API_KEY = "your-api-key"
+dotnet run -- cosmosdb --url http://localhost:5000
+```
 
 Create a `pdfs` folder in your build output directory and add PDF files there.
 
@@ -129,38 +150,78 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 
 ## CLI Parameters
 
+### Common Parameters (both verbs)
+
 | Parameter          | Short | Required | Default                   | Description                    |
 |--------------------|-------|----------|---------------------------|--------------------------------|
-| `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
 | `--input`          | `-i`  | No       | `pdfs`                    | Folder with PDFs               |
-| `--output`         | `-o`  | No       | `./embeddings.json`       | Output JSON path               |
-| `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
 | `--provider`       | `-p`  | No       | `openai`                  | `ollama`, `lmstudio`, or `openai` |
 | `--embedding-model`| -     | No       | `text-embedding-3-small`  | Embedding model (use `nomic-embed-text` for local providers) |
 | `--ollama-url`     | -     | No       | Auto (provider-based)     | Provider endpoint override     |
 | `--openai-api-key` | -     | No       | `null`                    | OpenAI API key (or set `OPENAI_API_KEY` env var) |
 
+### `json` Verb Parameters
+
+| Parameter          | Short | Required | Default                   | Description                    |
+|--------------------|-------|----------|---------------------------|--------------------------------|
+| `--output`         | `-o`  | No       | `./embeddings.json`       | Output JSON path               |
+| `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
+| `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
+
+### `cosmosdb` Verb Parameters
+
+| Parameter          | Short | Required | Default                   | Description                    |
+|--------------------|-------|----------|---------------------------|--------------------------------|
+| `--url`            | `-u`  | No       | `http://localhost:5000`   | Backend API URL                |
+| `--key`            | `-k`  | No       | `null`                    | API key (or set `FUNDDOCS_API_KEY` env var) |
+| `--operation`      | `-o`  | No       | `add`                     | Operation: `add`, `update`, `replace-all` |
+| `--batch-size`     | `-b`  | No       | `100`                     | Embeddings per API request     |
+
 ## Usage
 
+### JSON Verb Examples
+
 ```bash
-# OpenAI (default provider - production compatible)
-# Set API key first: $env:OPENAI_API_KEY = "sk-..."
-dotnet run
+# Default: OpenAI provider, reads from pdfs/, writes to embeddings.json
+dotnet run -- json
 
 # LM Studio (local, free)
-dotnet run -- --provider lmstudio --embedding-model nomic-embed-text
+dotnet run -- json --provider lmstudio --embedding-model nomic-embed-text
 
 # Ollama (local, free)
-dotnet run -- --provider ollama --embedding-model nomic-embed-text
+dotnet run -- json --provider ollama --embedding-model nomic-embed-text
 
 # Custom input/output paths
-dotnet run -- -i ./custom/pdfs -o ./custom/embeddings.json
+dotnet run -- json -i ./custom/pdfs -o ./custom/embeddings.json
 
-# Append to existing file
-dotnet run -- -i ./new-pdfs --append
+# Append to existing file (incremental processing)
+dotnet run -- json -i ./new-pdfs --append
 
 # Override default provider URL
-dotnet run -- --provider lmstudio --ollama-url http://localhost:8080
+dotnet run -- json --provider lmstudio --ollama-url http://localhost:8080
+```
+
+### Cosmos DB Verb Examples
+
+```bash
+# Upload to backend API (default: add operation)
+dotnet run -- cosmosdb --url https://my-backend.azurewebsites.net --key api-key-here
+
+# Set API key via environment variable (recommended)
+$env:FUNDDOCS_API_KEY = "your-api-key"
+dotnet run -- cosmosdb --url https://my-backend.azurewebsites.net
+
+# Update operation (replace embeddings for existing PDFs)
+dotnet run -- cosmosdb --operation update --url http://localhost:5000 --key api-key
+
+# Replace all embeddings (delete old, upload new)
+dotnet run -- cosmosdb --operation replace-all --url http://localhost:5000 --key api-key
+
+# Custom batch size (default: 100 embeddings per request)
+dotnet run -- cosmosdb --batch-size 50 --url http://localhost:5000 --key api-key
+
+# Use with Ollama (local embeddings + backend upload)
+dotnet run -- cosmosdb --provider ollama --embedding-model nomic-embed-text --url http://localhost:5000 --key api-key
 ```
 
 ### Production Deployment Workflow
