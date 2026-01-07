@@ -246,6 +246,7 @@ static IServiceCollection BuildServiceCollection(BaseEmbeddingOptions opts, stri
     services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
 
     // Register services
+    services.AddSingleton<IChunkSanitizer, ChunkSanitizer>();
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
     services.AddSingleton<PreprocessorService>();
 

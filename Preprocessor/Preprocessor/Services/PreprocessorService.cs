@@ -13,15 +13,18 @@ public class PreprocessorService
 {
     private readonly IEnumerable<IPdfExtractor> _extractors;
     private readonly IEmbeddingService _embeddingService;
+    private readonly IChunkSanitizer _chunkSanitizer;
     private readonly ILogger<PreprocessorService> _logger;
 
     public PreprocessorService(
         IEnumerable<IPdfExtractor> extractors,
         IEmbeddingService embeddingService,
+        IChunkSanitizer chunkSanitizer,
         ILogger<PreprocessorService> logger)
     {
         _extractors = extractors;
         _embeddingService = embeddingService;
+        _chunkSanitizer = chunkSanitizer;
         _logger = logger;
     }
 
@@ -93,6 +96,9 @@ public class PreprocessorService
 
                     _logger.LogInformation("Extracted {Count} chunks from {FileName}", chunkList.Count,
                         Path.GetFileName(pdfFile));
+
+                    // Sanitize chunks to remove noise patterns
+                    chunkList = [.._chunkSanitizer.Sanitize(chunkList)];
 
                     // Generate embeddings for each chunk
                     foreach (var chunk in chunkList)
