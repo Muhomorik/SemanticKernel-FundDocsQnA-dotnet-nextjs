@@ -204,6 +204,41 @@ When deploying to Azure or other production environments:
 ]
 ```
 
+## Token Usage Tracking
+
+The Preprocessor automatically logs token usage information from embedding providers.
+
+### How It Works
+
+- **OpenAI**: Logs actual token counts from API responses (InputTokenCount, OutputTokenCount)
+- **Ollama/LM Studio**: Logs token counts if the provider supports usage metadata (typically 0 for these providers)
+
+### Log Output
+
+Token usage is logged at `Information` level:
+
+```text
+Embedding token usage - Input: 45, Output: 0, Total: 45
+Batch embeddings token usage - Input: 450, Output: 0, Total: 450, Texts: 10
+```
+
+### Cost Tracking
+
+For OpenAI, you can calculate estimated costs:
+
+- **text-embedding-3-small**: ~$0.02 per 1M input tokens
+- Monitor logs to track total tokens per run and estimate costs
+
+Example:
+
+- 1M input tokens ≈ $0.02
+- 10M input tokens ≈ $0.20
+- 100M input tokens ≈ $2.00
+
+### Future: Application Insights Integration
+
+Token usage can be integrated with Azure Application Insights for centralized monitoring. Currently logs to console; Application Insights integration can be added as needed.
+
 ## Running Tests
 
 ```bash

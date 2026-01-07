@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-03 (Restructured to consistent table format)
+Last Updated: 2026-01-07 (Added token usage tracking to Preprocessor)
 
 **Tech Stack:**
 
@@ -61,9 +61,9 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
-| Token Usage Tracking | ⏳ | Extract token counts from OpenAI API responses |
-| Cost Monitoring | ⏳ | Calculate/log estimated API costs per batch |
-| Application Insights Metrics | ⏳ | Custom metrics for production monitoring |
+| Token Usage Tracking | ✅ | Logs actual token counts from provider response metadata (OpenAI, Ollama, LM Studio) |
+| Cost Monitoring | ✅ | Documented cost calculation examples for OpenAI (~$0.02 per 1M tokens) |
+| Application Insights Metrics | ❌ | Can be added when needed; currently logs to console |
 
 ### Not Planned
 
