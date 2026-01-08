@@ -8,13 +8,12 @@ namespace Backend.API.Infrastructure.LLM.Providers;
 /// <summary>
 /// Groq implementation of ILlmProvider.
 /// Uses Groq API via Semantic Kernel's OpenAI-compatible interface.
+/// Logs token usage for monitoring and cost tracking.
 /// </summary>
 public class GroqProvider : ILlmProvider
 {
     private readonly IChatCompletionService _chatService;
     private readonly ILogger<GroqProvider> _logger;
-
-    public string ProviderName => "Groq";
 
     public GroqProvider(
         IChatCompletionService chatService,
@@ -23,6 +22,8 @@ public class GroqProvider : ILlmProvider
         _chatService = chatService;
         _logger = logger;
     }
+
+    public string ProviderName => "Groq";
 
     public async Task<string> GenerateChatCompletionAsync(
         string systemPrompt,
@@ -38,6 +39,23 @@ public class GroqProvider : ILlmProvider
         var response = await _chatService.GetChatMessageContentAsync(
             chatHistory,
             cancellationToken: cancellationToken);
+
+        // Log token usage if available in metadata
+        if (response.Metadata is not null)
+        {
+            var inputTokens = response.Metadata.TryGetValue("InputTokenCount", out var inputObj)
+                ? Convert.ToInt32(inputObj)
+                : 0;
+            var outputTokens = response.Metadata.TryGetValue("OutputTokenCount", out var outputObj)
+                ? Convert.ToInt32(outputObj)
+                : 0;
+            var totalTokens = inputTokens + outputTokens;
+
+            if (totalTokens > 0)
+            {
+                _logger.LogInformation("Chat completion token usage - Input: {InputTokens}, Output: {OutputTokens}, Total: {TotalTokens}", inputTokens, outputTokens, totalTokens);
+            }
+        }
 
         return response.Content ?? "No answer generated";
     }
