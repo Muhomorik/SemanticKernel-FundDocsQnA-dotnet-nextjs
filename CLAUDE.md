@@ -50,7 +50,7 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | [Status.md](Status.md) | Implementation progress tracker (check first!) |
 | [README.md](README.md) | Project overview, quick start, architecture |
 | [Preprocessor/README.md](Preprocessor/README.md) | PDF processing and embedding options |
-| [backend/README.md](backend/README.md) | Semantic search & Q&A API setup, troubleshooting |
+| [backend/README.md](backend/README.md) | Semantic search & API setup, troubleshooting |
 | [frontend/README.md](frontend/README.md) | Next.js chat UI, scripts, testing |
 | [docs/SECRETS-MANAGEMENT.md](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, configuration |
 | [docs/AZURE-DEPLOYMENT.md](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
@@ -261,17 +261,17 @@ Always structure tests using the **Arrange, Act, Assert** pattern:
 [Test]
 public void MethodName_Scenario_ExpectedBehavior()
 {
-    // Arrange - Set up test data and dependencies
+    // Arrange
     var fixture = new Fixture().Customize(new AutoMoqCustomization());
     var dependency = fixture.Freeze<Mock<IDependency>>();
     dependency.Setup(x => x.Method()).Returns("expected");
 
     var sut = fixture.Create<ServiceUnderTest>(); // System Under Test
 
-    // Act - Execute the method being tested
+    // Act
     var result = sut.MethodToTest();
 
-    // Assert - Verify expected outcomes
+    // Assert
     Assert.That(result, Is.EqualTo("expected"));
     dependency.Verify(x => x.Method(), Times.Once);
 }
