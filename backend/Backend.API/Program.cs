@@ -9,6 +9,7 @@ using Backend.API.Infrastructure.LLM.Configuration;
 using Backend.API.Infrastructure.LLM.Providers;
 using Backend.API.Infrastructure.Persistence;
 using Backend.API.Infrastructure.Search;
+using Backend.API.Middleware;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Azure.Cosmos;
@@ -478,6 +479,13 @@ app.UseCors();
 
 // Enable rate limiting middleware - DoS protection
 app.UseRateLimiter();
+
+// API key authentication for embedding endpoints (Cosmos DB only)
+// Must be registered before UseAuthorization
+if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+{
+    app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+}
 
 // Authorization middleware (currently no auth, but prepared for future)
 app.UseAuthorization();
