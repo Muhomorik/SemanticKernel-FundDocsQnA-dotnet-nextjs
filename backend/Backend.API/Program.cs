@@ -365,6 +365,14 @@ if (hasApiKeys)
         tags: new[] { "ready" });
 }
 
+// Cosmos DB health check (only when Cosmos DB storage is enabled)
+if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+{
+    healthChecksBuilder.AddCheck<CosmosDbHealthCheck>(
+        "cosmosdb",
+        tags: new[] { "ready" });
+}
+
 // Swagger/OpenAPI for API documentation (Development only)
 // Note: Registered only in Development to avoid Microsoft.OpenApi version conflicts in production
 if (builder.Environment.IsDevelopment())
