@@ -61,4 +61,32 @@ public class FileBasedDocumentRepository : IDocumentRepository
     }
 
     public int GetChunkCount() => _chunks.Count;
+
+    public Task AddChunksAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "AddChunksAsync is not supported for FileBasedDocumentRepository (read-only). " +
+            "Use CosmosDbDocumentRepository for write operations.");
+    }
+
+    public Task UpdateChunksAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "UpdateChunksAsync is not supported for FileBasedDocumentRepository (read-only). " +
+            "Use CosmosDbDocumentRepository for write operations.");
+    }
+
+    public Task DeleteChunksBySourceAsync(string sourceFile, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "DeleteChunksBySourceAsync is not supported for FileBasedDocumentRepository (read-only). " +
+            "Use CosmosDbDocumentRepository for write operations.");
+    }
+
+    public Task ReplaceAllChunksAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException(
+            "ReplaceAllChunksAsync is not supported for FileBasedDocumentRepository (read-only). " +
+            "Use CosmosDbDocumentRepository for write operations.");
+    }
 }

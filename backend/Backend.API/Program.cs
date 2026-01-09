@@ -11,6 +11,7 @@ using Backend.API.Infrastructure.Persistence;
 using Backend.API.Infrastructure.Search;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -91,6 +92,13 @@ if (backendOptions == null)
 // This allows for secure configuration in production without committing secrets
 backendOptions = backendOptions with
 {
+    VectorStorageType = Enum.TryParse<VectorStorageType>(
+        builder.Configuration["BackendOptions:VectorStorageType"]
+        ?? Environment.GetEnvironmentVariable("VECTOR_STORAGE_TYPE"),
+        ignoreCase: true,
+        out var parsedStorageType)
+        ? parsedStorageType
+        : backendOptions.VectorStorageType,
     LlmProvider = LlmProviderExtensions.TryParse(
         builder.Configuration["BackendOptions:LlmProvider"] ?? Environment.GetEnvironmentVariable("LLM_PROVIDER"),
         out var parsedProvider)
@@ -105,7 +113,14 @@ backendOptions = backendOptions with
                  ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
                  ?? backendOptions.GroqApiKey,
     EmbeddingsFilePath = Environment.GetEnvironmentVariable("EMBEDDINGS_PATH")
-                         ?? backendOptions.EmbeddingsFilePath
+                         ?? backendOptions.EmbeddingsFilePath,
+    CosmosDbEndpoint = builder.Configuration["BackendOptions:CosmosDbEndpoint"]
+                       ?? Environment.GetEnvironmentVariable("COSMOSDB_ENDPOINT")
+                       ?? backendOptions.CosmosDbEndpoint,
+    CosmosDbDatabaseName = builder.Configuration["BackendOptions:CosmosDbDatabaseName"]
+                           ?? backendOptions.CosmosDbDatabaseName,
+    EmbeddingApiKey = builder.Configuration["BackendOptions:EmbeddingApiKey"]
+                      ?? backendOptions.EmbeddingApiKey
 };
 
 // Validate the appropriate API key is set for the selected provider
@@ -133,6 +148,36 @@ if (backendOptions.LlmProvider == LlmProvider.Groq)
     }
 }
 
+// Validate Cosmos DB configuration if CosmosDb storage type is selected
+Console.WriteLine($"Vector Storage Type: {backendOptions.VectorStorageType}");
+if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+{
+    if (string.IsNullOrWhiteSpace(backendOptions.CosmosDbEndpoint))
+    {
+        Console.WriteLine("ERROR: VectorStorageType is 'CosmosDb' but CosmosDbEndpoint is not configured.");
+        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:CosmosDbEndpoint' 'https://<account>.documents.azure.com:443/'");
+    }
+    else
+    {
+        Console.WriteLine($"Cosmos DB Configuration:");
+        Console.WriteLine($"  Endpoint: {backendOptions.CosmosDbEndpoint}");
+        Console.WriteLine($"  Database: {backendOptions.CosmosDbDatabaseName}");
+        Console.WriteLine($"  Container: {backendOptions.CosmosDbContainerName}");
+    }
+
+    if (string.IsNullOrWhiteSpace(backendOptions.CosmosDbDatabaseName))
+    {
+        Console.WriteLine("ERROR: VectorStorageType is 'CosmosDb' but CosmosDbDatabaseName is not configured.");
+        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:CosmosDbDatabaseName' '<database-name>'");
+    }
+
+    if (string.IsNullOrWhiteSpace(backendOptions.EmbeddingApiKey))
+    {
+        Console.WriteLine("WARNING: EmbeddingApiKey not set. Embedding API endpoints will be inaccessible.");
+        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:EmbeddingApiKey' '<api-key>'");
+    }
+}
+
 // Register configuration as a singleton for dependency injection
 builder.Services.AddSingleton(backendOptions);
 
@@ -145,7 +190,39 @@ foreach (var origin in backendOptions.AllowedOrigins)
 }
 
 // ========================================
-// 3. Semantic Kernel Configuration
+// 3. Cosmos DB Client Configuration (Conditional)
+// ========================================
+// Only register CosmosClient if Cosmos DB storage type is selected
+if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+{
+    builder.Services.AddSingleton<CosmosClient>(sp =>
+    {
+        // Production: Use Managed Identity (recommended - no secrets to manage)
+        if (builder.Environment.IsProduction())
+        {
+            Console.WriteLine("Registering CosmosClient with Managed Identity (DefaultAzureCredential)");
+            return new CosmosClient(
+                backendOptions.CosmosDbEndpoint,
+                new Azure.Identity.DefaultAzureCredential(),
+                new CosmosClientOptions { ConnectionMode = ConnectionMode.Direct });
+        }
+
+        // Development: Use Connection String from User Secrets
+        var connectionString = builder.Configuration["BackendOptions:CosmosDbConnectionString"];
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Cosmos DB connection string not configured. " +
+                "Set via: dotnet user-secrets set 'BackendOptions:CosmosDbConnectionString' 'AccountEndpoint=...;AccountKey=...;'");
+        }
+
+        Console.WriteLine("Registering CosmosClient with Connection String (development mode)");
+        return new CosmosClient(connectionString, new CosmosClientOptions { ConnectionMode = ConnectionMode.Direct });
+    });
+}
+
+// ========================================
+// 4. Semantic Kernel Configuration
 // ========================================
 // Only initialize Semantic Kernel if API keys are configured
 // This allows the app to start without keys (health endpoints work, but /api/ask won't)
@@ -218,7 +295,7 @@ if (hasApiKeys)
 }
 
 // ========================================
-// 4. DDD Layer Services Registration
+// 5. DDD Layer Services Registration
 // ========================================
 
 // Register Configuration Interfaces (extracted from BackendOptions)
@@ -237,15 +314,23 @@ if (hasApiKeys)
     builder.Services.AddSingleton<IUserQuestionSanitizer,
         Backend.API.Domain.Services.UserQuestionSanitizer>();
 
-    // Infrastructure layer - Repository
-    builder.Services.AddSingleton<IDocumentRepository, FileBasedDocumentRepository>();
+    // Infrastructure layer - Repository & Semantic Search (Conditional based on VectorStorageType)
+    if (backendOptions.VectorStorageType == VectorStorageType.InMemory)
+    {
+        Console.WriteLine("Registering InMemory vector storage (FileBasedDocumentRepository + InMemorySemanticSearch)");
+        builder.Services.AddSingleton<IDocumentRepository, FileBasedDocumentRepository>();
+        builder.Services.AddSingleton<ISemanticSearch, InMemorySemanticSearch>();
+    }
+    else if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+    {
+        Console.WriteLine("Registering Cosmos DB vector storage (CosmosDbDocumentRepository + CosmosDbSemanticSearch)");
+        builder.Services.AddSingleton<IDocumentRepository, CosmosDbDocumentRepository>();
+        builder.Services.AddSingleton<ISemanticSearch, CosmosDbSemanticSearch>();
+    }
 
     // Infrastructure layer - Embedding generator adapter
     builder.Services.AddSingleton<Backend.API.Domain.Interfaces.IEmbeddingGenerator,
         Backend.API.Infrastructure.LLM.SemanticKernel.SemanticKernelEmbeddingGenerator>();
-
-    // Infrastructure layer - Semantic search
-    builder.Services.AddSingleton<ISemanticSearch, InMemorySemanticSearch>();
 
     // Infrastructure layer - LLM providers
     builder.Services.AddSingleton<OpenAiProvider>();
@@ -262,7 +347,7 @@ if (hasApiKeys)
 }
 
 // ========================================
-// 5. ASP.NET Core Services Configuration
+// 6. ASP.NET Core Services Configuration
 // ========================================
 // Controllers for REST API endpoints
 builder.Services.AddControllers();
@@ -348,7 +433,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServe
 var app = builder.Build();
 
 // ========================================
-// 6. Initialize Repository (DDD Architecture)
+// 7. Initialize Repository (DDD Architecture)
 // ========================================
 // Load embeddings on startup (fail fast if there are configuration issues)
 if (hasApiKeys)
