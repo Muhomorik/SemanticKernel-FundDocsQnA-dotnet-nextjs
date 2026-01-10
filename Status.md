@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-07 (Phase 3: Cosmos DB Integration - Preprocessor Updates Complete)
+Last Updated: 2026-01-10 (Cosmos DB Integration Complete - Backend API + Documentation)
 
 **Tech Stack:**
 
@@ -84,13 +84,15 @@ Last Updated: 2026-01-07 (Phase 3: Cosmos DB Integration - Preprocessor Updates 
 | DDD Architecture | ✅ | Domain, ApplicationCore, Infrastructure layers |
 | RAG Pipeline | ✅ | DocumentRepository → VectorStore → LLM Provider |
 | LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
-| Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore |
-| API Endpoints | ✅ | POST /api/ask, health checks, Swagger |
-| Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP) |
-| Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights |
+| Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
+| Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
+| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), health checks, Swagger |
+| Authentication | ✅ | API key authentication for embedding endpoints (Cosmos DB only) |
+| Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
+| Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
 | Unit Tests | ✅ | 69 tests passing (Domain, ApplicationCore, Infrastructure) |
-| Documentation | ✅ | README with DDD architecture details |
+| Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
 
@@ -159,9 +161,9 @@ Last Updated: 2026-01-07 (Phase 3: Cosmos DB Integration - Preprocessor Updates 
 
 ---
 
-## Part 4: Cosmos DB Vector Database Integration ⏳ PLANNED
+## Part 4: Cosmos DB Vector Database Integration ✅ COMPLETED
 
-Add Azure Cosmos DB as optional vector database backend for persistent embeddings storage. Default remains `embeddings.json` (InMemory). Switch via strictly typed enum with configuration priority: CLI > User Secrets > Environment variable > Default. Full backward compatibility maintained.
+Azure Cosmos DB optional vector database backend for persistent embeddings storage. Default remains `embeddings.json` (InMemory). Switch via strictly typed enum with configuration priority: User Secrets > Environment variable > Default. Full backward compatibility maintained. Production-ready with Managed Identity authentication.
 
 ### Design Decisions
 
@@ -177,17 +179,50 @@ Add Azure Cosmos DB as optional vector database backend for persistent embedding
 
 | Phase | Component | Status | Notes |
 | ------ | ----------- | -------- | ------- |
-| **Phase 1** | Backend Infrastructure | ❌ | Add Cosmos DB NuGet packages, IVectorStore interface, CosmosDbVectorStore implementation, VectorStorageType enum, auth middleware |
-| **Phase 2** | Backend Integration | ❌ | Refactor QuestionAnsweringService to use IVectorStore, health check for Cosmos DB, DI configuration with enum-based provider selection |
-| **Phase 3** | Preprocessor Updates | ✅ | New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client |
-| **Phase 4** | Azure Infrastructure | ❌ | Update azure-setup.sh, Managed Identity configuration, Key Vault secrets, deployment docs |
-| **Phase 5** | Testing & Documentation | ❌ | Unit tests, integration tests, README updates, SECRETS-MANAGEMENT.md, Status.md |
+| **Phase 1** | Backend Infrastructure | ✅ | **Completed 2026-01-10**: NuGet packages (Microsoft.Azure.Cosmos 3.43.1), VectorStorageType enum, CosmosDbDocumentDto, CosmosDbDocumentRepository (full CRUD), CosmosDbSemanticSearch (native vector search with VectorDistance), IDocumentRepository extensions, conditional DI registration in Program.cs |
+| **Phase 2** | Backend Integration | ✅ | **Completed 2026-01-10**: EmbeddingDtos (request/response models), EmbeddingsController (4 protected endpoints: POST, PUT, DELETE, POST replace-all), ApiKeyAuthenticationMiddleware (constant-time comparison), middleware registration, CosmosDbHealthCheck (connectivity + count query), health check registration |
+| **Phase 3** | Preprocessor Updates | ✅ | **Completed 2026-01-07**: New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client with API key authentication |
+| **Phase 4** | Azure Infrastructure | ✅ | **Completed 2026-01-10**: Manual setup documentation in AZURE-DEPLOYMENT.md (8-step guide), Managed Identity configuration, RBAC role assignment, Key Vault secrets, cost analysis (free tier), troubleshooting guide, rollback instructions |
+| **Phase 5** | Testing & Documentation | ✅ | **Completed 2026-01-10**: SECRETS-MANAGEMENT.md (Cosmos DB configuration section with two-layer authentication, connection strings, Managed Identity setup, API key generation), backend/README.md (vector storage switching guide, API endpoints, authentication), Status.md updated |
+
+### Completed Features
+
+**Backend API Components:**
+
+- ✅ `VectorStorageType` enum with InMemory (default) and CosmosDb options
+- ✅ `CosmosDbDocumentDto` - Document schema with vector embedding (1536 dimensions)
+- ✅ `CosmosDbDocumentRepository` - Full CRUD implementation (InitializeAsync, GetAllChunksAsync, AddChunksAsync, UpdateChunksAsync, DeleteChunksBySourceAsync, ReplaceAllChunksAsync)
+- ✅ `CosmosDbSemanticSearch` - Native vector search using `VectorDistance()` SQL function with cosine similarity
+- ✅ `EmbeddingsController` - 4 protected REST endpoints (POST /api/embeddings, PUT /api/embeddings/{sourceFile}, DELETE /api/embeddings/{sourceFile}, POST /api/embeddings/replace-all)
+- ✅ `ApiKeyAuthenticationMiddleware` - Constant-time API key comparison, only protects /api/embeddings endpoints
+- ✅ `CosmosDbHealthCheck` - Connectivity check, container verification, document count query
+- ✅ Conditional DI registration based on `VectorStorageType` (Program.cs)
+- ✅ CosmosClient with Managed Identity (production) and Connection String (development) support
+
+**Authentication:**
+
+- ✅ Two-layer authentication architecture (Preprocessor→Backend via API Key, Backend→Cosmos DB via Managed Identity/Connection String)
+- ✅ API key header format: `Authorization: ApiKey <key>`
+- ✅ Secure key storage (User Secrets for dev, Key Vault for prod)
+- ✅ 32+ character cryptographically secure key generation
+
+**Documentation:**
+
+- ✅ SECRETS-MANAGEMENT.md - Complete Cosmos DB configuration section (development setup with connection strings, production setup with Managed Identity, API key generation, switching storage types, validation)
+- ✅ AZURE-DEPLOYMENT.md - 8-step manual setup guide (create account with free tier, database/container with vector indexing, Managed Identity configuration, RBAC role assignment, Key Vault configuration, embeddings upload, verification, troubleshooting)
+- ✅ backend/README.md - Vector storage switching guide (InMemory vs Cosmos DB comparison, setup instructions, API endpoints, authentication, health checks)
 
 ### Architecture
 
 **Default (InMemory):** `Preprocessor → embeddings.json → Backend (in-memory) → Frontend`
 
 **Optional (Cosmos DB):** `Preprocessor ←(API)→ Backend ←→ Cosmos DB (Vector Store) → Frontend`
+
+**Authentication Flow:**
+
+```text
+Preprocessor --[Authorization: ApiKey]-> Backend API --[Managed Identity/Connection String]-> Cosmos DB
+```
 
 ### Preprocessor CLI Verbs
 
@@ -290,7 +325,7 @@ public enum VectorStorageType
 | Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
-| Cosmos DB Vector Database | ⏳ Planned | Optional persistent vector storage via `cosmosdb` verb (backward compatible with embeddings.json) |
+| Cosmos DB Vector Database | ✅ Complete | Optional persistent vector storage via `cosmosdb` verb (backward compatible with embeddings.json). Completed 2026-01-10: Backend API, authentication, documentation |
 
 ### Deployment Setup Complete
 

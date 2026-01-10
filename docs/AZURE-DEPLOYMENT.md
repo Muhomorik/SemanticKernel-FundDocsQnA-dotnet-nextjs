@@ -478,6 +478,85 @@ curl -X POST https://<your-app-service>.azurewebsites.net/api/ask \
   -d '{"question":"What is this about?"}'
 ```
 
+### Local Development Setup
+
+To connect to Cosmos DB from **localhost** (Visual Studio, VS Code, etc.), you need to configure the firewall to allow your local IP address.
+
+**⚠️ Important:** By default, Cosmos DB blocks all external connections. You must explicitly allow your development machine's IP.
+
+#### Option 1: Allow Specific IP (Recommended)
+
+```bash
+# Get your public IP address
+curl https://api.ipify.org
+
+# Add your IP to Cosmos DB firewall
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --ip-range-filter "<your-public-ip>"
+```
+
+**Note:** If your IP changes (e.g., home vs office), you'll need to update the firewall rule.
+
+#### Option 2: Allow All Networks (Easier, Less Secure)
+
+**Azure Portal:**
+
+1. Navigate to your Cosmos DB account
+2. Go to **Settings** → **Networking**
+3. Select **Firewall and virtual networks**
+4. Under "Allow access from", select **All networks**
+5. Click **Save**
+
+**Azure CLI:**
+
+```bash
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --enable-public-network true
+```
+
+**⚠️ Security Note:** Only use "All networks" for development. In production, restrict access to specific IPs or virtual networks.
+
+#### Option 3: Allow Azure Services + Specific IP
+
+Best practice for production with local development:
+
+```bash
+# Allow Azure services (for App Service)
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --enable-public-network true \
+  --ip-range-filter "<your-local-ip>"
+```
+
+This allows both your App Service (via Managed Identity) and your local machine (via connection string).
+
+#### Verify Firewall Configuration
+
+After configuring the firewall, test connectivity from localhost:
+
+```bash
+cd backend/Backend.API
+dotnet run
+```
+
+Check console output for:
+
+```text
+Registering CosmosClient with Connection String (development mode)
+✓ Document repository initialized with X chunks
+```
+
+If you see connection errors, verify:
+
+1. Your IP is in the firewall rules: Azure Portal → Cosmos DB → Networking
+2. Connection string is set in User Secrets: `dotnet user-secrets list`
+3. Your public IP hasn't changed: `curl https://api.ipify.org`
+
 ### Rollback to InMemory Storage
 
 If you need to switch back to file-based storage:
