@@ -16,6 +16,17 @@ using Preprocessor.Extractors;
 using Preprocessor.Outputs;
 using Preprocessor.Services;
 
+// If no arguments provided, default to 'json' verb with defaults
+if (args.Length == 0)
+{
+    var logger = CreateLogger<Program>();
+    logger.LogInformation("No arguments provided. Using default: 'json' verb with OpenAI provider.");
+    logger.LogInformation("To see all options, run with --help or use 'json --help' or 'cosmosdb --help'");
+    logger.LogInformation("");
+
+    args = new[] { "json" };
+}
+
 // Parse command line arguments for verb-based commands
 var result = await Parser.Default.ParseArguments<JsonOptions, CosmosDbOptions>(args)
     .MapResult(
