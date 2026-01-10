@@ -10,6 +10,8 @@ A .NET Console application that extracts text from PDF documents and generates e
 
 Convert PDFs into searchable embeddings (run once, or when adding new PDFs).
 
+![preprocessor demo](docs/preprocessor_running.gif)
+
 ## Quick Start
 
 The Preprocessor supports two modes (verbs):
@@ -106,6 +108,7 @@ Use `--provider openai` (default), `--provider lmstudio`, or `--provider ollama`
    ```
 
 **Important Notes:**
+
 - **Cost:** ~$0.02 per 1M tokens (batch processing ~10MB of PDFs costs a few cents)
 - **Model:** Must use `text-embedding-3-small` for backend compatibility
 - **Dimensions:** Outputs 1536-dimensional embeddings (vs 384 for local models)
@@ -229,6 +232,7 @@ dotnet run -- cosmosdb --provider ollama --embedding-model nomic-embed-text --ur
 When deploying to Azure or other production environments:
 
 1. **Regenerate embeddings with OpenAI** (required for backend compatibility):
+
    ```bash
    # Set API key
    $env:OPENAI_API_KEY = "sk-..."
@@ -238,11 +242,13 @@ When deploying to Azure or other production environments:
    ```
 
 2. **Copy to backend**:
+
    ```bash
    cp ./embeddings.json ./backend/Backend.API/Data/embeddings.json
    ```
 
 3. **Verify dimensions** (should be 1536):
+
    ```powershell
    # Check first embedding array length in JSON
    (Get-Content ./embeddings.json | ConvertFrom-Json)[0].embedding.Count
