@@ -96,7 +96,7 @@ backendOptions = backendOptions with
     VectorStorageType = Enum.TryParse<VectorStorageType>(
         builder.Configuration["BackendOptions:VectorStorageType"]
         ?? Environment.GetEnvironmentVariable("VECTOR_STORAGE_TYPE"),
-        ignoreCase: true,
+        true,
         out var parsedStorageType)
         ? parsedStorageType
         : backendOptions.VectorStorageType,
@@ -156,7 +156,8 @@ if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
     if (string.IsNullOrWhiteSpace(backendOptions.CosmosDbEndpoint))
     {
         Console.WriteLine("ERROR: VectorStorageType is 'CosmosDb' but CosmosDbEndpoint is not configured.");
-        Console.WriteLine("  Set via: dotnet user-secrets set 'BackendOptions:CosmosDbEndpoint' 'https://<account>.documents.azure.com:443/'");
+        Console.WriteLine(
+            "  Set via: dotnet user-secrets set 'BackendOptions:CosmosDbEndpoint' 'https://<account>.documents.azure.com:443/'");
     }
     else
     {
@@ -436,7 +437,8 @@ builder.Services.AddRateLimiter(options =>
 // Kestrel request limits - DoS protection against large payloads
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 10 * 1024; // 10KB max request size
+    //Even with batch-size 10, the embeddings are too large (each embedding is 1536 floats = ~6KB, plus metadata).
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB max request size (for embedding uploads)
 });
 
 var app = builder.Build();
