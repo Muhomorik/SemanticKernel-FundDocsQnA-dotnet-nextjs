@@ -208,11 +208,11 @@ dotnet run -- json --provider lmstudio --ollama-url http://localhost:8080
 
 ```bash
 # Upload to backend API (default: add operation)
-dotnet run -- cosmosdb --url https://my-backend.azurewebsites.net --key api-key-here
+dotnet run -- cosmosdb --url https://<your-backend-app-service-name>.azurewebsites.net --key api-key-here
 
 # Set API key via environment variable (recommended)
 $env:FUNDDOCS_API_KEY = "your-api-key"
-dotnet run -- cosmosdb --url https://my-backend.azurewebsites.net
+dotnet run -- cosmosdb --url https://<your-backend-app-service-name>.azurewebsites.net
 
 # Update operation (replace embeddings for existing PDFs)
 dotnet run -- cosmosdb --operation update --url http://localhost:5000 --key api-key

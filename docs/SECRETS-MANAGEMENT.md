@@ -208,7 +208,7 @@ Option 3 - From Azure CLI:
 ```bash
 az staticwebapp secrets list \
   --name "funddocs-frontend" \
-  --resource-group "rg-funddocs-backend" \
+  --resource-group "<your-resource-group>" \
   --query "properties.apiKey" -o tsv
 ```
 
@@ -739,8 +739,8 @@ az keyvault secret set \
 
 # Restart app to load new secrets
 az webapp restart \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ### CI/CD (GitHub Actions)
@@ -801,13 +801,13 @@ dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-key"
 ```bash
 # Check Managed Identity is enabled
 az webapp identity show \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 
 # Grant Key Vault access if missing
 PRINCIPAL_ID=$(az webapp identity show \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend" \
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>" \
   --query principalId -o tsv)
 
 az keyvault set-policy \

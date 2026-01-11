@@ -2,58 +2,12 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using Microsoft.Extensions.Logging;
+
 using Preprocessor.Models;
 
 namespace Preprocessor.Outputs;
-
-/// <summary>
-/// DTO matching Backend.API's EmbeddingDto structure.
-/// </summary>
-/// <remarks>
-/// IMPORTANT: Backend API uses default ASP.NET Core JSON serialization (camelCase).
-/// The property names MUST match exactly:
-/// - "sourceFile" (lowercase 's') matches Cosmos DB partition key: /sourceFile
-/// - Changing this to "SourceFile" (PascalCase) will break Cosmos DB partitioning
-/// - All properties use camelCase to match ASP.NET Core defaults
-/// </remarks>
-internal record BackendEmbeddingDto
-{
-    /// <summary>
-    /// Unique identifier for the embedding (e.g., "document_page1_chunk0").
-    /// JSON: "id" (camelCase)
-    /// </summary>
-    [JsonPropertyName("id")]
-    public required string Id { get; init; }
-
-    /// <summary>
-    /// Text content of the chunk.
-    /// JSON: "text" (camelCase)
-    /// </summary>
-    [JsonPropertyName("text")]
-    public required string Text { get; init; }
-
-    /// <summary>
-    /// Vector embedding (1536 dimensions for text-embedding-3-small).
-    /// JSON: "embedding" (camelCase)
-    /// </summary>
-    [JsonPropertyName("embedding")]
-    public required float[] Embedding { get; init; }
-
-    /// <summary>
-    /// Source PDF filename.
-    /// JSON: "sourceFile" (camelCase - CRITICAL: must match Cosmos DB partition key /sourceFile)
-    /// </summary>
-    [JsonPropertyName("sourceFile")]
-    public required string SourceFile { get; init; }
-
-    /// <summary>
-    /// Page number in the source PDF.
-    /// JSON: "page" (camelCase)
-    /// </summary>
-    [JsonPropertyName("page")]
-    public required int Page { get; init; }
-}
 
 /// <summary>
 /// Request wrapper matching Backend.API's AddEmbeddingsRequest structure.
@@ -61,8 +15,7 @@ internal record BackendEmbeddingDto
 /// </summary>
 internal record BackendAddEmbeddingsRequest
 {
-    [JsonPropertyName("embeddings")]
-    public required List<BackendEmbeddingDto> Embeddings { get; init; }
+    [JsonPropertyName("embeddings")] public required List<BackendEmbeddingDto> Embeddings { get; init; }
 }
 
 /// <summary>
@@ -71,8 +24,7 @@ internal record BackendAddEmbeddingsRequest
 /// </summary>
 internal record BackendReplaceAllEmbeddingsRequest
 {
-    [JsonPropertyName("embeddings")]
-    public required List<BackendEmbeddingDto> Embeddings { get; init; }
+    [JsonPropertyName("embeddings")] public required List<BackendEmbeddingDto> Embeddings { get; init; }
 }
 
 /// <summary>
@@ -126,7 +78,8 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
         return Task.FromResult<IReadOnlyList<EmbeddingResult>>(Array.Empty<EmbeddingResult>());
     }
 
-    public async Task SaveAsync(IReadOnlyList<EmbeddingResult> embeddings, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(IReadOnlyList<EmbeddingResult> embeddings,
+        CancellationToken cancellationToken = default)
     {
         if (embeddings.Count == 0)
         {
@@ -134,7 +87,8 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
             return;
         }
 
-        _logger.LogInformation("Uploading {Count} embeddings to backend API ({Operation} operation, batch size: {BatchSize})",
+        _logger.LogInformation(
+            "Uploading {Count} embeddings to backend API ({Operation} operation, batch size: {BatchSize})",
             embeddings.Count, _operation, _batchSize);
 
         try
@@ -166,7 +120,8 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
         }
     }
 
-    private async Task AddEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings, CancellationToken cancellationToken)
+    private async Task AddEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings,
+        CancellationToken cancellationToken)
     {
         // Upload in batches
         var batches = embeddings
@@ -178,7 +133,7 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
         _logger.LogInformation("Uploading {TotalCount} embeddings in {BatchCount} batches",
             embeddings.Count, batches.Count);
 
-        for (int i = 0; i < batches.Count; i++)
+        for (var i = 0; i < batches.Count; i++)
         {
             var batch = batches[i];
             _logger.LogInformation("Uploading batch {Current}/{Total} ({Count} embeddings)",
@@ -196,14 +151,16 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
 
             var request = new BackendAddEmbeddingsRequest { Embeddings = backendDtos };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/embeddings", request, JsonOptions, cancellationToken);
+            var response =
+                await _httpClient.PostAsJsonAsync("/api/embeddings", request, JsonOptions, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             _logger.LogInformation("Batch {Current}/{Total} uploaded successfully", i + 1, batches.Count);
         }
     }
 
-    private async Task UpdateEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings, CancellationToken cancellationToken)
+    private async Task UpdateEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings,
+        CancellationToken cancellationToken)
     {
         // Group by source file
         var groupedBySource = embeddings
@@ -233,7 +190,8 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
         }
     }
 
-    private async Task ReplaceAllEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings, CancellationToken cancellationToken)
+    private async Task ReplaceAllEmbeddingsAsync(IReadOnlyList<EmbeddingResult> embeddings,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation("Replacing all embeddings in backend (this will delete existing data)");
 
@@ -251,7 +209,8 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
 
         _logger.LogInformation("Uploading {Count} embeddings for replace-all operation", embeddings.Count);
 
-        var response = await _httpClient.PostAsJsonAsync("/api/embeddings/replace-all", request, JsonOptions, cancellationToken);
+        var response =
+            await _httpClient.PostAsJsonAsync("/api/embeddings/replace-all", request, JsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         _logger.LogInformation("Successfully replaced all embeddings");

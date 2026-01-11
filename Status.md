@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-10 (Cosmos DB Integration Complete - Backend API + Documentation)
+Last Updated: 2026-01-11 (Cosmos DB Production Deployment Complete)
 
 **Tech Stack:**
 
@@ -184,6 +184,7 @@ Azure Cosmos DB optional vector database backend for persistent embeddings stora
 | **Phase 3** | Preprocessor Updates | ✅ | **Completed 2026-01-07**: New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client with API key authentication |
 | **Phase 4** | Azure Infrastructure | ✅ | **Completed 2026-01-10**: Manual setup documentation in AZURE-DEPLOYMENT.md (8-step guide), Managed Identity configuration, RBAC role assignment, Key Vault secrets, cost analysis (free tier), troubleshooting guide, rollback instructions |
 | **Phase 5** | Testing & Documentation | ✅ | **Completed 2026-01-10**: SECRETS-MANAGEMENT.md (Cosmos DB configuration section with two-layer authentication, connection strings, Managed Identity setup, API key generation), backend/README.md (vector storage switching guide, API endpoints, authentication), Status.md updated |
+| **Phase 6** | Production Deployment | ✅ | **Completed 2026-01-11**: Cosmos DB account created (free tier), database/container configured (partition key /sourceFile), Key Vault secrets added (BackendOptions--CosmosDb*), App Service Managed Identity granted Cosmos DB RBAC access (Built-in Data Contributor), embeddings uploaded from Preprocessor, production API verified working end-to-end |
 
 ### Completed Features
 
@@ -325,7 +326,7 @@ public enum VectorStorageType
 | Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
-| Cosmos DB Vector Database | ✅ Complete | Optional persistent vector storage via `cosmosdb` verb (backward compatible with embeddings.json). Completed 2026-01-10: Backend API, authentication, documentation |
+| Cosmos DB Vector Database | ✅ Production Ready | Optional persistent vector storage via `cosmosdb` verb. **Local + Production deployed**: Backend API, authentication, Managed Identity RBAC, Key Vault secrets, embeddings uploaded. Free tier (1000 RU/s, 25GB) |
 
 ### Deployment Setup Complete
 
@@ -490,6 +491,13 @@ public enum VectorStorageType
 - **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
 
 **Total Production Cost: ~$0.03/month**
+
+**With Cosmos DB Vector Storage (Optional):**
+
+- **Cosmos DB Free Tier**: $0/month (1000 RU/s, 25 GB storage - one per subscription)
+- No additional cost when using free tier
+
+**Total Production Cost with Cosmos DB: ~$0.03/month (Groq) or ~$0.53/month (OpenAI Chat)**
 
 ### Upgrade Options
 

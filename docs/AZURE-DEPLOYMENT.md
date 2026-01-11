@@ -720,8 +720,8 @@ After updating secrets, restart the app:
 
 ```bash
 az webapp restart \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ## Troubleshooting
@@ -739,8 +739,8 @@ az webapp restart \
 ```bash
 # Check logs
 az webapp log tail \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ### Issue: Health Check Failing
