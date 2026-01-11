@@ -65,6 +65,44 @@ public record BackendOptions
     public required string MemoryCollectionName { get; init; }
 
     /// <summary>
+    /// Gets or sets the vector storage backend type.
+    /// Default is InMemory (backward compatible).
+    /// Can be overridden by the VECTOR_STORAGE_TYPE environment variable or BackendOptions__VectorStorageType.
+    /// </summary>
+    public VectorStorageType VectorStorageType { get; init; } = VectorStorageType.InMemory;
+
+    /// <summary>
+    /// Gets or sets the Cosmos DB endpoint URL.
+    /// Required when VectorStorageType is CosmosDb.
+    /// Example: https://your-cosmos-account.documents.azure.com:443/
+    /// Can be overridden by BackendOptions__CosmosDbEndpoint environment variable.
+    /// </summary>
+    public string? CosmosDbEndpoint { get; init; }
+
+    /// <summary>
+    /// Gets or sets the Cosmos DB database name.
+    /// Required when VectorStorageType is CosmosDb.
+    /// Can be overridden by BackendOptions__CosmosDbDatabaseName environment variable.
+    /// </summary>
+    public string? CosmosDbDatabaseName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the Cosmos DB container name.
+    /// Only used when VectorStorageType is CosmosDb.
+    /// Default: embeddings
+    /// Can be overridden by BackendOptions__CosmosDbContainerName environment variable.
+    /// </summary>
+    public string CosmosDbContainerName { get; init; } = "embeddings";
+
+    /// <summary>
+    /// Gets or sets the API key for authenticating Preprocessor requests to embedding endpoints.
+    /// Required when VectorStorageType is CosmosDb.
+    /// Should be stored in Azure Key Vault in production.
+    /// Can be overridden by BackendOptions__EmbeddingApiKey environment variable.
+    /// </summary>
+    public string? EmbeddingApiKey { get; init; }
+
+    /// <summary>
     /// Gets or sets the allowed CORS origins.
     /// Can be overridden via Azure App Service Configuration using BackendOptions__AllowedOrigins__0, etc.
     /// </summary>

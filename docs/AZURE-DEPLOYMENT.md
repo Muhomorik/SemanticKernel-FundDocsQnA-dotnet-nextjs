@@ -172,6 +172,474 @@ curl -X POST https://<your-backend-app-service-name>.azurewebsites.net/api/ask \
 
 Open your Static Web App URL in a browser: `https://<your-static-web-app-name>.azurestaticapps.net`
 
+## Optional: Cosmos DB Setup for Persistent Vector Storage
+
+By default, the backend uses in-memory vector storage (`VectorStorageType = InMemory`) with embeddings loaded from `Data/embeddings.json`. This is suitable for development and small deployments.
+
+For production deployments requiring persistent, scalable vector storage, you can optionally configure Azure Cosmos DB. This enables:
+
+- **Persistent storage** - Embeddings survive app restarts
+- **Dynamic updates** - Add/update embeddings via API without redeployment
+- **Multi-instance deployments** - Shared vector store across multiple backend instances
+- **Native vector search** - Cosmos DB's built-in vector indexing for efficient similarity search
+
+### Cosmos DB Prerequisites
+
+- Existing Azure subscription and resource group
+- Backend API already deployed to Azure App Service
+- Azure CLI installed and authenticated
+
+### Step 1: Create Cosmos DB Account
+
+Create a Cosmos DB account with NoSQL API and vector search enabled:
+
+```bash
+# Set variables
+RESOURCE_GROUP="<your-resource-group>"
+COSMOS_ACCOUNT="<your-cosmos-account-name>"  # Must be globally unique
+LOCATION="<your-location>"  # e.g., eastus
+
+# Create Cosmos DB account with free tier and vector search
+az cosmosdb create \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --location "$LOCATION" \
+  --enable-free-tier true \
+  --capabilities EnableNoSQLVectorSearch \
+  --default-consistency-level Session
+```
+
+**Notes:**
+
+- **Free tier:** Each subscription gets ONE free Cosmos DB account (1000 RU/s, 25GB storage)
+- **Vector search:** `EnableNoSQLVectorSearch` capability enables native vector indexing
+- **Account name:** Must be globally unique (3-44 characters, lowercase alphanumeric and hyphens)
+
+### Step 2: Create Database and Container
+
+Create a database and container optimized for vector embeddings:
+
+```bash
+# Set variables
+DATABASE_NAME="<your-database-name>"  # e.g., fund-docs-db
+CONTAINER_NAME="embeddings"
+
+# Create database (serverless or provisioned)
+az cosmosdb sql database create \
+  --account-name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$DATABASE_NAME" \
+  --throughput 400  # Minimum for free tier
+
+# Create container with partition key and vector indexing
+az cosmosdb sql container create \
+  --account-name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --database-name "$DATABASE_NAME" \
+  --name "$CONTAINER_NAME" \
+  --partition-key-path "/sourceFile" \
+  --throughput 400 \
+  --idx @cosmos-index-policy.json
+```
+
+**Create `cosmos-index-policy.json` file:**
+
+```json
+{
+  "indexingMode": "consistent",
+  "automatic": true,
+  "includedPaths": [
+    {
+      "path": "/*"
+    }
+  ],
+  "excludedPaths": [
+    {
+      "path": "/\"_etag\"/?"
+    }
+  ],
+  "vectorIndexes": [
+    {
+      "path": "/embedding",
+      "type": "quantizedFlat"
+    }
+  ],
+  "vectorEmbeddingPolicy": {
+    "vectorEmbeddings": [
+      {
+        "path": "/embedding",
+        "dataType": "float32",
+        "distanceFunction": "cosine",
+        "dimensions": 1536
+      }
+    ]
+  }
+}
+```
+
+**Index Policy Explained:**
+
+- **Partition key:** `/sourceFile` enables efficient per-file operations (delete/update by source)
+- **Vector index type:** `quantizedFlat` is cost-optimized (lower RU consumption vs. other index types)
+- **Distance function:** `cosine` for semantic similarity (same as in-memory implementation)
+- **Dimensions:** 1536 matches `text-embedding-3-small` model
+
+### Step 3: Enable Managed Identity on App Service
+
+Configure the backend App Service to authenticate to Cosmos DB using Managed Identity (no secrets required):
+
+```bash
+# Set variables
+APP_SERVICE_NAME="<your-app-service-name>"
+
+# Enable system-assigned managed identity
+az webapp identity assign \
+  --name "$APP_SERVICE_NAME" \
+  --resource-group "$RESOURCE_GROUP"
+
+# Get the principal ID (saved to variable for next step)
+PRINCIPAL_ID=$(az webapp identity show \
+  --name "$APP_SERVICE_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --query principalId -o tsv)
+
+echo "Managed Identity Principal ID: $PRINCIPAL_ID"
+```
+
+### Step 4: Grant Cosmos DB RBAC Role
+
+Assign the "Cosmos DB Built-in Data Contributor" role to the App Service's managed identity:
+
+```bash
+# Grant Cosmos DB Data Contributor role to the managed identity
+az cosmosdb sql role assignment create \
+  --account-name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --role-definition-name "Cosmos DB Built-in Data Contributor" \
+  --principal-id "$PRINCIPAL_ID" \
+  --scope "/"
+```
+
+**Role Permissions:**
+
+- Read, write, and delete documents
+- Query containers
+- Read container metadata
+
+**Security:** Only the backend's managed identity can access Cosmos DB data (no connection strings or account keys exposed).
+
+### Step 5: Configure Backend API Settings
+
+Store Cosmos DB configuration in Azure Key Vault:
+
+```bash
+# Set variables
+KEY_VAULT_NAME="<your-keyvault-name>"
+
+# Get Cosmos DB endpoint
+COSMOS_ENDPOINT=$(az cosmosdb show \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --query documentEndpoint -o tsv)
+
+# Enable Cosmos DB storage
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--VectorStorageType" \
+  --value "CosmosDb"
+
+# Set Cosmos DB endpoint (Managed Identity handles authentication)
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--CosmosDbEndpoint" \
+  --value "$COSMOS_ENDPOINT"
+
+# Set database name
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--CosmosDbDatabaseName" \
+  --value "$DATABASE_NAME"
+
+# Set container name (optional - defaults to "embeddings")
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--CosmosDbContainerName" \
+  --value "$CONTAINER_NAME"
+
+# Generate and set API key for Preprocessor authentication
+API_KEY=$(openssl rand -base64 32)
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--EmbeddingApiKey" \
+  --value "$API_KEY"
+
+echo "Cosmos DB Configuration Complete!"
+echo "API Key (save this for Preprocessor): $API_KEY"
+```
+
+**Important:** Save the `API_KEY` output - you'll need it to configure the Preprocessor for uploading embeddings.
+
+### Step 6: Restart Backend API
+
+Restart the App Service to load new configuration:
+
+```bash
+az webapp restart \
+  --name "$APP_SERVICE_NAME" \
+  --resource-group "$RESOURCE_GROUP"
+```
+
+**Verify startup logs:**
+
+```bash
+# View logs
+az webapp log tail \
+  --name "$APP_SERVICE_NAME" \
+  --resource-group "$RESOURCE_GROUP"
+```
+
+Expected logs:
+
+```text
+Vector Storage Type: CosmosDb
+Cosmos DB Configuration:
+  Endpoint: https://<your-cosmos-account>.documents.azure.com:443/
+  Database: <your-database-name>
+  Container: embeddings
+Registering CosmosClient with Managed Identity (DefaultAzureCredential)
+Registering Cosmos DB vector storage (CosmosDbDocumentRepository + CosmosDbSemanticSearch)
+✓ Document repository initialized with 0 chunks
+```
+
+### Step 7: Upload Embeddings to Cosmos DB
+
+Use the Preprocessor to upload embeddings to the backend API (which will store them in Cosmos DB):
+
+```bash
+cd Preprocessor/Preprocessor
+
+# Set environment variables
+$env:OPENAI_API_KEY = "sk-your-openai-api-key"
+
+# Generate and upload embeddings to Cosmos DB
+dotnet run -- \
+  --provider openai \
+  --input-dir ../../pdfs \
+  --cosmosdb \
+  --url "https://<your-app-service>.azurewebsites.net" \
+  --api-key "<api-key-from-step-5>"
+```
+
+**Preprocessor Arguments:**
+
+- `--cosmosdb`: Upload to Backend API instead of writing to file
+- `--url`: Backend API base URL
+- `--api-key`: API key from Step 5 (BackendOptions:EmbeddingApiKey)
+
+**Note:** The Preprocessor will:
+
+1. Extract text from PDFs
+2. Generate embeddings using OpenAI API
+3. POST embeddings to `/api/embeddings/replace-all` endpoint (or batch POST with `add` operation)
+4. Backend stores embeddings in Cosmos DB
+
+**Throttling & Rate Limiting (NEW):**
+
+The Preprocessor includes built-in rate limiting to prevent exceeding Cosmos DB throughput limits (1000 RU/s free tier, 400 RU/s provisioned):
+
+- **Default delay:** 8000ms (8 seconds) between batches
+  - Conservative design ensures ~290 RU/s average (safe margin under 400 RU/s)
+  - With 68 PDFs × 14 chunks = ~950 embeddings, batch size 100:
+    - 9 intervals × 8s = 72 seconds of delays
+    - ~50 seconds upload time
+    - Total ~130 seconds
+    - Average: 38,000 RU ÷ 130s = ~290 RU/s (comfortable headroom)
+
+- **Exponential backoff:** If the Preprocessor receives a 429 (TooManyRequests) response:
+  - Retry 1: Wait 1 second, then retry
+  - Retry 2: Wait 2 seconds, then retry
+  - Retry 3: Wait 4 seconds, then retry
+  - If still throttled, fail with error
+
+This conservative design stays well below the provisioned tier limit and ensures reliable uploads of large embedding sets.
+
+### Step 8: Verify Deployment
+
+**Health Check:**
+
+```bash
+# Check backend health (should include cosmosdb check)
+curl https://<your-app-service>.azurewebsites.net/health/ready
+```
+
+Expected response:
+
+```json
+{
+  "status": "Healthy",
+  "results": {
+    "memory_service": {
+      "status": "Healthy",
+      "description": "Document chunks loaded: 1234"
+    },
+    "cosmosdb": {
+      "status": "Healthy",
+      "description": "Cosmos DB connected: 1234 documents in '<database>/<container>'"
+    }
+  }
+}
+```
+
+**Test Q&A:**
+
+```bash
+curl -X POST https://<your-app-service>.azurewebsites.net/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is this about?"}'
+```
+
+### Local Development Setup
+
+To connect to Cosmos DB from **localhost** (Visual Studio, VS Code, etc.), you need to configure the firewall to allow your local IP address.
+
+**⚠️ Important:** By default, Cosmos DB blocks all external connections. You must explicitly allow your development machine's IP.
+
+#### Option 1: Allow Specific IP (Recommended)
+
+```bash
+# Get your public IP address
+curl https://api.ipify.org
+
+# Add your IP to Cosmos DB firewall
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --ip-range-filter "<your-public-ip>"
+```
+
+**Note:** If your IP changes (e.g., home vs office), you'll need to update the firewall rule.
+
+#### Option 2: Allow All Networks (Easier, Less Secure)
+
+**Azure Portal:**
+
+1. Navigate to your Cosmos DB account
+2. Go to **Settings** → **Networking**
+3. Select **Firewall and virtual networks**
+4. Under "Allow access from", select **All networks**
+5. Click **Save**
+
+**Azure CLI:**
+
+```bash
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --enable-public-network true
+```
+
+**⚠️ Security Note:** Only use "All networks" for development. In production, restrict access to specific IPs or virtual networks.
+
+#### Option 3: Allow Azure Services + Specific IP
+
+Best practice for production with local development:
+
+```bash
+# Allow Azure services (for App Service)
+az cosmosdb update \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --enable-public-network true \
+  --ip-range-filter "<your-local-ip>"
+```
+
+This allows both your App Service (via Managed Identity) and your local machine (via connection string).
+
+#### Verify Firewall Configuration
+
+After configuring the firewall, test connectivity from localhost:
+
+```bash
+cd backend/Backend.API
+dotnet run
+```
+
+Check console output for:
+
+```text
+Registering CosmosClient with Connection String (development mode)
+✓ Document repository initialized with X chunks
+```
+
+If you see connection errors, verify:
+
+1. Your IP is in the firewall rules: Azure Portal → Cosmos DB → Networking
+2. Connection string is set in User Secrets: `dotnet user-secrets list`
+3. Your public IP hasn't changed: `curl https://api.ipify.org`
+
+### Rollback to InMemory Storage
+
+If you need to switch back to file-based storage:
+
+```bash
+# Set storage type back to InMemory
+az keyvault secret set \
+  --vault-name "$KEY_VAULT_NAME" \
+  --name "BackendOptions--VectorStorageType" \
+  --value "InMemory"
+
+# Restart backend
+az webapp restart \
+  --name "$APP_SERVICE_NAME" \
+  --resource-group "$RESOURCE_GROUP"
+```
+
+**Note:** Ensure `Data/embeddings.json` exists in the deployed backend before switching back.
+
+### Cost Analysis
+
+**Cosmos DB Free Tier Limits:**
+
+- **1000 RU/s** throughput (shared across database)
+- **25 GB** storage
+- **ONE** free account per subscription
+
+**Estimated Usage for This Application:**
+
+| Operation              | RU Cost | Frequency        | Daily RU         |
+| ---------------------- | ------- | ---------------- | ---------------- |
+| Vector search (top 10) | ~50 RU  | 100 queries/day  | 5,000            |
+| Add embedding (single) | ~10 RU  | 10 uploads/day   | 100              |
+| Health check           | ~2 RU   | 1440/day (1/min) | 2,880            |
+| **Total**              |         |                  | **~8,000 RU/day**|
+
+**RU/s Required:** ~8,000 RU/day ÷ 86,400 seconds = **0.09 RU/s average** (well within free tier)
+
+**Storage:** ~1,500 embeddings × 10 KB/doc = **~15 MB** (well within 25 GB limit)
+
+**Conclusion:** This application should run comfortably within Cosmos DB free tier limits for typical usage patterns.
+
+### Troubleshooting
+
+#### Backend fails to connect to Cosmos DB
+
+1. Check managed identity is enabled: `az webapp identity show --name <app> --resource-group <rg>`
+2. Verify RBAC role assignment: Check Azure Portal → Cosmos DB → Access Control (IAM)
+3. Check Key Vault secrets are set correctly
+4. Review App Service logs: `az webapp log tail --name <app> --resource-group <rg>`
+
+#### 401 Unauthorized when uploading embeddings
+
+1. Verify API key matches Key Vault secret: `az keyvault secret show --vault-name <kv> --name BackendOptions--EmbeddingApiKey`
+2. Check Preprocessor is using correct `--api-key` argument
+3. Verify `VectorStorageType` is set to `CosmosDb` in Key Vault
+
+#### Health check shows "Container not found"
+
+1. Verify container exists: `az cosmosdb sql container show --account-name <account> --database-name <db> --name <container> --resource-group <rg>`
+2. Check database and container names match Key Vault secrets
+3. Ensure vector indexing policy was applied correctly
+
 ## Azure App Service Configuration
 
 ### Environment Variables
@@ -272,8 +740,8 @@ After updating secrets, restart the app:
 
 ```bash
 az webapp restart \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ## Troubleshooting
@@ -291,8 +759,8 @@ az webapp restart \
 ```bash
 # Check logs
 az webapp log tail \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ### Issue: Health Check Failing

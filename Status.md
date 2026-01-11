@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-03 (Restructured to consistent table format)
+Last Updated: 2026-01-11 (Cosmos DB Throttling & Exponential Backoff Added)
 
 **Tech Stack:**
 
@@ -54,6 +54,8 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 | Append Mode | ✅ | Incremental processing of new PDFs |
 | CLI Options | ✅ | All parameters implemented and validated |
 | Provider Abstraction | ✅ | Ollama/LM Studio/OpenAI with secure API key management |
+| Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
+| Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
 | Unit Tests | ✅ | NUnit tests for services and extraction |
 | Documentation | ✅ | README with usage examples |
 
@@ -61,9 +63,9 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
-| Token Usage Tracking | ⏳ | Extract token counts from OpenAI API responses |
-| Cost Monitoring | ⏳ | Calculate/log estimated API costs per batch |
-| Application Insights Metrics | ⏳ | Custom metrics for production monitoring |
+| Token Usage Tracking | ✅ | Logs actual token counts from provider response metadata (OpenAI, Ollama, LM Studio) |
+| Cost Monitoring | ✅ | Documented cost calculation examples for OpenAI (~$0.02 per 1M tokens) |
+| Application Insights Metrics | ❌ | Can be added when needed; currently logs to console |
 
 ### Not Planned
 
@@ -84,13 +86,15 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 | DDD Architecture | ✅ | Domain, ApplicationCore, Infrastructure layers |
 | RAG Pipeline | ✅ | DocumentRepository → VectorStore → LLM Provider |
 | LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
-| Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore |
-| API Endpoints | ✅ | POST /api/ask, health checks, Swagger |
-| Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP) |
-| Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights |
+| Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
+| Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
+| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), health checks, Swagger |
+| Authentication | ✅ | API key authentication for embedding endpoints (Cosmos DB only) |
+| Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
+| Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
 | Unit Tests | ✅ | 69 tests passing (Domain, ApplicationCore, Infrastructure) |
-| Documentation | ✅ | README with DDD architecture details |
+| Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
 
@@ -159,6 +163,156 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 
 ---
 
+## Part 4: Cosmos DB Vector Database Integration ✅ COMPLETED
+
+Azure Cosmos DB optional vector database backend for persistent embeddings storage. Default remains `embeddings.json` (InMemory). Switch via strictly typed enum with configuration priority: User Secrets > Environment variable > Default. Full backward compatibility maintained. Production-ready with Managed Identity authentication.
+
+### Design Decisions
+
+| Decision | Details |
+| --------- | ------- |
+| **Storage Type** | Strictly typed enum: `VectorStorageType { InMemory = 0, CosmosDb = 1 }` |
+| **Enum Conversion** | Early binding in Program.cs (environment variable → enum during startup) |
+| **Configuration Priority** | CLI argument > User Secrets > Environment variable > Default (InMemory) |
+| **Default Behavior** | Unchanged: InMemory with embeddings.json (backward compatible) |
+| **Preprocessor Verbs** | `json` (→ embeddings.json file) and `cosmosdb` (→ Cosmos DB database) |
+
+### Implementation Status
+
+| Phase | Component | Status | Notes |
+| ------ | ----------- | -------- | ------- |
+| **Phase 1** | Backend Infrastructure | ✅ | **Completed 2026-01-10**: NuGet packages (Microsoft.Azure.Cosmos 3.43.1), VectorStorageType enum, CosmosDbDocumentDto, CosmosDbDocumentRepository (full CRUD), CosmosDbSemanticSearch (native vector search with VectorDistance), IDocumentRepository extensions, conditional DI registration in Program.cs |
+| **Phase 2** | Backend Integration | ✅ | **Completed 2026-01-10**: EmbeddingDtos (request/response models), EmbeddingsController (4 protected endpoints: POST, PUT, DELETE, POST replace-all), ApiKeyAuthenticationMiddleware (constant-time comparison), middleware registration, CosmosDbHealthCheck (connectivity + count query), health check registration |
+| **Phase 3** | Preprocessor Updates | ✅ | **Completed 2026-01-07**: New CLI verbs (`json` and `cosmosdb`), IEmbeddingOutput interface, JsonEmbeddingOutput and CosmosDbEmbeddingOutput implementations, HTTP client with API key authentication |
+| **Phase 4** | Azure Infrastructure | ✅ | **Completed 2026-01-10**: Manual setup documentation in AZURE-DEPLOYMENT.md (8-step guide), Managed Identity configuration, RBAC role assignment, Key Vault secrets, cost analysis (free tier), troubleshooting guide, rollback instructions |
+| **Phase 5** | Testing & Documentation | ✅ | **Completed 2026-01-10**: SECRETS-MANAGEMENT.md (Cosmos DB configuration section with two-layer authentication, connection strings, Managed Identity setup, API key generation), backend/README.md (vector storage switching guide, API endpoints, authentication), Status.md updated |
+| **Phase 6** | Production Deployment | ✅ | **Completed 2026-01-11**: Cosmos DB account created (free tier), database/container configured (partition key /sourceFile), Key Vault secrets added (BackendOptions--CosmosDb*), App Service Managed Identity granted Cosmos DB RBAC access (Built-in Data Contributor), embeddings uploaded from Preprocessor, production API verified working end-to-end |
+
+### Completed Features
+
+**Backend API Components:**
+
+- ✅ `VectorStorageType` enum with InMemory (default) and CosmosDb options
+- ✅ `CosmosDbDocumentDto` - Document schema with vector embedding (1536 dimensions)
+- ✅ `CosmosDbDocumentRepository` - Full CRUD implementation (InitializeAsync, GetAllChunksAsync, AddChunksAsync, UpdateChunksAsync, DeleteChunksBySourceAsync, ReplaceAllChunksAsync)
+- ✅ `CosmosDbSemanticSearch` - Native vector search using `VectorDistance()` SQL function with cosine similarity
+- ✅ `EmbeddingsController` - 4 protected REST endpoints (POST /api/embeddings, PUT /api/embeddings/{sourceFile}, DELETE /api/embeddings/{sourceFile}, POST /api/embeddings/replace-all)
+- ✅ `ApiKeyAuthenticationMiddleware` - Constant-time API key comparison, only protects /api/embeddings endpoints
+- ✅ `CosmosDbHealthCheck` - Connectivity check, container verification, document count query
+- ✅ Conditional DI registration based on `VectorStorageType` (Program.cs)
+- ✅ CosmosClient with Managed Identity (production) and Connection String (development) support
+
+**Authentication:**
+
+- ✅ Two-layer authentication architecture (Preprocessor→Backend via API Key, Backend→Cosmos DB via Managed Identity/Connection String)
+- ✅ API key header format: `Authorization: ApiKey <key>`
+- ✅ Secure key storage (User Secrets for dev, Key Vault for prod)
+- ✅ 32+ character cryptographically secure key generation
+
+**Documentation:**
+
+- ✅ SECRETS-MANAGEMENT.md - Complete Cosmos DB configuration section (development setup with connection strings, production setup with Managed Identity, API key generation, switching storage types, validation)
+- ✅ AZURE-DEPLOYMENT.md - 8-step manual setup guide (create account with free tier, database/container with vector indexing, Managed Identity configuration, RBAC role assignment, Key Vault configuration, embeddings upload, verification, troubleshooting)
+- ✅ backend/README.md - Vector storage switching guide (InMemory vs Cosmos DB comparison, setup instructions, API endpoints, authentication, health checks)
+
+### Architecture
+
+**Default (InMemory):** `Preprocessor → embeddings.json → Backend (in-memory) → Frontend`
+
+**Optional (Cosmos DB):** `Preprocessor ←(API)→ Backend ←→ Cosmos DB (Vector Store) → Frontend`
+
+**Authentication Flow:**
+
+```text
+Preprocessor --[Authorization: ApiKey]-> Backend API --[Managed Identity/Connection String]-> Cosmos DB
+```
+
+### Preprocessor CLI Verbs
+
+| Verb | Purpose | Output | Command |
+| --- | --- | --- | --- |
+| **`json`** | Generate embeddings → save to local JSON file | `embeddings.json` | `dotnet run -- json -i ./pdfs -o ./embeddings.json` |
+| **`cosmosdb`** | Generate embeddings → upload to Cosmos DB | Cosmos DB database | `dotnet run -- cosmosdb -i ./pdfs --url https://backend.app --key apikey123` |
+
+### JSON Verb Options
+
+- `-i, --input` - Input PDF folder (default: `pdfs`)
+- `-o, --output` - Output JSON file path (default: `./embeddings.json`)
+- `-a, --append` - Append to existing embeddings.json (default: false)
+- `-p, --provider` - Embedding provider: openai/ollama/lmstudio (default: openai)
+- `-e, --embedding-model` - Embedding model name (default: text-embedding-3-small)
+- `-m, --method` - PDF extraction method (default: pdfpig)
+
+### CosmosDB Verb Options
+
+- `-i, --input` - Input PDF folder (default: `pdfs`)
+- `-u, --url` - Backend API URL (default: `http://localhost:5000`)
+- `-k, --key` - API key or env: `FUNDDOCS_API_KEY` (required)
+- `-o, --operation` - Operation: `add` (default), `update`, `replace-all`
+- `-p, --provider` - Embedding provider: openai/ollama/lmstudio (default: openai)
+- `-e, --embedding-model` - Embedding model name (default: text-embedding-3-small)
+- `-b, --batch-size` - Embeddings per API request (default: 100)
+
+### Backend Configuration
+
+**VectorStorageType Enum:**
+
+```csharp
+public enum VectorStorageType
+{
+    InMemory = 0,    // Default: embeddings.json
+    CosmosDb = 1     // Persistent vector database
+}
+```
+
+**Configuration Priority (highest to lowest):**
+
+1. CLI argument (Preprocessor only)
+2. User Secrets (development)
+3. Environment variable (`BackendOptions__VectorStorageType`)
+4. Default: InMemory
+
+**Backend Environment Variables:**
+
+- `BackendOptions__VectorStorageType` - InMemory (default) | CosmosDb
+- `BackendOptions__CosmosDbEndpoint` - Cosmos DB endpoint URL
+- `BackendOptions__CosmosDbDatabaseName` - Database name
+- `BackendOptions__CosmosDbContainerName` - Container name (default: embeddings)
+- `BackendOptions__EmbeddingApiKey` - API key for preprocessor authentication
+
+### Backend API Endpoints (Protected by API Key)
+
+| Endpoint | Method | Purpose | Auth |
+| --- | --- | --- | --- |
+| `/api/embeddings` | POST | Add new embeddings | ApiKey |
+| `/api/embeddings/{sourceFile}` | PUT | Update embeddings for a file | ApiKey |
+| `/api/embeddings/{sourceFile}` | DELETE | Delete embeddings for a file | ApiKey |
+| `/api/embeddings/replace-all` | POST | Replace all embeddings | ApiKey |
+
+**Authentication Header:** `Authorization: ApiKey <your-api-key>`
+
+### Cosmos DB Schema
+
+| Setting | Value |
+| --- | --- |
+| Database | `<your-database-name>` |
+| Container | `embeddings` |
+| Partition Key | `/sourceFile` |
+| Vector Dimensions | 1536 (OpenAI text-embedding-3-small) |
+| Vector Index Type | `quantizedFlat` (cost optimized) |
+
+### Cost Analysis
+
+| Tier | Throughput | Storage | Monthly Cost | Best For |
+| --- | --- | --- | --- | --- |
+| **Free Tier** | 1000 RU/s | 25 GB | **$0** | Hobby projects, development |
+| Serverless | Pay per RU | 1 TB max | ~$0.25 per 1M RU | Sporadic workloads |
+| Provisioned (400 RU/s) | 400 RU/s | Variable | ~$23/month | Consistent low traffic |
+
+**Estimated for this project:** $0/month (within free tier limits)
+
+---
+
 ## Infrastructure & Deployment
 
 ### Current State
@@ -174,6 +328,7 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 | Azure Key Vault | ✅ Ready | Secrets management via Managed Identity |
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
+| Cosmos DB Vector Database | ✅ Production Ready | Optional persistent vector storage via `cosmosdb` verb. **Local + Production deployed**: Backend API, authentication, Managed Identity RBAC, Key Vault secrets, embeddings uploaded. Free tier (1000 RU/s, 25GB) |
 
 ### Deployment Setup Complete
 
@@ -240,9 +395,8 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 
 1. In-memory DocumentRepository = data lost on restart (by design)
 2. No caching = every search generates new embedding
-3. No request throttling or rate limiting
-4. Missing unit tests for DDD layers
-5. More files and abstractions due to DDD structure (trade-off for maintainability)
+3. Missing unit tests for DDD layers
+4. More files and abstractions due to DDD structure (trade-off for maintainability)
 
 ### General
 
@@ -338,6 +492,13 @@ Last Updated: 2026-01-03 (Restructured to consistent table format)
 - **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
 
 **Total Production Cost: ~$0.03/month**
+
+**With Cosmos DB Vector Storage (Optional):**
+
+- **Cosmos DB Free Tier**: $0/month (1000 RU/s, 25 GB storage - one per subscription)
+- No additional cost when using free tier
+
+**Total Production Cost with Cosmos DB: ~$0.03/month (Groq) or ~$0.53/month (OpenAI Chat)**
 
 ### Upgrade Options
 

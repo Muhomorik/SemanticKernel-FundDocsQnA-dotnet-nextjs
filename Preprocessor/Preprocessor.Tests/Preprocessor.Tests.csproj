@@ -26,4 +26,10 @@
     <ProjectReference Include="..\Preprocessor\Preprocessor.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestData\SEB Asienfond ex Japan D utd.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
 using Backend.API.Domain.Interfaces;
 using Backend.API.Domain.ValueObjects;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Backend.API.Infrastructure.LLM.SemanticKernel;
 

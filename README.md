@@ -27,7 +27,7 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 
 ## 🤖 For AI Agents
 
-**IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md) to understand:
+**IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md) to understand:cosmosdb-funddocs-2025-v1
 
 - What features are already implemented
 - Current implementation status of each component

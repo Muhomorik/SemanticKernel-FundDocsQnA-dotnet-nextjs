@@ -10,15 +10,38 @@ A .NET Console application that extracts text from PDF documents and generates e
 
 Convert PDFs into searchable embeddings (run once, or when adding new PDFs).
 
-## Quick Start (F5)
+![preprocessor demo](docs/preprocessor_running.gif)
 
-All parameters have defaults. Just press F5 to debug:
+## Quick Start
 
-- Reads PDFs from `pdfs/` (relative to working directory)
-- Writes output to `./embeddings.json`
-- Uses `pdfpig` extraction method
-- **Default provider: OpenAI** with `text-embedding-3-small` model
-- Use `--provider ollama` or `--provider lmstudio` to switch to local providers
+The Preprocessor supports two modes (verbs):
+
+1. **`json` verb** - Generate embeddings → save to local JSON file (default workflow)
+2. **`cosmosdb` verb** - Generate embeddings → upload to backend API (Cosmos DB)
+
+### Quick Start: JSON Mode (Local File)
+
+```bash
+# Default: OpenAI provider, reads from pdfs/, writes to embeddings.json
+dotnet run -- json
+
+# With Ollama (local, free)
+dotnet run -- json --provider ollama --embedding-model nomic-embed-text
+
+# With custom paths
+dotnet run -- json -i ./my-pdfs -o ./output.json
+```
+
+### Quick Start: Cosmos DB Mode (Upload to Backend)
+
+```bash
+# Upload to backend API (requires backend running with Cosmos DB support)
+dotnet run -- cosmosdb --url http://localhost:5000 --key your-api-key
+
+# Or set API key via environment variable
+$env:FUNDDOCS_API_KEY = "your-api-key"
+dotnet run -- cosmosdb --url http://localhost:5000
+```
 
 Create a `pdfs` folder in your build output directory and add PDF files there.
 
@@ -85,6 +108,7 @@ Use `--provider openai` (default), `--provider lmstudio`, or `--provider ollama`
    ```
 
 **Important Notes:**
+
 - **Cost:** ~$0.02 per 1M tokens (batch processing ~10MB of PDFs costs a few cents)
 - **Model:** Must use `text-embedding-3-small` for backend compatibility
 - **Dimensions:** Outputs 1536-dimensional embeddings (vs 384 for local models)
@@ -129,38 +153,80 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 
 ## CLI Parameters
 
+### Common Parameters (both verbs)
+
 | Parameter          | Short | Required | Default                   | Description                    |
 |--------------------|-------|----------|---------------------------|--------------------------------|
-| `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
 | `--input`          | `-i`  | No       | `pdfs`                    | Folder with PDFs               |
-| `--output`         | `-o`  | No       | `./embeddings.json`       | Output JSON path               |
-| `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
 | `--provider`       | `-p`  | No       | `openai`                  | `ollama`, `lmstudio`, or `openai` |
 | `--embedding-model`| -     | No       | `text-embedding-3-small`  | Embedding model (use `nomic-embed-text` for local providers) |
 | `--ollama-url`     | -     | No       | Auto (provider-based)     | Provider endpoint override     |
 | `--openai-api-key` | -     | No       | `null`                    | OpenAI API key (or set `OPENAI_API_KEY` env var) |
 
+### `json` Verb Parameters
+
+| Parameter          | Short | Required | Default                   | Description                    |
+|--------------------|-------|----------|---------------------------|--------------------------------|
+| `--output`         | `-o`  | No       | `./embeddings.json`       | Output JSON path               |
+| `--append`         | `-a`  | No       | `false`                   | Append to existing JSON        |
+| `--method`         | `-m`  | No       | `pdfpig`                  | Extraction method              |
+
+### `cosmosdb` Verb Parameters
+
+| Parameter                  | Short | Required | Default                   | Description                    |
+|----------------------------|-------|----------|---------------------------|--------------------------------|
+| `--url`                    | `-u`  | No       | `http://localhost:5000`   | Backend API URL                |
+| `--key`                    | `-k`  | No       | `null`                    | API key (or set `FUNDDOCS_API_KEY` env var) |
+| `--operation`              | `-o`  | No       | `add`                     | Operation: `add`, `update`, `replace-all` |
+| `--batch-size`             | `-b`  | No       | `100`                     | Embeddings per API request     |
+| `--delay-between-batches`  | -     | No       | `8000`                    | Milliseconds delay between batches (default: 8s = ~290 RU/s, safe under 400 RU/s) |
+| `--max-retries`            | -     | No       | `3`                       | Max retries for 429 throttling (exponential backoff: 1s, 2s, 4s) |
+
 ## Usage
 
+### JSON Verb Examples
+
 ```bash
-# OpenAI (default provider - production compatible)
-# Set API key first: $env:OPENAI_API_KEY = "sk-..."
-dotnet run
+# Default: OpenAI provider, reads from pdfs/, writes to embeddings.json
+dotnet run -- json
 
 # LM Studio (local, free)
-dotnet run -- --provider lmstudio --embedding-model nomic-embed-text
+dotnet run -- json --provider lmstudio --embedding-model nomic-embed-text
 
 # Ollama (local, free)
-dotnet run -- --provider ollama --embedding-model nomic-embed-text
+dotnet run -- json --provider ollama --embedding-model nomic-embed-text
 
 # Custom input/output paths
-dotnet run -- -i ./custom/pdfs -o ./custom/embeddings.json
+dotnet run -- json -i ./custom/pdfs -o ./custom/embeddings.json
 
-# Append to existing file
-dotnet run -- -i ./new-pdfs --append
+# Append to existing file (incremental processing)
+dotnet run -- json -i ./new-pdfs --append
 
 # Override default provider URL
-dotnet run -- --provider lmstudio --ollama-url http://localhost:8080
+dotnet run -- json --provider lmstudio --ollama-url http://localhost:8080
+```
+
+### Cosmos DB Verb Examples
+
+```bash
+# Upload to backend API (default: add operation)
+dotnet run -- cosmosdb --url https://<your-backend-app-service-name>.azurewebsites.net --key api-key-here
+
+# Set API key via environment variable (recommended)
+$env:FUNDDOCS_API_KEY = "your-api-key"
+dotnet run -- cosmosdb --url https://<your-backend-app-service-name>.azurewebsites.net
+
+# Update operation (replace embeddings for existing PDFs)
+dotnet run -- cosmosdb --operation update --url http://localhost:5000 --key api-key
+
+# Replace all embeddings (delete old, upload new)
+dotnet run -- cosmosdb --operation replace-all --url http://localhost:5000 --key api-key
+
+# Custom batch size (default: 100 embeddings per request)
+dotnet run -- cosmosdb --batch-size 50 --url http://localhost:5000 --key api-key
+
+# Use with Ollama (local embeddings + backend upload)
+dotnet run -- cosmosdb --provider ollama --embedding-model nomic-embed-text --url http://localhost:5000 --key api-key
 ```
 
 ### Production Deployment Workflow
@@ -168,6 +234,7 @@ dotnet run -- --provider lmstudio --ollama-url http://localhost:8080
 When deploying to Azure or other production environments:
 
 1. **Regenerate embeddings with OpenAI** (required for backend compatibility):
+
    ```bash
    # Set API key
    $env:OPENAI_API_KEY = "sk-..."
@@ -177,11 +244,13 @@ When deploying to Azure or other production environments:
    ```
 
 2. **Copy to backend**:
+
    ```bash
    cp ./embeddings.json ./backend/Backend.API/Data/embeddings.json
    ```
 
 3. **Verify dimensions** (should be 1536):
+
    ```powershell
    # Check first embedding array length in JSON
    (Get-Content ./embeddings.json | ConvertFrom-Json)[0].embedding.Count
@@ -203,6 +272,41 @@ When deploying to Azure or other production environments:
   }
 ]
 ```
+
+## Token Usage Tracking
+
+The Preprocessor automatically logs token usage information from embedding providers.
+
+### How It Works
+
+- **OpenAI**: Logs actual token counts from API responses (InputTokenCount, OutputTokenCount)
+- **Ollama/LM Studio**: Logs token counts if the provider supports usage metadata (typically 0 for these providers)
+
+### Log Output
+
+Token usage is logged at `Information` level:
+
+```text
+Embedding token usage - Input: 45, Output: 0, Total: 45
+Batch embeddings token usage - Input: 450, Output: 0, Total: 450, Texts: 10
+```
+
+### Cost Tracking
+
+For OpenAI, you can calculate estimated costs:
+
+- **text-embedding-3-small**: ~$0.02 per 1M input tokens
+- Monitor logs to track total tokens per run and estimate costs
+
+Example:
+
+- 1M input tokens ≈ $0.02
+- 10M input tokens ≈ $0.20
+- 100M input tokens ≈ $2.00
+
+### Future: Application Insights Integration
+
+Token usage can be integrated with Azure Application Insights for centralized monitoring. Currently logs to console; Application Insights integration can be added as needed.
 
 ## Running Tests
 

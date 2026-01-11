@@ -208,7 +208,7 @@ Option 3 - From Azure CLI:
 ```bash
 az staticwebapp secrets list \
   --name "funddocs-frontend" \
-  --resource-group "rg-funddocs-backend" \
+  --resource-group "<your-resource-group>" \
   --query "properties.apiKey" -o tsv
 ```
 
@@ -298,18 +298,23 @@ dotnet run --project Preprocessor -- --ollama-url http://localhost:8080 -i ./pdf
 
 Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 
-| Setting                                  | Default                                            | Description                                       |
-| ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
-| `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                             | Path to embeddings file                           |
-| `BackendOptions:LlmProvider`             | `OpenAI`                                           | LLM provider ("OpenAI" or "Groq")                 |
-| `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                           | OpenAI embedding model                            |
-| `BackendOptions:OpenAIChatModel`         | `gpt-4o-mini`                                      | OpenAI chat model (when LlmProvider is "OpenAI")  |
-| `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                          | Groq LLM model (when LlmProvider is "Groq")       |
-| `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                   | Groq API endpoint (when LlmProvider is "Groq")    |
-| `BackendOptions:MaxSearchResults`        | `10`                                               | Number of chunks to retrieve                      |
-| `BackendOptions:MemoryCollectionName`    | `fund-documents`                                   | Memory store collection name                      |
-| `BackendOptions:AllowedOrigins`          | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins                            |
-| `BackendOptions:SystemPrompt`            | (hardened default)                                 | Custom system prompt for LLM behavior (optional)  |
+| Setting                                  | Default                                              | Description                                            |
+| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
+| `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                               | Path to embeddings file                                |
+| `BackendOptions:LlmProvider`             | `OpenAI`                                             | LLM provider ("OpenAI" or "Groq")                      |
+| `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                             | OpenAI embedding model                                 |
+| `BackendOptions:OpenAIChatModel`         | `gpt-4o-mini`                                        | OpenAI chat model (when LlmProvider is "OpenAI")       |
+| `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                            | Groq LLM model (when LlmProvider is "Groq")            |
+| `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                     | Groq API endpoint (when LlmProvider is "Groq")         |
+| `BackendOptions:MaxSearchResults`        | `10`                                                 | Number of chunks to retrieve                           |
+| `BackendOptions:MemoryCollectionName`    | `fund-documents`                                     | Memory store collection name                           |
+| `BackendOptions:AllowedOrigins`          | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins                                   |
+| `BackendOptions:SystemPrompt`            | (hardened default)                                   | Custom system prompt for LLM behavior (optional)       |
+| `BackendOptions:VectorStorageType`       | `InMemory`                                           | Vector storage backend ("InMemory" or "CosmosDb")      |
+| `BackendOptions:CosmosDbEndpoint`        | (none)                                               | Cosmos DB account endpoint (required if CosmosDb)      |
+| `BackendOptions:CosmosDbDatabaseName`    | (none)                                               | Cosmos DB database name (required if CosmosDb)         |
+| `BackendOptions:CosmosDbContainerName`   | `embeddings`                                         | Cosmos DB container name (default: embeddings)         |
+| `BackendOptions:EmbeddingApiKey`         | (none)                                               | API key for embedding endpoints (required if CosmosDb) |
 
 **Note:** API keys are optional for local development. The app will start without them, but `/api/ask` won't work. Health endpoints (`/health/live`, `/health/ready`) will still function.
 
@@ -438,6 +443,233 @@ az keyvault secret set \
 
 The backend validates the selected provider on startup and shows clear error messages if the appropriate API key is missing.
 
+### Cosmos DB Vector Storage (Optional)
+
+**Overview:**
+
+By default, the backend uses in-memory vector storage (`VectorStorageType = InMemory`) with embeddings loaded from `Data/embeddings.json`. This is suitable for development and small deployments.
+
+For persistent, scalable vector storage in production, you can optionally configure Azure Cosmos DB (`VectorStorageType = CosmosDb`). This enables:
+
+- **Persistent storage** - Embeddings survive app restarts
+- **Dynamic updates** - Add/update embeddings via API without redeployment
+- **Multi-instance deployments** - Shared vector store across multiple backend instances
+- **Native vector search** - Cosmos DB's built-in vector indexing for efficient similarity search
+
+**Two-Layer Authentication:**
+
+When using Cosmos DB, the system uses two authentication layers:
+
+1. **Layer 1: Preprocessor → Backend API**
+   - Protocol: HTTP with API Key
+   - Header: `Authorization: ApiKey <key>`
+   - Purpose: Protect embedding management endpoints (`/api/embeddings`)
+   - Storage: User Secrets (dev), Azure Key Vault (prod)
+
+2. **Layer 2: Backend API → Cosmos DB**
+   - **Production:** Managed Identity (RBAC-based, no secrets)
+   - **Development:** Connection String (User Secrets only)
+   - Purpose: Authenticate Backend to Cosmos DB
+   - Security: Only Backend's managed identity can access Cosmos DB
+
+#### Development Setup (Connection String)
+
+**Prerequisites:**
+
+- Azure Cosmos DB account created (see [AZURE-DEPLOYMENT.md](AZURE-DEPLOYMENT.md))
+- Database and container with vector indexing configured
+- Cosmos DB connection string obtained from Azure Portal
+
+**Configuration:**
+
+```bash
+cd backend/Backend.API
+
+# Enable Cosmos DB storage
+dotnet user-secrets set "BackendOptions:VectorStorageType" "CosmosDb"
+
+# Set Cosmos DB endpoint
+dotnet user-secrets set "BackendOptions:CosmosDbEndpoint" "https://<your-cosmos-account>.documents.azure.com:443/"
+
+# Set database and container names
+dotnet user-secrets set "BackendOptions:CosmosDbDatabaseName" "<your-database-name>"
+dotnet user-secrets set "BackendOptions:CosmosDbContainerName" "embeddings"
+
+# Set connection string (development only - includes account key)
+dotnet user-secrets set "BackendOptions:CosmosDbConnectionString" "AccountEndpoint=https://<your-cosmos-account>.documents.azure.com:443/;AccountKey=<your-account-key>;"
+
+# Generate and set API key for Preprocessor authentication
+# Use a cryptographically secure random key (32+ characters)
+dotnet user-secrets set "BackendOptions:EmbeddingApiKey" "$(openssl rand -base64 32)"
+```
+
+**Connection String Format:**
+
+```
+AccountEndpoint=https://<your-cosmos-account>.documents.azure.com:443/;AccountKey=<your-account-key>;
+```
+
+Obtain from Azure Portal:
+
+1. Navigate to your Cosmos DB account
+2. Go to "Keys" section
+3. Copy the "Primary Connection String"
+
+**⚠️ Security Warning:** Connection strings contain sensitive account keys. Never commit them to source control. Use User Secrets for local development only.
+
+#### Production Setup (Managed Identity - Recommended)
+
+**Prerequisites:**
+
+- Azure App Service with System-Assigned Managed Identity enabled
+- Cosmos DB RBAC role assigned to the managed identity
+- API key stored in Azure Key Vault
+
+**Configuration:**
+
+```bash
+# Enable Cosmos DB storage
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--VectorStorageType" \
+  --value "CosmosDb"
+
+# Set Cosmos DB endpoint (Managed Identity handles authentication - no connection string needed)
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--CosmosDbEndpoint" \
+  --value "https://<your-cosmos-account>.documents.azure.com:443/"
+
+# Set database name
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--CosmosDbDatabaseName" \
+  --value "<your-database-name>"
+
+# Set container name (optional - defaults to "embeddings")
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--CosmosDbContainerName" \
+  --value "embeddings"
+
+# Generate and set API key for Preprocessor authentication
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--EmbeddingApiKey" \
+  --value "$(openssl rand -base64 32)"
+```
+
+**Enable Managed Identity on App Service:**
+
+```bash
+# Enable system-assigned managed identity
+az webapp identity assign \
+  --name "<your-app-service>" \
+  --resource-group "<your-resource-group>"
+
+# Get the principal ID (output from previous command)
+PRINCIPAL_ID=$(az webapp identity show \
+  --name "<your-app-service>" \
+  --resource-group "<your-resource-group>" \
+  --query principalId -o tsv)
+
+# Grant Cosmos DB Data Contributor role to the managed identity
+az cosmosdb sql role assignment create \
+  --account-name "<your-cosmos-account>" \
+  --resource-group "<your-resource-group>" \
+  --role-definition-name "Cosmos DB Built-in Data Contributor" \
+  --principal-id "$PRINCIPAL_ID" \
+  --scope "/"
+```
+
+**Why Managed Identity?**
+
+- **No secrets to manage** - Azure AD handles authentication automatically
+- **Automatic credential rotation** - No manual key rotation required
+- **Audit logging** - All access tracked via Azure AD
+- **Security best practice** - Follows zero-trust principles
+
+**⚠️ Important:** Do NOT set `CosmosDbConnectionString` in production when using Managed Identity. The backend automatically uses `DefaultAzureCredential()` in production environments.
+
+#### API Key Generation and Storage
+
+The `EmbeddingApiKey` is used by the Preprocessor to authenticate requests to the Backend's embedding management endpoints.
+
+**Best Practices:**
+
+1. **Generate strong keys:** Use cryptographically secure random generators (32+ characters)
+2. **Rotate regularly:** Change keys every 90 days (recommended)
+3. **Store securely:**
+   - Development: User Secrets
+   - Production: Azure Key Vault
+4. **Never commit to source control:** Keys should never appear in code or configuration files
+5. **Use separate keys per environment:** Dev, staging, and production should have different keys
+
+**Example Key Generation:**
+
+```bash
+# Linux/macOS
+openssl rand -base64 32
+
+# Windows (PowerShell)
+$bytes = New-Object byte[] 32
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+[Convert]::ToBase64String($bytes)
+```
+
+#### Switching Between Storage Types
+
+You can switch between `InMemory` and `CosmosDb` storage types by changing the `VectorStorageType` configuration:
+
+**Switch to Cosmos DB:**
+
+```bash
+# Local
+dotnet user-secrets set "BackendOptions:VectorStorageType" "CosmosDb"
+
+# Production
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--VectorStorageType" \
+  --value "CosmosDb"
+```
+
+**Switch back to InMemory:**
+
+```bash
+# Local
+dotnet user-secrets set "BackendOptions:VectorStorageType" "InMemory"
+
+# Production
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--VectorStorageType" \
+  --value "InMemory"
+```
+
+**Note:** When switching from Cosmos DB to InMemory, ensure `Data/embeddings.json` exists and is up-to-date. The app will fail to start if the file is missing or invalid.
+
+#### Validation
+
+The backend performs startup validation when Cosmos DB storage is enabled:
+
+- **Configuration validation:** Checks that `CosmosDbEndpoint` and `CosmosDbDatabaseName` are set
+- **Connection test:** Verifies database and container accessibility
+- **Health check:** `/health/ready` includes Cosmos DB connectivity check
+
+**Startup logs:**
+
+```text
+Vector Storage Type: CosmosDb
+Cosmos DB Configuration:
+  Endpoint: https://<your-cosmos-account>.documents.azure.com:443/
+  Database: <your-database-name>
+  Container: embeddings
+Registering CosmosClient with Managed Identity (DefaultAzureCredential)
+Registering Cosmos DB vector storage (CosmosDbDocumentRepository + CosmosDbSemanticSearch)
+✓ Document repository initialized with 1234 chunks
+```
+
 ---
 
 ## Setup by Environment
@@ -507,8 +739,8 @@ az keyvault secret set \
 
 # Restart app to load new secrets
 az webapp restart \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 ```
 
 ### CI/CD (GitHub Actions)
@@ -569,13 +801,13 @@ dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-key"
 ```bash
 # Check Managed Identity is enabled
 az webapp identity show \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend"
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>"
 
 # Grant Key Vault access if missing
 PRINCIPAL_ID=$(az webapp identity show \
-  --name "funddocs-backend-api" \
-  --resource-group "rg-funddocs-backend" \
+  --name "<your-backend-app-service-name>" \
+  --resource-group "<your-resource-group>" \
   --query principalId -o tsv)
 
 az keyvault set-policy \
