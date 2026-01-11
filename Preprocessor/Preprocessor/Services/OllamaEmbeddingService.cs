@@ -175,11 +175,22 @@ public class OllamaEmbeddingService : IEmbeddingService
 
         try
         {
-            var embedding =
+            var embeddings =
                 await _embeddingGenerator.GenerateAsync(new[] { text }, cancellationToken: cancellationToken);
-            var vector = embedding.FirstOrDefault()?.Vector.ToArray() ?? Array.Empty<float>();
+            var vector = embeddings.FirstOrDefault()?.Vector.ToArray() ?? Array.Empty<float>();
 
             _logger.LogDebug("Generated embedding with {Dimensions} dimensions", vector.Length);
+
+            // Log token usage if available from the provider
+            if (embeddings.Usage != null)
+            {
+                var inputTokens = embeddings.Usage.InputTokenCount ?? 0;
+                var outputTokens = embeddings.Usage.OutputTokenCount ?? 0;
+                _logger.LogInformation("Embedding token usage - Input: {InputTokens}, Output: {OutputTokens}, Total: {TotalTokens}",
+                    inputTokens,
+                    outputTokens,
+                    inputTokens + outputTokens);
+            }
 
             return vector;
         }
@@ -254,6 +265,18 @@ public class OllamaEmbeddingService : IEmbeddingService
             var vectors = embeddings.Select(e => e.Vector.ToArray()).ToList();
 
             _logger.LogDebug("Generated {Count} embeddings", vectors.Count);
+
+            // Log token usage if available from the provider
+            if (embeddings.Usage != null)
+            {
+                var inputTokens = embeddings.Usage.InputTokenCount ?? 0;
+                var outputTokens = embeddings.Usage.OutputTokenCount ?? 0;
+                _logger.LogInformation("Batch embeddings token usage - Input: {InputTokens}, Output: {OutputTokens}, Total: {TotalTokens}, Texts: {TextCount}",
+                    inputTokens,
+                    outputTokens,
+                    inputTokens + outputTokens,
+                    validTexts.Count);
+            }
 
             return vectors;
         }

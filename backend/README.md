@@ -6,7 +6,12 @@ ASP.NET Core Web API backend built with **Domain-Driven Design (DDD)** architect
 
 ## Overview
 
-This backend API loads pre-generated embeddings from the Preprocessor, stores them in an in-memory vector store, and provides endpoints to search and answer questions about your PDF documents. The codebase follows DDD principles with clean separation of concerns across Domain, Application, Infrastructure, and Presentation layers.
+This backend API loads pre-generated embeddings from the Preprocessor, stores them in a vector store (in-memory or Azure Cosmos DB), and provides endpoints to search and answer questions about your PDF documents. The codebase follows DDD principles with clean separation of concerns across Domain, Application, Infrastructure, and Presentation layers.
+
+**Vector Storage Options:**
+
+- **InMemory (default)** - Embeddings loaded from `Data/embeddings.json` file. Fast, simple, suitable for development and small deployments. Embeddings are lost on app restart.
+- **CosmosDb (optional)** - Persistent vector storage with Azure Cosmos DB. Enables dynamic updates, multi-instance deployments, and scales to production workloads. Requires Azure Cosmos DB account.
 
 ## Tech Stack
 
@@ -96,15 +101,20 @@ The API will start at:
 
 All configuration is in `appsettings.json` under the `BackendOptions` section. See **[Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md)** for complete details.
 
-| Setting               | Default                       | Description                                                      |
-| --------------------- | ----------------------------- | ---------------------------------------------------------------- |
-| `EmbeddingsFilePath`  | `Data/embeddings.json`        | Path to embeddings JSON file                                     |
-| `LlmProvider`         | `OpenAI`                      | LLM provider ("OpenAI" or "Groq")                                |
-| `OpenAIChatModel`     | `gpt-4o-mini`                 | OpenAI chat model (when LlmProvider is "OpenAI")                 |
-| `OpenAIEmbeddingModel`| `text-embedding-3-small`      | OpenAI embedding model                                           |
-| `GroqModel`           | `llama-3.3-70b-versatile`     | Groq LLM model (when LlmProvider is "Groq")                      |
-| `MaxSearchResults`    | `10`                          | Number of chunks to retrieve                                     |
-| `SystemPrompt`        | (See ApplicationOptions)      | Custom LLM system prompt (optional, uses default if not provided)|
+| Setting                   | Default                       | Description                                                      |
+| ------------------------- | ----------------------------- | ---------------------------------------------------------------- |
+| `VectorStorageType`       | `InMemory`                    | Vector storage backend ("InMemory" or "CosmosDb")                |
+| `EmbeddingsFilePath`      | `Data/embeddings.json`        | Path to embeddings JSON file (InMemory only)                     |
+| `CosmosDbEndpoint`        | (none)                        | Cosmos DB account endpoint (CosmosDb only)                       |
+| `CosmosDbDatabaseName`    | (none)                        | Cosmos DB database name (CosmosDb only)                          |
+| `CosmosDbContainerName`   | `embeddings`                  | Cosmos DB container name (CosmosDb only)                         |
+| `EmbeddingApiKey`         | (none)                        | API key for embedding endpoints (CosmosDb only)                  |
+| `LlmProvider`             | `OpenAI`                      | LLM provider ("OpenAI" or "Groq")                                |
+| `OpenAIChatModel`         | `gpt-4o-mini`                 | OpenAI chat model (when LlmProvider is "OpenAI")                 |
+| `OpenAIEmbeddingModel`    | `text-embedding-3-small`      | OpenAI embedding model                                           |
+| `GroqModel`               | `llama-3.3-70b-versatile`     | Groq LLM model (when LlmProvider is "Groq")                      |
+| `MaxSearchResults`        | `10`                          | Number of chunks to retrieve                                     |
+| `SystemPrompt`            | (See ApplicationOptions)      | Custom LLM system prompt (optional, uses default if not provided)|
 
 ## Switching LLM Providers
 
@@ -151,6 +161,151 @@ cd Backend.API
 dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"  # Still needed for embeddings
 dotnet user-secrets set "BackendOptions:GroqApiKey" "gsk-your-groq-api-key"
+```
+
+## Switching Vector Storage
+
+The backend supports two vector storage backends:
+
+### InMemory (Default)
+
+**Advantages:**
+
+- Simple setup (no external dependencies)
+- Fast search performance (in-memory)
+- Zero infrastructure cost
+- Ideal for development and demos
+
+**Limitations:**
+
+- Embeddings lost on app restart
+- Cannot update embeddings without redeployment
+- Single-instance only (no shared state)
+- Limited by server memory
+
+**Setup:**
+
+```bash
+cd Backend.API
+
+# Use InMemory storage (default)
+dotnet user-secrets set "BackendOptions:VectorStorageType" "InMemory"
+
+# Ensure embeddings.json exists
+cp ../../Preprocessor/Preprocessor/bin/Debug/net9.0/output.json Data/embeddings.json
+```
+
+**How it works:**
+
+1. Backend loads `Data/embeddings.json` on startup
+2. Embeddings stored in memory using Semantic Kernel InMemoryVectorStore
+3. Search uses cosine similarity
+4. Embeddings persist until app restart
+
+### Cosmos DB (Production, Optional)
+
+**Advantages:**
+
+- Persistent storage (embeddings survive restarts)
+- Dynamic updates via API (no redeployment needed)
+- Multi-instance support (shared vector store)
+- Scales to production workloads
+- Native vector indexing for efficient search
+
+**Limitations:**
+
+- Requires Azure Cosmos DB account
+- Additional infrastructure cost (free tier available)
+- Slightly higher latency vs. in-memory
+
+**Setup (Development):**
+
+```bash
+cd Backend.API
+
+# Enable Cosmos DB storage
+dotnet user-secrets set "BackendOptions:VectorStorageType" "CosmosDb"
+
+# Set Cosmos DB endpoint
+dotnet user-secrets set "BackendOptions:CosmosDbEndpoint" "https://<your-cosmos-account>.documents.azure.com:443/"
+
+# Set database and container names
+dotnet user-secrets set "BackendOptions:CosmosDbDatabaseName" "<your-database-name>"
+dotnet user-secrets set "BackendOptions:CosmosDbContainerName" "embeddings"
+
+# Set connection string (development only)
+dotnet user-secrets set "BackendOptions:CosmosDbConnectionString" "AccountEndpoint=https://<your-cosmos-account>.documents.azure.com:443/;AccountKey=<your-account-key>;"
+
+# Generate and set API key for Preprocessor authentication
+dotnet user-secrets set "BackendOptions:EmbeddingApiKey" "$(openssl rand -base64 32)"
+```
+
+**Setup (Production - Managed Identity):**
+
+See [AZURE-DEPLOYMENT.md](../docs/AZURE-DEPLOYMENT.md#optional-cosmos-db-setup-for-persistent-vector-storage) for complete production setup with Managed Identity authentication.
+
+**Uploading Embeddings to Cosmos DB:**
+
+Use the Preprocessor with `--cosmosdb` flag to upload embeddings to the Backend API:
+
+```bash
+cd ../../Preprocessor/Preprocessor
+
+# Generate and upload embeddings to Cosmos DB
+dotnet run -- \
+  --provider openai \
+  --input-dir ../../pdfs \
+  --cosmosdb \
+  --url "http://localhost:5000" \
+  --api-key "<your-embedding-api-key>"
+```
+
+**API Endpoints for Embedding Management:**
+
+When Cosmos DB storage is enabled, the following endpoints become available (protected by API key):
+
+| Endpoint                          | Method | Description                              |
+| --------------------------------- | ------ | ---------------------------------------- |
+| `/api/embeddings`                 | POST   | Add new embeddings (batch)               |
+| `/api/embeddings/{sourceFile}`    | PUT    | Update embeddings for specific file      |
+| `/api/embeddings/{sourceFile}`    | DELETE | Delete embeddings for specific file      |
+| `/api/embeddings/replace-all`     | POST   | Replace all embeddings (destructive)     |
+
+**Authentication:**
+
+All embedding endpoints require API key authentication:
+
+```bash
+curl -X POST http://localhost:5000/api/embeddings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: ApiKey <your-embedding-api-key>" \
+  -d '{"embeddings": [...]}'
+```
+
+**Health Check:**
+
+When Cosmos DB storage is enabled, the `/health/ready` endpoint includes a Cosmos DB connectivity check:
+
+```bash
+curl http://localhost:5000/health/ready
+```
+
+Expected response:
+
+```json
+{
+  "status": "Healthy",
+  "results": {
+    "memory_service": {
+      "status": "Healthy",
+      "description": "Document chunks loaded: 1234"
+    },
+    "cosmosdb": {
+      "status": "Healthy",
+      "description": "Cosmos DB connected: 1234 documents in '<database>/<container>'"
+    }
+  }
+}
 ```
 
 ## API Endpoints

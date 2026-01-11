@@ -1,58 +1,54 @@
 using Microsoft.Extensions.Logging;
+
 using Moq;
+
 using Preprocessor.Extractors;
 
 namespace Preprocessor.Tests.Extractors;
 
 [TestFixture]
+[TestOf(typeof(PdfPigExtractor))]
 public class PdfPigExtractorTests
 {
+    private const string TestPdfFileName = "SEB Asienfond ex Japan D utd.pdf";
+
     private Mock<ILogger<PdfPigExtractor>> _loggerMock = null!;
     private PdfPigExtractor _extractor = null!;
+    private string _testPdfPath = null!;
 
     [SetUp]
     public void Setup()
     {
         _loggerMock = new Mock<ILogger<PdfPigExtractor>>();
         _extractor = new PdfPigExtractor(_loggerMock.Object);
+
+        var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
+        _testPdfPath = Path.Combine(testDataDir, TestPdfFileName);
     }
 
     [Test]
-    public void MethodName_ShouldReturn_PdfPig()
-    {
-        Assert.That(_extractor.MethodName, Is.EqualTo("pdfpig"));
-    }
+    public void MethodName_ShouldReturn_PdfPig() => Assert.That(_extractor.MethodName, Is.EqualTo("pdfpig"));
 
     [Test]
     public void ExtractAsync_WithNonExistentFile_ShouldThrowFileNotFoundException()
     {
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "nonexistent.pdf");
 
-        Assert.ThrowsAsync<FileNotFoundException>(
-            async () => await _extractor.ExtractAsync(nonExistentPath));
+        Assert.ThrowsAsync<FileNotFoundException>(async () => await _extractor.ExtractAsync(nonExistentPath));
     }
 
     [Test]
     public async Task ExtractAsync_WithValidPdf_ShouldReturnChunks()
     {
-        // Arrange - use a test PDF if available in TestData folder
-        var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
-        var testPdfPath = Path.Combine(testDataDir, "sample.pdf");
-
-        // Skip if no test PDF available
-        if (!File.Exists(testPdfPath))
-        {
-            Assert.Ignore("Test PDF not found. Add a sample.pdf to TestData folder to run this test.");
-            return;
-        }
+        // Arrange - use real test PDF
 
         // Act
-        var result = await _extractor.ExtractAsync(testPdfPath);
+        var result = await _extractor.ExtractAsync(_testPdfPath);
         var chunks = result.ToList();
 
         // Assert
         Assert.That(chunks, Is.Not.Empty);
-        Assert.That(chunks[0].SourceFile, Is.EqualTo("sample.pdf"));
+        Assert.That(chunks[0].SourceFile, Is.EqualTo(TestPdfFileName));
         Assert.That(chunks[0].PageNumber, Is.GreaterThan(0));
         Assert.That(chunks[0].Content, Is.Not.Empty);
     }
@@ -61,27 +57,32 @@ public class PdfPigExtractorTests
     public async Task ExtractAsync_ShouldSetCorrectSourceFile()
     {
         // Arrange
-        var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
-        var testPdfPath = Path.Combine(testDataDir, "sample.pdf");
-
-        if (!File.Exists(testPdfPath))
-        {
-            Assert.Ignore("Test PDF not found.");
-            return;
-        }
 
         // Act
-        var result = await _extractor.ExtractAsync(testPdfPath);
+        var result = await _extractor.ExtractAsync(_testPdfPath);
         var chunks = result.ToList();
 
         // Assert
-        Assert.That(chunks.All(c => c.SourceFile == "sample.pdf"), Is.True);
+        Assert.That(chunks.All(c => c.SourceFile == TestPdfFileName), Is.True);
+    }
+
+    [Test]
+    public async Task ExtractAsync_ShouldReturnExpectedChunkCount()
+    {
+        // Arrange
+
+        // Act
+        var result = await _extractor.ExtractAsync(_testPdfPath);
+        var chunks = result.ToList();
+
+        // Assert
+        Assert.That(chunks, Has.Count.EqualTo(13), "Expected 13 chunks from the test PDF");
     }
 
     [Test]
     public void Constructor_WithCustomChunkSize_ShouldUseCustomSize()
     {
-        var customExtractor = new PdfPigExtractor(_loggerMock.Object, chunkSize: 500);
+        var customExtractor = new PdfPigExtractor(_loggerMock.Object, 500);
 
         Assert.That(customExtractor.MethodName, Is.EqualTo("pdfpig"));
     }
