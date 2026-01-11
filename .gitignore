@@ -430,6 +430,9 @@ FodyWeavers.xsd
 #.idea/**/dictionaries
 .idea/**/shelf
 
+swift-toolchain.xml
+**/swift-toolchain.xml
+
 # AWS User-specific
 .idea/**/aws.xml
 
