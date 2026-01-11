@@ -1,10 +1,79 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Preprocessor.Models;
 
 namespace Preprocessor.Outputs;
+
+/// <summary>
+/// DTO matching Backend.API's EmbeddingDto structure.
+/// </summary>
+/// <remarks>
+/// IMPORTANT: Backend API uses default ASP.NET Core JSON serialization (camelCase).
+/// The property names MUST match exactly:
+/// - "sourceFile" (lowercase 's') matches Cosmos DB partition key: /sourceFile
+/// - Changing this to "SourceFile" (PascalCase) will break Cosmos DB partitioning
+/// - All properties use camelCase to match ASP.NET Core defaults
+/// </remarks>
+internal record BackendEmbeddingDto
+{
+    /// <summary>
+    /// Unique identifier for the embedding (e.g., "document_page1_chunk0").
+    /// JSON: "id" (camelCase)
+    /// </summary>
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    /// <summary>
+    /// Text content of the chunk.
+    /// JSON: "text" (camelCase)
+    /// </summary>
+    [JsonPropertyName("text")]
+    public required string Text { get; init; }
+
+    /// <summary>
+    /// Vector embedding (1536 dimensions for text-embedding-3-small).
+    /// JSON: "embedding" (camelCase)
+    /// </summary>
+    [JsonPropertyName("embedding")]
+    public required float[] Embedding { get; init; }
+
+    /// <summary>
+    /// Source PDF filename.
+    /// JSON: "sourceFile" (camelCase - CRITICAL: must match Cosmos DB partition key /sourceFile)
+    /// </summary>
+    [JsonPropertyName("sourceFile")]
+    public required string SourceFile { get; init; }
+
+    /// <summary>
+    /// Page number in the source PDF.
+    /// JSON: "page" (camelCase)
+    /// </summary>
+    [JsonPropertyName("page")]
+    public required int Page { get; init; }
+}
+
+/// <summary>
+/// Request wrapper matching Backend.API's AddEmbeddingsRequest structure.
+/// Backend API uses default camelCase JSON serialization.
+/// </summary>
+internal record BackendAddEmbeddingsRequest
+{
+    [JsonPropertyName("embeddings")]
+    public required List<BackendEmbeddingDto> Embeddings { get; init; }
+}
+
+/// <summary>
+/// Request wrapper matching Backend.API's ReplaceAllEmbeddingsRequest structure.
+/// Backend API uses default camelCase JSON serialization.
+/// </summary>
+internal record BackendReplaceAllEmbeddingsRequest
+{
+    [JsonPropertyName("embeddings")]
+    public required List<BackendEmbeddingDto> Embeddings { get; init; }
+}
 
 /// <summary>
 /// Outputs embeddings to backend API (Cosmos DB) via HTTP.
@@ -19,7 +88,7 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = null // Use property names as-is (PascalCase from JsonPropertyName attributes)
     };
 
     public CosmosDbEmbeddingOutput(
@@ -115,7 +184,19 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
             _logger.LogInformation("Uploading batch {Current}/{Total} ({Count} embeddings)",
                 i + 1, batches.Count, batch.Count);
 
-            var response = await _httpClient.PostAsJsonAsync("/api/embeddings", batch, JsonOptions, cancellationToken);
+            // Convert to backend DTOs and wrap in request object
+            var backendDtos = batch.Select(e => new BackendEmbeddingDto
+            {
+                Id = e.Id,
+                Text = e.Text,
+                Embedding = e.Embedding,
+                SourceFile = e.Source, // Map Source -> SourceFile
+                Page = e.Page
+            }).ToList();
+
+            var request = new BackendAddEmbeddingsRequest { Embeddings = backendDtos };
+
+            var response = await _httpClient.PostAsJsonAsync("/api/embeddings", request, JsonOptions, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             _logger.LogInformation("Batch {Current}/{Total} uploaded successfully", i + 1, batches.Count);
@@ -156,23 +237,23 @@ public class CosmosDbEmbeddingOutput : IEmbeddingOutput
     {
         _logger.LogInformation("Replacing all embeddings in backend (this will delete existing data)");
 
-        // Upload in batches
-        var batches = embeddings
-            .Select((item, index) => new { item, index })
-            .GroupBy(x => x.index / _batchSize)
-            .Select(g => g.Select(x => x.item).ToList())
-            .ToList();
-
-        for (int i = 0; i < batches.Count; i++)
+        // Convert to backend DTOs and wrap in request object
+        var backendDtos = embeddings.Select(e => new BackendEmbeddingDto
         {
-            var batch = batches[i];
-            _logger.LogInformation("Uploading batch {Current}/{Total} ({Count} embeddings) for replace-all operation",
-                i + 1, batches.Count, batch.Count);
+            Id = e.Id,
+            Text = e.Text,
+            Embedding = e.Embedding,
+            SourceFile = e.Source, // Map Source -> SourceFile
+            Page = e.Page
+        }).ToList();
 
-            var response = await _httpClient.PostAsJsonAsync("/api/embeddings/replace-all", batch, JsonOptions, cancellationToken);
-            response.EnsureSuccessStatusCode();
+        var request = new BackendReplaceAllEmbeddingsRequest { Embeddings = backendDtos };
 
-            _logger.LogInformation("Batch {Current}/{Total} uploaded successfully", i + 1, batches.Count);
-        }
+        _logger.LogInformation("Uploading {Count} embeddings for replace-all operation", embeddings.Count);
+
+        var response = await _httpClient.PostAsJsonAsync("/api/embeddings/replace-all", request, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        _logger.LogInformation("Successfully replaced all embeddings");
     }
 }
