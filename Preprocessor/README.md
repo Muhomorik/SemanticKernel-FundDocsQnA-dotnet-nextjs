@@ -173,12 +173,14 @@ When browsing models in LM Studio, you'll see multiple Nomic Embed Text versions
 
 ### `cosmosdb` Verb Parameters
 
-| Parameter          | Short | Required | Default                   | Description                    |
-|--------------------|-------|----------|---------------------------|--------------------------------|
-| `--url`            | `-u`  | No       | `http://localhost:5000`   | Backend API URL                |
-| `--key`            | `-k`  | No       | `null`                    | API key (or set `FUNDDOCS_API_KEY` env var) |
-| `--operation`      | `-o`  | No       | `add`                     | Operation: `add`, `update`, `replace-all` |
-| `--batch-size`     | `-b`  | No       | `100`                     | Embeddings per API request     |
+| Parameter                  | Short | Required | Default                   | Description                    |
+|----------------------------|-------|----------|---------------------------|--------------------------------|
+| `--url`                    | `-u`  | No       | `http://localhost:5000`   | Backend API URL                |
+| `--key`                    | `-k`  | No       | `null`                    | API key (or set `FUNDDOCS_API_KEY` env var) |
+| `--operation`              | `-o`  | No       | `add`                     | Operation: `add`, `update`, `replace-all` |
+| `--batch-size`             | `-b`  | No       | `100`                     | Embeddings per API request     |
+| `--delay-between-batches`  | -     | No       | `8000`                    | Milliseconds delay between batches (default: 8s = ~290 RU/s, safe under 400 RU/s) |
+| `--max-retries`            | -     | No       | `3`                       | Max retries for 429 throttling (exponential backoff: 1s, 2s, 4s) |
 
 ## Usage
 

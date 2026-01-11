@@ -440,8 +440,28 @@ dotnet run -- \
 
 1. Extract text from PDFs
 2. Generate embeddings using OpenAI API
-3. POST embeddings to `/api/embeddings/replace-all` endpoint
+3. POST embeddings to `/api/embeddings/replace-all` endpoint (or batch POST with `add` operation)
 4. Backend stores embeddings in Cosmos DB
+
+**Throttling & Rate Limiting (NEW):**
+
+The Preprocessor includes built-in rate limiting to prevent exceeding Cosmos DB throughput limits (1000 RU/s free tier, 400 RU/s provisioned):
+
+- **Default delay:** 8000ms (8 seconds) between batches
+  - Conservative design ensures ~290 RU/s average (safe margin under 400 RU/s)
+  - With 68 PDFs × 14 chunks = ~950 embeddings, batch size 100:
+    - 9 intervals × 8s = 72 seconds of delays
+    - ~50 seconds upload time
+    - Total ~130 seconds
+    - Average: 38,000 RU ÷ 130s = ~290 RU/s (comfortable headroom)
+
+- **Exponential backoff:** If the Preprocessor receives a 429 (TooManyRequests) response:
+  - Retry 1: Wait 1 second, then retry
+  - Retry 2: Wait 2 seconds, then retry
+  - Retry 3: Wait 4 seconds, then retry
+  - If still throttled, fail with error
+
+This conservative design stays well below the provisioned tier limit and ensures reliable uploads of large embedding sets.
 
 ### Step 8: Verify Deployment
 

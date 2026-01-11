@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-11 (Cosmos DB Production Deployment Complete)
+Last Updated: 2026-01-11 (Cosmos DB Throttling & Exponential Backoff Added)
 
 **Tech Stack:**
 
@@ -54,6 +54,8 @@ Last Updated: 2026-01-11 (Cosmos DB Production Deployment Complete)
 | Append Mode | ✅ | Incremental processing of new PDFs |
 | CLI Options | ✅ | All parameters implemented and validated |
 | Provider Abstraction | ✅ | Ollama/LM Studio/OpenAI with secure API key management |
+| Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
+| Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
 | Unit Tests | ✅ | NUnit tests for services and extraction |
 | Documentation | ✅ | README with usage examples |
 
@@ -393,9 +395,8 @@ public enum VectorStorageType
 
 1. In-memory DocumentRepository = data lost on restart (by design)
 2. No caching = every search generates new embedding
-3. No request throttling or rate limiting
-4. Missing unit tests for DDD layers
-5. More files and abstractions due to DDD structure (trade-off for maintainability)
+3. Missing unit tests for DDD layers
+4. More files and abstractions due to DDD structure (trade-off for maintainability)
 
 ### General
 
