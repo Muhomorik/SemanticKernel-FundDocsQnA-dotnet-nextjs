@@ -4,6 +4,13 @@ using Moq;
 
 using Preprocessor.Extractors;
 
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.ReadingOrderDetector;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
+using UglyToad.PdfPig.Fonts.Standard14Fonts;
+using UglyToad.PdfPig.Writer;
+
 namespace Preprocessor.Tests.Extractors;
 
 [TestFixture]
