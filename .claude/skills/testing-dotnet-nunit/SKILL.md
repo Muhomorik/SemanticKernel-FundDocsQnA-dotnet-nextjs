@@ -1,0 +1,373 @@
+---
+name: testing-dotnet-nunit
+description: Writes unit tests for .NET projects using NUnit, AutoFixture, and AutoMoq. Use when writing tests for C# code, .NET projects with .csproj files, or when user mentions NUnit, AutoFixture, unit testing. DO NOT use for JavaScript, TypeScript, Next.js, React, or Node.js projects.
+allowed-tools: Read, Write, Edit, Bash
+---
+
+# .NET Unit Testing with NUnit + AutoFixture
+
+Writes unit tests for .NET projects using NUnit, AutoFixture, and AutoMoq patterns.
+
+## Quick Start
+
+Minimal test example showing the complete pattern:
+
+```csharp
+using AutoFixture;
+using AutoFixture.AutoMoq;
+using Moq;
+using NUnit.Framework;
+
+namespace MyProject.Tests;
+
+[TestFixture]
+public class MyServiceTests
+{
+    private IFixture _fixture;
+    private Mock<IDependency> _dependencyMock;
+    private MyService _sut;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _fixture = new Fixture().Customize(new AutoMoqCustomization());
+        _dependencyMock = _fixture.Freeze<Mock<IDependency>>();
+        _sut = _fixture.Create<MyService>();
+    }
+
+    [Test]
+    public void ProcessData_ValidInput_ReturnsExpectedResult()
+    {
+        // Arrange
+        var input = _fixture.Create<string>();
+        _dependencyMock.Setup(x => x.GetData()).Returns("expected");
+
+        // Act
+        var result = _sut.ProcessData(input);
+
+        // Assert
+        Assert.That(result, Is.EqualTo("expected"));
+        _dependencyMock.Verify(x => x.GetData(), Times.Once);
+    }
+}
+```
+
+## Required NuGet Packages
+
+```bash
+dotnet add package NUnit --version 4.*
+dotnet add package NUnit3TestAdapter --version 5.*
+dotnet add package Microsoft.NET.Test.Sdk --version 17.*
+dotnet add package AutoFixture --version 4.*
+dotnet add package AutoFixture.AutoMoq --version 4.*
+dotnet add package Moq --version 4.*
+```
+
+## Core Principles
+
+**✅ Always Do:**
+- Resolve SUT from fixture: `_fixture.Create<T>()`
+- Use Freeze for shared dependencies: `_fixture.Freeze<Mock<T>>()`
+- Follow AAA pattern (Arrange, Act, Assert)
+- Test naming: `MethodName_Scenario_ExpectedBehavior`
+- Test happy paths and valid scenarios
+- Verify mock interactions for orchestration
+- Keep tests fast (no real I/O, no network)
+- Isolated tests (no shared state)
+
+**❌ Never Do:**
+- Manual construction: `new MyService()` - Always use fixture
+- Testing exceptions with `Assert.Throws` (no validation failure tests)
+- Testing framework code (.NET/NuGet package behavior)
+- Shared state between tests
+- Over-mocking (only mock interfaces)
+- Hardcoded test data: Use AutoFixture instead of `"test123"`
+- Real file system, APIs, or network calls
+
+## Test Class Structure
+
+Standard test class setup with Freeze pattern:
+
+```csharp
+[TestFixture]
+public class QuestionAnsweringServiceTests
+{
+    private IFixture _fixture;
+    private Mock<IMemoryService> _memoryServiceMock;
+    private Mock<ILlmProvider> _llmProviderMock;
+    private Mock<ILogger<QuestionAnsweringService>> _loggerMock;
+    private QuestionAnsweringService _sut;
+
+    [SetUp]
+    public void SetUp()
+    {
+        // Initialize fixture with AutoMoq
+        _fixture = new Fixture().Customize(new AutoMoqCustomization());
+
+        // Freeze dependencies for reuse across tests
+        _memoryServiceMock = _fixture.Freeze<Mock<IMemoryService>>();
+        _llmProviderMock = _fixture.Freeze<Mock<ILlmProvider>>();
+        _loggerMock = _fixture.Freeze<Mock<ILogger<QuestionAnsweringService>>>();
+
+        // Resolve SUT from fixture (never use 'new')
+        _sut = _fixture.Create<QuestionAnsweringService>();
+    }
+}
+```
+
+## Test Method Templates
+
+### Synchronous Test
+
+```csharp
+[Test]
+public void MethodName_Scenario_ExpectedBehavior()
+{
+    // Arrange
+    var input = _fixture.Create<string>();
+    _dependencyMock
+        .Setup(x => x.Process(input))
+        .Returns("expected");
+
+    // Act
+    var result = _sut.MethodName(input);
+
+    // Assert
+    Assert.That(result, Is.EqualTo("expected"));
+    _dependencyMock.Verify(x => x.Process(input), Times.Once);
+}
+```
+
+### Async Test
+
+```csharp
+[Test]
+public async Task MethodNameAsync_Scenario_ExpectedBehavior()
+{
+    // Arrange
+    var input = _fixture.Create<string>();
+    _dependencyMock
+        .Setup(x => x.ProcessAsync(input, It.IsAny<CancellationToken>()))
+        .ReturnsAsync("expected");
+
+    // Act
+    var result = await _sut.MethodNameAsync(input, CancellationToken.None);
+
+    // Assert
+    Assert.That(result, Is.EqualTo("expected"));
+    _dependencyMock.Verify(
+        x => x.ProcessAsync(input, It.IsAny<CancellationToken>()),
+        Times.Once);
+}
+```
+
+## Common Patterns
+
+### Region Organization
+
+Group related tests using regions:
+
+```csharp
+[TestFixture]
+public class MyServiceTests
+{
+    // SetUp code...
+
+    #region Happy Path Tests
+
+    [Test]
+    public void ValidInput_ReturnsSuccess() { }
+
+    [Test]
+    public void MultipleItems_ProcessesAll() { }
+
+    #endregion
+
+    #region Edge Cases
+
+    [Test]
+    public void EmptyInput_ReturnsDefault() { }
+
+    [Test]
+    public void NullInput_HandlesGracefully() { }
+
+    #endregion
+
+    #region Service Integration
+
+    [Test]
+    public void CallsServicesInCorrectOrder() { }
+
+    #endregion
+}
+```
+
+### Multiple Assertions
+
+One test focus, but multiple `Assert.That()` statements are allowed:
+
+```csharp
+[Test]
+public void ProcessData_ValidInput_ReturnsCompleteResult()
+{
+    // Arrange
+    var input = _fixture.Create<MyInput>();
+
+    // Act
+    var result = _sut.ProcessData(input);
+
+    // Assert
+    Assert.That(result, Is.Not.Null);
+    Assert.That(result.Status, Is.EqualTo("Success"));
+    Assert.That(result.Data, Is.Not.Empty);
+    Assert.That(result.Timestamp, Is.GreaterThan(DateTime.MinValue));
+}
+```
+
+### Mock Verification
+
+Use different verification modes:
+
+```csharp
+// Verify called exactly once
+_dependencyMock.Verify(x => x.Save(It.IsAny<Data>()), Times.Once);
+
+// Verify never called
+_dependencyMock.Verify(x => x.Delete(It.IsAny<int>()), Times.Never);
+
+// Verify called at least once
+_loggerMock.Verify(
+    x => x.Log(LogLevel.Error, It.IsAny<EventId>(),
+               It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(),
+               It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+    Times.AtLeastOnce);
+```
+
+### Capturing Values
+
+Use Callback to capture and verify values:
+
+```csharp
+[Test]
+public void BuildsCorrectPrompt_WithContext()
+{
+    // Arrange
+    var question = _fixture.Create<string>();
+    var capturedPrompt = string.Empty;
+
+    _llmProviderMock
+        .Setup(x => x.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        .Callback<string, CancellationToken>((prompt, _) => capturedPrompt = prompt)
+        .ReturnsAsync("answer");
+
+    // Act
+    await _sut.AskQuestionAsync(question);
+
+    // Assert
+    Assert.That(capturedPrompt, Does.Contain("<context>"));
+    Assert.That(capturedPrompt, Does.Contain(question));
+}
+```
+
+### Creating Collections
+
+Use `CreateMany<T>()` for collections:
+
+```csharp
+[Test]
+public void ProcessMultipleItems_ReturnsAllResults()
+{
+    // Arrange
+    var items = _fixture.CreateMany<Item>(5).ToList();  // Creates 5 items
+    _dependencyMock
+        .Setup(x => x.GetItems())
+        .Returns(items);
+
+    // Act
+    var result = _sut.ProcessAll();
+
+    // Assert
+    Assert.That(result, Has.Count.EqualTo(5));
+}
+```
+
+### Tracking Call Order
+
+Verify services are called in the correct sequence:
+
+```csharp
+[Test]
+public void CallsServicesInCorrectOrder()
+{
+    // Arrange
+    var callOrder = new List<string>();
+
+    _service1Mock
+        .Setup(x => x.Process())
+        .Callback(() => callOrder.Add("service1"));
+
+    _service2Mock
+        .Setup(x => x.Process())
+        .Callback(() => callOrder.Add("service2"));
+
+    _service3Mock
+        .Setup(x => x.Process())
+        .Callback(() => callOrder.Add("service3"));
+
+    // Act
+    _sut.Execute();
+
+    // Assert
+    Assert.That(callOrder, Is.EqualTo(new[] { "service1", "service2", "service3" }));
+}
+```
+
+## Advanced Patterns
+
+For complex scenarios, use custom AutoFixture builders:
+
+### Custom Specimen Builders
+
+When you need to create complex domain objects with validation or specific constructor patterns, create an `ISpecimenBuilder`. See [patterns/specimen-builders.md](patterns/specimen-builders.md) for complete examples.
+
+Use when:
+- Domain objects have factory methods instead of constructors
+- Objects require specific initialization logic
+- Properties need realistic test data
+
+### Custom Customization
+
+When you need to reuse AutoFixture configuration across multiple test classes, create an `ICustomization`. See [patterns/autofixture-customization.md](patterns/autofixture-customization.md) for complete examples.
+
+Use when:
+- Multiple test classes need the same builders
+- You want to centralize test configuration
+- Setting default values for options/configuration objects
+
+## Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~MyServiceTests"
+
+# Run with verbose output
+dotnet test --logger "console;verbosity=detailed"
+
+# Run with coverage
+dotnet test /p:CollectCoverage=true
+```
+
+## Validation Checklist
+
+**Before committing tests, verify:**
+- ✅ All objects resolved from fixture (no `new` keyword for SUT)
+- ✅ Mocks created with Freeze pattern
+- ✅ Test names follow `MethodName_Scenario_ExpectedBehavior`
+- ✅ AAA sections clearly separated with comments
+- ✅ Mock interactions verified (Times.Once, etc.)
+- ✅ No hardcoded test data (use fixture.Create instead)
+- ✅ No shared state between tests
+- ✅ Tests run fast (no I/O, no real network calls)
