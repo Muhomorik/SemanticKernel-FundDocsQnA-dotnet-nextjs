@@ -8,4 +8,8 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PdfTextExtractor.Core\PdfTextExtractor.Core.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -7,4 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PdfTextExtractor.Core\PdfTextExtractor.Core.csproj" />
+  </ItemGroup>
+
 </Project>
