@@ -1,855 +1,958 @@
-# PdfTextExtraction
+# 📄 PdfTextExtractor
 
-Project is using domain-driven design (DDD) principles to separate concerns and improve maintainability.
+> Domain-Driven Design (DDD) library for extracting text from PDF documents with real-time event streaming using Rx.NET
 
-## Project Structure
+## 📋 Table of Contents
 
-### PdfTextExtractor.Core (Class Library)
+- [Overview](#-overview)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Quick Start](#-quick-start)
+- [API Reference](#-api-reference)
+- [Domain Events](#-domain-events)
+- [Event Catalog](#-event-catalog)
+- [Project Structure](#-project-structure)
 
-Contains core extraction logic, interfaces, and models. Reusable by all consumers. References PDF libraries (e.g., iTextSharp, PdfPig, or Tesseract for OCR).
+---
 
-### PdfTextExtractor.Cli (Console Application)
+## 🎯 Overview
 
-Command-line interface. Executable name: `pdftextextractor.exe` or `pdfextract.exe`. References PdfTextExtractor.Core.
+**PdfTextExtractor** is a multi-project solution providing PDF text extraction capabilities through:
 
-### PdfTextExtractor.Wpf (WPF Application)
+- **📦 PdfTextExtractor.Core** - Reusable class library with DDD architecture
+- **⌨️ PdfTextExtractor.Cli** - Command-line interface (`pdftextextractor.exe`)
+- **🖥️ PdfTextExtractor.Wpf** - Windows desktop GUI (`PdfTextExtractor.exe`)
 
-Windows desktop GUI. Executable name: `PdfTextExtractor.exe`. References PdfTextExtractor.Core.
+**Key Features:**
+- ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), Ollama (OCR - planned)
+- ✅ **Real-time events**: Rx.NET observable streams for progress tracking and UI updates
+- ✅ **Domain-Driven Design**: Clean separation of concerns with Domain/ApplicationCore/Infrastructure layers
+- ✅ **Autofac DI**: Fully configured dependency injection container
+- ✅ **Batch processing**: Extract multiple PDFs with session tracking
+- ✅ **Text chunking**: Automatic sentence-based text chunking for RAG/embeddings
 
-## Domain Events Architecture
+---
 
-### Overview
+## 🛠️ Tech Stack
 
-The PdfTextExtractor system uses **domain events** to enable real-time monitoring and decoupled communication during PDF text extraction operations. This event-driven architecture provides several key benefits:
+### Core Technologies
 
-- **Real-time GUI updates**: WPF application receives live progress, text previews, and page images during extraction
-- **Comprehensive logging**: CLI and services can subscribe to events for detailed operation tracking
-- **Monitoring and diagnostics**: Track extraction performance, errors, and completion status
-- **Decoupling**: Extractors don't need direct dependencies on UI or logging components
-- **Extensibility**: New consumers can subscribe to events without modifying extraction logic
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet) | 9.0 | Runtime framework |
+| ![C#](https://img.shields.io/badge/C%23-12.0-239120?logo=csharp) | 12.0 | Programming language |
 
-All events inherit from a common base class with rich metadata to support batch processing, correlation tracking, and error analysis.
+### NuGet Packages
 
-### Event Infrastructure
+| Package | Version | Purpose |
+|---------|---------|---------|
+| **Autofac** | 8.0.0 | 🔧 Dependency injection container |
+| **System.Reactive** | 6.0.0 | 📡 Rx.NET for IObservable event streams |
+| **PdfPig** | 0.1.12 | 📄 Native PDF text extraction |
+| **SixLabors.ImageSharp** | 3.1.12 | 🖼️ Image processing for OCR rasterization |
+| **Microsoft.Extensions.Http** | 9.0.0 | 🌐 HTTP client for LM Studio/Ollama APIs |
+| **System.Text.Json** | 9.0.0 | 📋 JSON serialization |
+| **Microsoft.Extensions.Logging.Abstractions** | 9.0.0 | 📝 Logging infrastructure |
 
-#### Base Event Class
+### Supported Extraction Methods
 
-All extraction events inherit from `PdfExtractionEventBase`:
+| Method | Status | Description |
+|--------|--------|-------------|
+| **PdfPig** | ✅ Implemented | Native PDF text extraction (fast, no OCR) |
+| **LM Studio** | 🚧 Stub (Phase 6) | OCR via vision models (rasterize → API) |
+| **Ollama** | 📅 Planned (Phase 7) | OCR via vision models (local, free) |
+
+---
+
+## 🏗️ Architecture
+
+### DDD Layered Architecture
+
+```mermaid
+graph TD
+    A[🎯 Entry Point<br/>PdfTextExtractorLib<br/>Autofac DI] --> B[🔄 ApplicationCore Layer<br/>Use Cases, DTOs, Parameters]
+    B --> C[💎 Domain Layer<br/>Entities, Value Objects, Events<br/>PURE - No Dependencies]
+    B --> D[⚙️ Infrastructure Layer<br/>Extractors, File System, Event Bus]
+    D --> C
+
+    style A fill:#e1f5ff,stroke:#0077cc
+    style B fill:#fff4e6,stroke:#ff9800
+    style C fill:#e8f5e9,stroke:#4caf50
+    style D fill:#f3e5f5,stroke:#9c27b0
+```
+
+### Project Structure
+
+```mermaid
+graph LR
+    A[📦 PdfTextExtractor.Core<br/>Class Library] --> B[⌨️ PdfTextExtractor.Cli<br/>Console App]
+    A --> C[🖥️ PdfTextExtractor.Wpf<br/>WPF Desktop GUI]
+
+    style A fill:#4caf50,color:#fff
+    style B fill:#2196f3,color:#fff
+    style C fill:#ff9800,color:#fff
+```
+
+### Domain Layer Structure
+
+```mermaid
+graph TD
+    subgraph "💎 Domain Layer (Pure Business Logic)"
+        A[📝 Value Objects<br/>FilePath, PageNumber<br/>SessionId, CorrelationId]
+        B[🏛️ Entities<br/>TextChunk, Page, Document]
+        C[👑 Aggregate Root<br/>ExtractionSession]
+        D[📡 Domain Events<br/>23 events across 5 categories]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+
+    style A fill:#bbdefb
+    style B fill:#c5e1a5
+    style C fill:#ffccbc
+    style D fill:#f8bbd0
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
+
+Reference the `PdfTextExtractor.Core` library in your project:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\PdfTextExtractor.Core\PdfTextExtractor.Core.csproj" />
+</ItemGroup>
+```
+
+### 2. Basic Usage
+
+```csharp
+using PdfTextExtractor.Core;
+using PdfTextExtractor.Core.Configuration;
+
+// Create library instance (Autofac DI initialized automatically)
+using var lib = new PdfTextExtractorLib();
+
+// Subscribe to events (Rx.NET observable)
+lib.Events.Subscribe(e =>
+    Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] {e.GetType().Name}"));
+
+// Get PDF files from folder
+var pdfFiles = lib.GetPdfFiles("./pdfs");
+Console.WriteLine($"Found {pdfFiles.Length} PDF files");
+
+// Extract text using PdfPig
+var result = await lib.ExtractWithPdfPigAsync(new PdfPigParameters
+{
+    PdfFolderPath = "./pdfs",
+    OutputFolderPath = "./output",
+    ChunkSize = 1000 // Characters per chunk
+});
+
+Console.WriteLine($"Extracted {result.TotalPages} pages, {result.TotalChunks} chunks");
+Console.WriteLine($"Output: {result.TextFilePath}");
+Console.WriteLine($"Duration: {result.Duration.TotalSeconds:F1}s");
+```
+
+### 3. Event-Driven Progress Tracking
+
+```csharp
+using System.Reactive.Linq;
+using PdfTextExtractor.Core.Domain.Events;
+using PdfTextExtractor.Core.Domain.Events.Document;
+using PdfTextExtractor.Core.Domain.Events.Infrastructure;
+
+var lib = new PdfTextExtractorLib();
+
+// Filter events by type
+lib.Events.OfType<DocumentExtractionStarted>()
+    .Subscribe(e => Console.WriteLine($"📄 Started: {e.FileName}"));
+
+lib.Events.OfType<ExtractionProgressUpdated>()
+    .Subscribe(e => Console.WriteLine($"⏳ Progress: {e.OverallPercentage:F1}% - {e.CurrentOperation}"));
+
+lib.Events.OfType<PageExtractionCompleted>()
+    .Subscribe(e => Console.WriteLine($"✅ Page {e.PageNumber} done: {e.ChunkCount} chunks"));
+
+lib.Events.OfType<DocumentExtractionCompleted>()
+    .Subscribe(e => Console.WriteLine($"🎉 Completed: {e.TotalPages} pages in {e.Duration.TotalSeconds:F1}s"));
+
+// Run extraction
+await lib.ExtractWithPdfPigAsync(new PdfPigParameters
+{
+    PdfFolderPath = "./pdfs",
+    OutputFolderPath = "./output"
+});
+```
+
+---
+
+## 📚 API Reference
+
+### IPdfTextExtractorLib
+
+Main entry point for the library.
+
+#### Properties
+
+```csharp
+/// <summary>
+/// Observable stream of all extraction events (Rx.NET).
+/// </summary>
+IObservable<PdfExtractionEventBase> Events { get; }
+```
+
+#### Methods
+
+##### GetPdfFiles
+
+```csharp
+/// <summary>
+/// Get all PDF file paths from the specified folder.
+/// </summary>
+/// <exception cref="DirectoryNotFoundException">Folder does not exist</exception>
+string[] GetPdfFiles(string folderPath);
+```
+
+##### GetTextFiles
+
+```csharp
+/// <summary>
+/// Get all text file paths from the specified folder.
+/// </summary>
+/// <returns>Empty array if folder doesn't exist</returns>
+string[] GetTextFiles(string folderPath);
+```
+
+##### ExtractWithPdfPigAsync
+
+```csharp
+/// <summary>
+/// Extract text using PdfPig (native PDF text extraction).
+/// </summary>
+/// <param name="parameters">PdfPig extraction parameters</param>
+/// <param name="cancellationToken">Cancellation token</param>
+/// <returns>Extraction result with output file path and statistics</returns>
+Task<ExtractionResult> ExtractWithPdfPigAsync(
+    PdfPigParameters parameters,
+    CancellationToken cancellationToken = default);
+```
+
+**PdfPigParameters:**
+```csharp
+public class PdfPigParameters
+{
+    public required string PdfFolderPath { get; init; }
+    public required string OutputFolderPath { get; init; }
+    public int ChunkSize { get; init; } = 1000; // Default: 1000 characters
+}
+```
+
+##### ExtractWithLMStudioAsync
+
+```csharp
+/// <summary>
+/// Extract text using LM Studio vision models (OCR).
+/// </summary>
+/// <remarks>⚠️ Currently stub - implementation coming in Phase 6</remarks>
+Task<ExtractionResult> ExtractWithLMStudioAsync(
+    LMStudioParameters parameters,
+    CancellationToken cancellationToken = default);
+```
+
+**LMStudioParameters:**
+```csharp
+public class LMStudioParameters
+{
+    public required string PdfFolderPath { get; init; }
+    public required string OutputFolderPath { get; init; }
+    public string LMStudioUrl { get; init; } = "http://localhost:1234";
+    public required string VisionModelName { get; init; }
+    public int RasterizationDpi { get; init; } = 300;
+    public int ChunkSize { get; init; } = 1000;
+}
+```
+
+##### ExtractWithOllamaAsync
+
+```csharp
+/// <summary>
+/// Extract text using Ollama vision models (OCR - planned).
+/// </summary>
+/// <remarks>⚠️ Currently stub - planned for Phase 7</remarks>
+Task<ExtractionResult> ExtractWithOllamaAsync(
+    OllamaParameters parameters,
+    CancellationToken cancellationToken = default);
+```
+
+**OllamaParameters:**
+```csharp
+public class OllamaParameters
+{
+    public required string PdfFolderPath { get; init; }
+    public required string OutputFolderPath { get; init; }
+    public string OllamaUrl { get; init; } = "http://localhost:11434";
+    public required string VisionModelName { get; init; }
+    public int RasterizationDpi { get; init; } = 300;
+    public int ChunkSize { get; init; } = 1000;
+}
+```
+
+### ExtractionResult
+
+```csharp
+public class ExtractionResult
+{
+    public required string PdfFilePath { get; init; }
+    public required string TextFilePath { get; init; }
+    public int TotalPages { get; init; }
+    public int TotalChunks { get; init; }
+    public TimeSpan Duration { get; init; }
+    public TextExtractionMethod Method { get; init; }
+}
+```
+
+---
+
+## 📡 Domain Events
+
+### Event Architecture
+
+The library uses **Rx.NET observables** to publish domain events during extraction operations. All events inherit from `PdfExtractionEventBase` with rich metadata for tracking.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Lib as PdfTextExtractorLib
+    participant Extractor as PdfPigExtractor
+    participant EventBus as ReactiveEventPublisher
+
+    Client->>Lib: ExtractWithPdfPigAsync(params)
+    Client->>Lib: Events.Subscribe(handler)
+
+    Lib->>EventBus: PublishAsync(BatchExtractionStarted)
+    EventBus-->>Client: 📡 BatchExtractionStarted
+
+    loop For each PDF file
+        Lib->>Extractor: ExtractAsync(file, eventPublisher)
+        Extractor->>EventBus: PublishAsync(DocumentExtractionStarted)
+        EventBus-->>Client: 📡 DocumentExtractionStarted
+
+        loop For each page
+            Extractor->>EventBus: PublishAsync(PageExtractionStarted)
+            EventBus-->>Client: 📡 PageExtractionStarted
+
+            Note over Extractor: Extract text & chunk
+
+            Extractor->>EventBus: PublishAsync(TextChunked)
+            EventBus-->>Client: 📡 TextChunked
+
+            Extractor->>EventBus: PublishAsync(PageExtractionCompleted)
+            EventBus-->>Client: 📡 PageExtractionCompleted
+
+            Extractor->>EventBus: PublishAsync(ExtractionProgressUpdated)
+            EventBus-->>Client: 📡 ExtractionProgressUpdated
+        end
+
+        Extractor->>EventBus: PublishAsync(DocumentExtractionCompleted)
+        EventBus-->>Client: 📡 DocumentExtractionCompleted
+    end
+
+    Lib->>EventBus: PublishAsync(BatchExtractionCompleted)
+    EventBus-->>Client: 📡 BatchExtractionCompleted
+
+    Lib-->>Client: Return ExtractionResult
+```
+
+### Base Event Class
+
+All events inherit from `PdfExtractionEventBase` with the following metadata:
 
 ```csharp
 public abstract class PdfExtractionEventBase
 {
-    // Unique identifier for this specific event instance
-    public Guid EventId { get; init; }
-
-    // Timestamp when event was raised (UTC)
-    public DateTimeOffset Timestamp { get; init; }
-
-    // Correlation ID - tracks a single file extraction operation
-    // All events for one PDF file share the same CorrelationId
-    public Guid CorrelationId { get; init; }
-
-    // Session ID - tracks a batch extraction operation
-    // All events for a batch of PDFs share the same SessionId
-    public Guid SessionId { get; init; }
-
-    // Name of the extractor raising this event (e.g., "PdfPig", "Tesseract")
-    public string ExtractorName { get; init; }
+    public Guid EventId { get; init; }          // Unique event instance ID
+    public DateTimeOffset Timestamp { get; init; } // UTC timestamp
+    public required Guid CorrelationId { get; init; } // Tracks single file extraction
+    public required Guid SessionId { get; init; }     // Tracks batch operation
+    public required string ExtractorName { get; init; } // "PdfPig", "LMStudio", etc.
 }
 ```
 
 **Metadata Properties:**
 
-- **EventId**: Unique identifier for each event instance (useful for deduplication, event sourcing)
-- **Timestamp**: When the event occurred (UTC), enables timeline reconstruction and performance analysis
-- **CorrelationId**: Links all events for a single PDF file (track one file's complete extraction flow)
-- **SessionId**: Links all events for a batch operation (track multi-file batch processing)
-- **ExtractorName**: Identifies which extractor implementation raised the event ("PdfPig", "Tesseract", etc.)
+- **EventId**: Unique identifier for event deduplication/event sourcing
+- **Timestamp**: When event occurred (UTC), for timeline reconstruction
+- **CorrelationId**: Links all events for a single PDF file
+- **SessionId**: Links all events for a batch operation
+- **ExtractorName**: Identifies which extractor raised the event
 
-#### Publisher/Subscriber Pattern
+### Event Flow
 
-The event infrastructure uses the classic publisher/subscriber pattern:
+```mermaid
+graph TD
+    A[📋 BatchExtractionStarted] --> B[📄 DocumentExtractionStarted]
+    B --> C[📃 PageExtractionStarted]
+    C --> D{OCR?}
+    D -->|Yes| E[🖼️ PageRasterizationStarted]
+    D -->|No| F[✂️ TextChunked]
+    E --> G[🖼️ PageRasterizationCompleted]
+    G --> H[👁️ OcrProcessingStarted]
+    H --> I[👁️ OcrProcessingCompleted]
+    I --> F
+    F --> J[📦 ChunkCreated x N]
+    J --> K[✅ PageExtractionCompleted]
+    K --> L[📊 ExtractionProgressUpdated]
+    L --> M{More pages?}
+    M -->|Yes| C
+    M -->|No| N[🎉 DocumentExtractionCompleted]
+    N --> O{More files?}
+    O -->|Yes| B
+    O -->|No| P[✨ BatchExtractionCompleted]
 
-**IEventPublisher** - Used by extractors to publish events:
-
-```csharp
-public interface IEventPublisher
-{
-    void Publish<TEvent>(TEvent @event) where TEvent : PdfExtractionEventBase;
-    Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
-        where TEvent : PdfExtractionEventBase;
-}
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#fce4ec
+    style P fill:#e8f5e9
 ```
 
-**IEventSubscriber** - Used by consumers (CLI, WPF) to subscribe to events:
+---
 
-```csharp
-public interface IEventSubscriber
-{
-    void Subscribe<TEvent>(Action<TEvent> handler) where TEvent : PdfExtractionEventBase;
-    void Unsubscribe<TEvent>(Action<TEvent> handler) where TEvent : PdfExtractionEventBase;
-}
-```
+## 📊 Event Catalog
 
-**InMemoryEventBus** - Thread-safe implementation routing events to subscribers:
+### 🎯 Event Categories
 
-```csharp
-public class InMemoryEventBus : IEventPublisher, IEventSubscriber
-{
-    // Thread-safe dictionary of event type -> list of handlers
-    private readonly ConcurrentDictionary<Type, List<Delegate>> _subscribers;
+| Category | Count | Purpose |
+|----------|-------|---------|
+| **📋 Batch** | 4 | Track batch operations (multiple PDFs) |
+| **📄 Document** | 4 | Track individual PDF document processing |
+| **📃 Page** | 4 | Track individual page processing |
+| **🖼️ OCR** | 6 | Track rasterization and OCR processing |
+| **✂️ Text Processing** | 2 | Track text chunking operations |
+| **⚙️ Infrastructure** | 3 | Track temp files and progress updates |
+| **Total** | **23** | Complete event coverage |
 
-    // Subscribe to specific event type
-    public void Subscribe<TEvent>(Action<TEvent> handler) { ... }
+### 📋 Batch Events
 
-    // Unsubscribe from specific event type
-    public void Unsubscribe<TEvent>(Action<TEvent> handler) { ... }
-
-    // Publish event to all subscribers (catches and logs handler exceptions)
-    public void Publish<TEvent>(TEvent @event) { ... }
-}
-```
-
-### Event Catalog
-
-#### Batch/Session Events
-
-Events tracking batch operations (multiple PDF files processed together).
-
-**BatchExtractionStarted**
-
+#### BatchExtractionStarted
 Raised before processing any PDF files in a batch.
 
 ```csharp
 public class BatchExtractionStarted : PdfExtractionEventBase
 {
-    public string[] FilePaths { get; init; }      // All PDF file paths to process
-    public int TotalFiles { get; init; }          // Total number of files in batch
+    public string[] FilePaths { get; init; }  // All PDF paths to process
+    public int TotalFiles { get; init; }      // Total files in batch
 }
 ```
 
-**BatchExtractionCompleted**
-
-Raised after all PDF files in batch processed successfully.
+#### BatchExtractionCompleted
+Raised after all PDF files processed successfully.
 
 ```csharp
 public class BatchExtractionCompleted : PdfExtractionEventBase
 {
     public string[] OutputFilePaths { get; init; } // Output text file paths
-    public int TotalFilesProcessed { get; init; }  // Number of files successfully processed
-    public TimeSpan TotalDuration { get; init; }   // Total batch processing time
+    public int TotalFilesProcessed { get; init; }  // Files completed
+    public TimeSpan TotalDuration { get; init; }   // Total time
 }
 ```
 
-**BatchExtractionFailed**
-
-Raised when batch processing fails and cannot continue.
+#### BatchExtractionFailed
+Raised when batch processing fails.
 
 ```csharp
 public class BatchExtractionFailed : PdfExtractionEventBase
 {
     public string ErrorMessage { get; init; }              // Error description
-    public string ExceptionType { get; init; }             // Exception type name
-    public int FilesProcessedBeforeFailure { get; init; }  // Files completed before failure
+    public string ExceptionType { get; init; }             // Exception type
+    public int FilesProcessedBeforeFailure { get; init; }  // Completed count
 }
 ```
 
-**BatchExtractionCancelled**
-
-Raised when user or system cancels the batch operation.
+#### BatchExtractionCancelled
+Raised when batch operation is cancelled.
 
 ```csharp
 public class BatchExtractionCancelled : PdfExtractionEventBase
 {
     public string Reason { get; init; }                        // Cancellation reason
-    public int FilesProcessedBeforeCancellation { get; init; } // Files completed before cancel
+    public int FilesProcessedBeforeCancellation { get; init; } // Completed count
 }
 ```
 
-#### Document Events
+### 📄 Document Events
 
-Events tracking individual PDF document processing.
-
-**DocumentExtractionStarted**
-
+#### DocumentExtractionStarted
 Raised before opening/processing a PDF document.
 
 ```csharp
 public class DocumentExtractionStarted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }      // Full path to PDF file
-    public string FileName { get; init; }      // PDF filename only
-    public long FileSizeBytes { get; init; }   // File size in bytes
+    public string FilePath { get; init; }      // Full path to PDF
+    public string FileName { get; init; }      // Filename only
+    public long FileSizeBytes { get; init; }   // File size
 }
 ```
 
-**DocumentExtractionCompleted**
-
-Raised after successfully processing all pages in the document.
+#### DocumentExtractionCompleted
+Raised after successfully processing all pages.
 
 ```csharp
 public class DocumentExtractionCompleted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }        // Full path to PDF file
-    public int TotalPages { get; init; }         // Total pages processed
-    public int TotalChunks { get; init; }        // Total text chunks created
-    public string OutputFilePath { get; init; }  // Output text file path
-    public TimeSpan Duration { get; init; }      // Document processing time
+    public string FilePath { get; init; }        // Full path to PDF
+    public int TotalPages { get; init; }         // Pages processed
+    public int TotalChunks { get; init; }        // Chunks created
+    public string OutputFilePath { get; init; }  // Output text file
+    public TimeSpan Duration { get; init; }      // Processing time
 }
 ```
 
-**DocumentExtractionFailed**
-
+#### DocumentExtractionFailed
 Raised when document processing fails.
 
 ```csharp
 public class DocumentExtractionFailed : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }            // Full path to PDF file
+    public string FilePath { get; init; }            // Full path to PDF
     public string ErrorMessage { get; init; }        // Error description
-    public string ExceptionType { get; init; }       // Exception type name
-    public int? PageNumberWhereFailed { get; init; } // Page number where failure occurred (if known)
+    public string ExceptionType { get; init; }       // Exception type
+    public int? PageNumberWhereFailed { get; init; } // Page number (if known)
 }
 ```
 
-**DocumentExtractionCancelled**
-
+#### DocumentExtractionCancelled
 Raised when document processing is cancelled.
 
 ```csharp
 public class DocumentExtractionCancelled : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }                      // Full path to PDF file
-    public int PagesProcessedBeforeCancellation { get; init; } // Pages completed before cancel
+    public string FilePath { get; init; }                      // Full path to PDF
+    public int PagesProcessedBeforeCancellation { get; init; } // Completed pages
 }
 ```
 
-#### Page Events
+### 📃 Page Events
 
-Events tracking individual page processing.
-
-**PageExtractionStarted**
-
+#### PageExtractionStarted
 Raised before processing a specific page.
 
 ```csharp
 public class PageExtractionStarted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }  // Full path to PDF file
+    public string FilePath { get; init; }  // Full path to PDF
     public int PageNumber { get; init; }   // Page number (1-based)
     public int TotalPages { get; init; }   // Total pages in document
 }
 ```
 
-**PageExtractionCompleted**
-
-Raised after page is fully processed (text extracted and available).
+#### PageExtractionCompleted
+Raised after page is fully processed.
 
 ```csharp
 public class PageExtractionCompleted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }         // Full path to PDF file
+    public string FilePath { get; init; }         // Full path to PDF
     public int PageNumber { get; init; }          // Page number (1-based)
-    public int ExtractedTextLength { get; init; } // Length of extracted text
-    public int ChunkCount { get; init; }          // Number of text chunks created
+    public int ExtractedTextLength { get; init; } // Text length
+    public int ChunkCount { get; init; }          // Chunks created
 }
 ```
 
-**PageExtractionFailed**
-
+#### PageExtractionFailed
 Raised when page processing fails.
 
 ```csharp
 public class PageExtractionFailed : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }      // Full path to PDF file
+    public string FilePath { get; init; }      // Full path to PDF
     public int PageNumber { get; init; }       // Page number (1-based)
     public string ErrorMessage { get; init; }  // Error description
-    public string ExceptionType { get; init; } // Exception type name
+    public string ExceptionType { get; init; } // Exception type
 }
 ```
 
-**EmptyPageDetected**
-
-Raised when a page has no extractable text content.
+#### EmptyPageDetected
+Raised when a page has no extractable text.
 
 ```csharp
 public class EmptyPageDetected : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }  // Full path to PDF file
+    public string FilePath { get; init; }  // Full path to PDF
     public int PageNumber { get; init; }   // Page number (1-based)
 }
 ```
 
-#### Rasterization/OCR Events
+### 🖼️ OCR Events
 
-Events tracking page rasterization (conversion to image) and OCR processing.
-
-**PageRasterizationStarted**
-
-Raised before converting a page to an image.
+#### PageRasterizationStarted
+Raised before converting page to image.
 
 ```csharp
 public class PageRasterizationStarted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }    // Full path to PDF file
+    public string FilePath { get; init; }    // Full path to PDF
     public int PageNumber { get; init; }     // Page number (1-based)
-    public string ImageFormat { get; init; } // Target image format (e.g., "PNG", "JPEG")
+    public int TargetDpi { get; init; }      // Target DPI
 }
 ```
 
-**PageRasterizationCompleted**
-
-Raised after page is rasterized to an image.
+#### PageRasterizationCompleted
+Raised after page is rasterized to image.
 
 ```csharp
 public class PageRasterizationCompleted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }       // Full path to PDF file
+    public string FilePath { get; init; }       // Full path to PDF
     public int PageNumber { get; init; }        // Page number (1-based)
-    public string TempImagePath { get; init; }  // Path to temporary image file
-    public int ImageWidth { get; init; }        // Image width in pixels
-    public int ImageHeight { get; init; }       // Image height in pixels
-    public long ImageSizeBytes { get; init; }   // Image file size in bytes
+    public string TempImagePath { get; init; }  // Temp image file path
+    public long ImageSizeBytes { get; init; }   // Image file size
 }
 ```
 
-**PageRasterizationFailed**
-
+#### PageRasterizationFailed
 Raised when page rasterization fails.
 
 ```csharp
 public class PageRasterizationFailed : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }      // Full path to PDF file
+    public string FilePath { get; init; }      // Full path to PDF
     public int PageNumber { get; init; }       // Page number (1-based)
     public string ErrorMessage { get; init; }  // Error description
+    public string ExceptionType { get; init; } // Exception type
 }
 ```
 
-**OcrProcessingStarted**
-
-Raised before OCR processing on a page image.
+#### OcrProcessingStarted
+Raised before OCR processing on page image.
 
 ```csharp
 public class OcrProcessingStarted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }       // Full path to PDF file
+    public string FilePath { get; init; }       // Full path to PDF
     public int PageNumber { get; init; }        // Page number (1-based)
-    public string TempImagePath { get; init; }  // Path to temporary image file
-    public string OcrEngine { get; init; }      // OCR engine name (e.g., "Tesseract")
+    public string VisionModelName { get; init; } // Model name
 }
 ```
 
-**OcrProcessingCompleted**
-
+#### OcrProcessingCompleted
 Raised after OCR text extraction is completed.
 
 ```csharp
 public class OcrProcessingCompleted : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }         // Full path to PDF file
+    public string FilePath { get; init; }         // Full path to PDF
     public int PageNumber { get; init; }          // Page number (1-based)
-    public int ExtractedTextLength { get; init; } // Length of extracted text
-    public double? ConfidenceScore { get; init; } // OCR confidence (0.0 to 1.0, if available)
-    public string ExtractedText { get; init; }    // Full extracted text (for GUI preview)
+    public int ExtractedTextLength { get; init; } // Text length
+    public TimeSpan ProcessingDuration { get; init; } // OCR time
 }
 ```
 
-**OcrProcessingFailed**
-
+#### OcrProcessingFailed
 Raised when OCR processing fails.
 
 ```csharp
 public class OcrProcessingFailed : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }      // Full path to PDF file
+    public string FilePath { get; init; }      // Full path to PDF
     public int PageNumber { get; init; }       // Page number (1-based)
     public string ErrorMessage { get; init; }  // Error description
+    public string ExceptionType { get; init; } // Exception type
 }
 ```
 
-#### Text Processing Events
+### ✂️ Text Processing Events
 
-Events tracking text chunking and processing.
-
-**TextChunked**
-
-Raised after text is split into chunks (for embedding generation).
+#### TextChunked
+Raised after text is split into chunks.
 
 ```csharp
 public class TextChunked : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }   // Full path to PDF file
+    public string FilePath { get; init; }   // Full path to PDF
     public int PageNumber { get; init; }    // Page number (1-based)
-    public int ChunkCount { get; init; }    // Number of chunks created
-    public int[] ChunkSizes { get; init; }  // Size of each chunk (in characters)
+    public int ChunkCount { get; init; }    // Chunks created
+    public int[] ChunkSizes { get; init; }  // Size of each chunk (chars)
 }
 ```
 
-**ChunkCreated**
-
+#### ChunkCreated
 Raised when an individual text chunk is created.
 
 ```csharp
 public class ChunkCreated : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }        // Full path to PDF file
+    public string FilePath { get; init; }        // Full path to PDF
     public int PageNumber { get; init; }         // Page number (1-based)
     public int ChunkIndex { get; init; }         // Chunk index (0-based)
-    public int ContentLength { get; init; }      // Chunk content length
-    public string ContentPreview { get; init; }  // First 100 characters of chunk
+    public int ContentLength { get; init; }      // Chunk length
+    public string ContentPreview { get; init; }  // First 100 chars
 }
 ```
 
-#### Infrastructure Events
+### ⚙️ Infrastructure Events
 
-Events tracking infrastructure operations (temp files, progress updates).
-
-**TempImageSaved**
-
-Raised when a rasterized page image is saved to the temp folder.
+#### TempImageSaved
+Raised when a rasterized page image is saved.
 
 ```csharp
 public class TempImageSaved : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }       // Full path to PDF file
+    public string FilePath { get; init; }       // Full path to PDF
     public int PageNumber { get; init; }        // Page number (1-based)
-    public string TempFilePath { get; init; }   // Path to temporary image file
-    public long FileSizeBytes { get; init; }    // Image file size in bytes
+    public string TempImagePath { get; init; }  // Temp image path
+    public long ImageSizeBytes { get; init; }   // Image file size
 }
 ```
 
-**TempFilesCleanedUp**
-
-Raised when temporary files are deleted after processing.
+#### TempFilesCleanedUp
+Raised when temporary files are deleted.
 
 ```csharp
 public class TempFilesCleanedUp : PdfExtractionEventBase
 {
-    public string[] DeletedFilePaths { get; init; } // Paths of deleted temporary files
-    public long TotalBytesFreed { get; init; }      // Total disk space freed (bytes)
+    public string[] DeletedFilePaths { get; init; } // Deleted paths
+    public int TotalFilesDeleted { get; init; }     // Count
 }
 ```
 
-**ExtractionProgressUpdated**
-
-Raised periodically during long operations to report progress (for progress bars).
+#### ExtractionProgressUpdated
+Raised periodically to report progress.
 
 ```csharp
 public class ExtractionProgressUpdated : PdfExtractionEventBase
 {
-    public string FilePath { get; init; }          // Full path to PDF file
-    public double OverallPercentage { get; init; } // Overall progress (0.0 to 100.0)
-    public int PagesProcessed { get; init; }       // Pages processed so far
-    public int TotalPages { get; init; }           // Total pages in document
-    public string CurrentOperation { get; init; }  // Description of current operation
+    public string FilePath { get; init; }          // Full path to PDF
+    public double OverallPercentage { get; init; } // Progress (0-100)
+    public int PagesProcessed { get; init; }       // Pages done
+    public int TotalPages { get; init; }           // Total pages
+    public string CurrentOperation { get; init; }  // Operation description
 }
 ```
 
-### Event Sequence Flow
+---
 
-Typical event flow for extracting a single PDF document:
+## 🗂️ Project Structure
 
-```text
-BatchExtractionStarted
-  │
-  └─> DocumentExtractionStarted
-      │
-      ├─> PageExtractionStarted (Page 1)
-      │   ├─> PageRasterizationStarted
-      │   ├─> PageRasterizationCompleted
-      │   ├─> TempImageSaved
-      │   ├─> OcrProcessingStarted
-      │   ├─> OcrProcessingCompleted
-      │   ├─> TextChunked
-      │   ├─> ChunkCreated (chunk 0)
-      │   ├─> ChunkCreated (chunk 1)
-      │   ├─> ChunkCreated (chunk n)
-      │   ├─> PageExtractionCompleted
-      │   └─> ExtractionProgressUpdated
-      │
-      ├─> PageExtractionStarted (Page 2)
-      │   └─> ... (same as Page 1)
-      │
-      ├─> PageExtractionStarted (Page N)
-      │   └─> ... (same as Page 1)
-      │
-      ├─> TempFilesCleanedUp
-      └─> DocumentExtractionCompleted
-  │
-  └─> BatchExtractionCompleted
+### PdfTextExtractor.Core (Class Library)
+
+```
+PdfTextExtractor.Core/
+├── 📁 Domain/ (Pure business logic - NO external dependencies)
+│   ├── 📁 ValueObjects/ (6 files)
+│   │   ├── FilePath.cs
+│   │   ├── PageNumber.cs
+│   │   ├── ChunkContent.cs
+│   │   ├── ExtractorType.cs
+│   │   ├── SessionId.cs
+│   │   └── CorrelationId.cs
+│   ├── 📁 Entities/ (3 files)
+│   │   ├── TextChunk.cs
+│   │   ├── Page.cs
+│   │   └── Document.cs
+│   ├── 📁 Aggregates/ (1 file)
+│   │   └── ExtractionSession.cs (Aggregate Root)
+│   └── 📁 Events/ (26 files)
+│       ├── PdfExtractionEventBase.cs
+│       ├── IEventPublisher.cs
+│       ├── 📁 Batch/ (4 events)
+│       ├── 📁 Document/ (4 events)
+│       ├── 📁 Page/ (4 events)
+│       ├── 📁 Ocr/ (6 events)
+│       ├── 📁 TextProcessing/ (2 events)
+│       └── 📁 Infrastructure/ (3 events)
+├── 📁 Infrastructure/ (Technical implementations)
+│   ├── 📁 FileSystem/ (4 files)
+│   │   ├── IFileSystemService.cs
+│   │   ├── FileSystemService.cs
+│   │   ├── ITextFileWriter.cs
+│   │   └── TextFileWriter.cs
+│   ├── 📁 EventBus/ (1 file)
+│   │   └── ReactiveEventPublisher.cs (Rx.NET)
+│   └── 📁 Extractors/ (4 files)
+│       ├── IPdfTextExtractor.cs
+│       ├── PdfPigExtractor.cs (✅ Implemented)
+│       ├── LMStudioOcrExtractor.cs (🚧 Stub)
+│       └── OllamaOcrExtractor.cs (📅 Planned)
+├── 📁 Configuration/ (4 files)
+│   ├── TextExtractionMethod.cs (enum)
+│   ├── PdfPigParameters.cs
+│   ├── LMStudioParameters.cs
+│   └── OllamaParameters.cs
+├── 📁 Models/ (2 files)
+│   ├── DocumentChunk.cs
+│   └── ExtractionResult.cs
+├── 📄 IPdfTextExtractorLib.cs (Public API interface)
+├── 📄 PdfTextExtractorLib.cs (Main entry point + Autofac module)
+└── 📄 PdfTextExtractor.Core.csproj
 ```
 
-**Error/Cancellation Flow:**
+### PdfTextExtractor.Cli (Console Application)
 
-If an error or cancellation occurs at any stage, the corresponding failure/cancellation event is raised:
-
-```text
-PageExtractionStarted (Page 5)
-  ├─> PageRasterizationStarted
-  ├─> PageRasterizationFailed  ← Error occurs
-  └─> PageExtractionFailed
-  └─> DocumentExtractionFailed
-  └─> BatchExtractionFailed
+```
+PdfTextExtractor.Cli/
+├── 📄 Program.cs (CLI entry point)
+├── 📄 PdfTextExtractor.Cli.csproj
+└── 🔗 References PdfTextExtractor.Core
 ```
 
-### Usage Examples
+**Executable**: `pdftextextractor.exe` or `pdfextract.exe`
 
-#### Publishing Events (Extractor Implementation)
+### PdfTextExtractor.Wpf (WPF Application)
 
-Extractors publish events at each stage of processing:
+```
+PdfTextExtractor.Wpf/
+├── 📄 MainWindow.xaml (WPF UI)
+├── 📄 MainWindow.xaml.cs (Code-behind)
+├── 📄 PdfTextExtractor.Wpf.csproj
+└── 🔗 References PdfTextExtractor.Core
+```
+
+**Executable**: `PdfTextExtractor.exe`
+
+---
+
+## 🎓 Usage Examples
+
+### Example 1: CLI with Event Logging
 
 ```csharp
-public class PdfPigExtractor : IPdfExtractor
-{
-    public async Task<IEnumerable<DocumentChunk>> ExtractAsync(
-        string filePath,
-        IEventPublisher eventPublisher,
-        Guid correlationId,
-        Guid sessionId,
-        CancellationToken cancellationToken)
-    {
-        var startTime = DateTimeOffset.UtcNow;
+using PdfTextExtractor.Core;
+using PdfTextExtractor.Core.Configuration;
+using PdfTextExtractor.Core.Domain.Events.Document;
+using PdfTextExtractor.Core.Domain.Events.Infrastructure;
+using System.Reactive.Linq;
 
-        // Publish document started event
-        eventPublisher.Publish(new DocumentExtractionStarted
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        using var lib = new PdfTextExtractorLib();
+
+        // Subscribe to events
+        lib.Events.OfType<DocumentExtractionStarted>()
+            .Subscribe(e => Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] 📄 Starting: {e.FileName}"));
+
+        lib.Events.OfType<ExtractionProgressUpdated>()
+            .Subscribe(e => Console.WriteLine($"  ⏳ {e.OverallPercentage:F1}% - {e.CurrentOperation}"));
+
+        lib.Events.OfType<DocumentExtractionCompleted>()
+            .Subscribe(e => Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] ✅ Done: {e.TotalPages} pages, {e.Duration.TotalSeconds:F1}s"));
+
+        lib.Events.OfType<DocumentExtractionFailed>()
+            .Subscribe(e => Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] ❌ Error: {e.ErrorMessage}"));
+
+        // Extract
+        var result = await lib.ExtractWithPdfPigAsync(new PdfPigParameters
         {
-            CorrelationId = correlationId,
-            SessionId = sessionId,
-            ExtractorName = "PdfPig",
-            FilePath = filePath,
-            FileName = Path.GetFileName(filePath),
-            FileSizeBytes = new FileInfo(filePath).Length
+            PdfFolderPath = args.Length > 0 ? args[0] : "./pdfs",
+            OutputFolderPath = "./output"
         });
 
-        try
-        {
-            using var document = PdfDocument.Open(filePath);
-            var totalPages = document.NumberOfPages;
-            int pagesProcessed = 0;
-
-            foreach (var page in document.GetPages())
-            {
-                // Publish page started event
-                eventPublisher.Publish(new PageExtractionStarted
-                {
-                    CorrelationId = correlationId,
-                    SessionId = sessionId,
-                    ExtractorName = "PdfPig",
-                    FilePath = filePath,
-                    PageNumber = page.Number,
-                    TotalPages = totalPages
-                });
-
-                // ... extract text ...
-
-                // Publish progress event
-                pagesProcessed++;
-                eventPublisher.Publish(new ExtractionProgressUpdated
-                {
-                    CorrelationId = correlationId,
-                    SessionId = sessionId,
-                    ExtractorName = "PdfPig",
-                    FilePath = filePath,
-                    OverallPercentage = (double)pagesProcessed / totalPages * 100,
-                    PagesProcessed = pagesProcessed,
-                    TotalPages = totalPages,
-                    CurrentOperation = $"Processing page {page.Number}"
-                });
-
-                // Publish page completed event
-                eventPublisher.Publish(new PageExtractionCompleted
-                {
-                    CorrelationId = correlationId,
-                    SessionId = sessionId,
-                    ExtractorName = "PdfPig",
-                    FilePath = filePath,
-                    PageNumber = page.Number,
-                    ExtractedTextLength = pageText.Length,
-                    ChunkCount = chunks.Count
-                });
-            }
-
-            // Publish document completed event
-            eventPublisher.Publish(new DocumentExtractionCompleted
-            {
-                CorrelationId = correlationId,
-                SessionId = sessionId,
-                ExtractorName = "PdfPig",
-                FilePath = filePath,
-                TotalPages = totalPages,
-                TotalChunks = allChunks.Count,
-                Duration = DateTimeOffset.UtcNow - startTime
-            });
-
-            return allChunks;
-        }
-        catch (Exception ex)
-        {
-            // Publish failure event
-            eventPublisher.Publish(new DocumentExtractionFailed
-            {
-                CorrelationId = correlationId,
-                SessionId = sessionId,
-                ExtractorName = "PdfPig",
-                FilePath = filePath,
-                ErrorMessage = ex.Message,
-                ExceptionType = ex.GetType().Name
-            });
-            throw;
-        }
+        Console.WriteLine($"\n🎉 Extraction complete!");
+        Console.WriteLine($"  Output: {result.TextFilePath}");
+        Console.WriteLine($"  Pages: {result.TotalPages}");
+        Console.WriteLine($"  Chunks: {result.TotalChunks}");
+        Console.WriteLine($"  Duration: {result.Duration.TotalSeconds:F1}s");
     }
 }
 ```
 
-#### Subscribing to Events (Consumer Implementation)
-
-**CLI Logging Example:**
+### Example 2: WPF with Progress Bar
 
 ```csharp
-public class CliProgram
+using PdfTextExtractor.Core;
+using PdfTextExtractor.Core.Configuration;
+using PdfTextExtractor.Core.Domain.Events.Infrastructure;
+using System.Reactive.Linq;
+using System.Windows;
+
+public partial class MainWindow : Window
 {
-    public static void Main(string[] args)
+    private readonly PdfTextExtractorLib _lib;
+
+    public MainWindow()
     {
-        var eventBus = new InMemoryEventBus();
-
-        // Subscribe to events for logging
-        eventBus.Subscribe<DocumentExtractionStarted>(e =>
-            Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] Starting extraction: {e.FileName}"));
-
-        eventBus.Subscribe<PageExtractionCompleted>(e =>
-            Console.WriteLine($"  Page {e.PageNumber} completed ({e.ChunkCount} chunks)"));
-
-        eventBus.Subscribe<ExtractionProgressUpdated>(e =>
-            Console.WriteLine($"  Progress: {e.OverallPercentage:F1}% ({e.PagesProcessed}/{e.TotalPages})"));
-
-        eventBus.Subscribe<DocumentExtractionCompleted>(e =>
-            Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] Completed: {Path.GetFileName(e.FilePath)} " +
-                            $"({e.TotalPages} pages, {e.TotalChunks} chunks, {e.Duration.TotalSeconds:F1}s)"));
-
-        eventBus.Subscribe<DocumentExtractionFailed>(e =>
-            Console.WriteLine($"[{e.Timestamp:HH:mm:ss}] ERROR: {e.ErrorMessage}"));
-
-        // Run extraction with event bus
-        var extractor = new PdfPigExtractor();
-        var sessionId = Guid.NewGuid();
-        var correlationId = Guid.NewGuid();
-
-        var result = await extractor.ExtractAsync("document.pdf", eventBus, correlationId, sessionId);
-    }
-}
-```
-
-**WPF GUI Example:**
-
-```csharp
-public class MainViewModel : INotifyPropertyChanged
-{
-    private readonly IEventBus _eventBus;
-    private double _progressPercentage;
-    private string _currentOperation;
-    private string _extractedText;
-
-    public MainViewModel(IEventBus eventBus)
-    {
-        _eventBus = eventBus;
+        InitializeComponent();
+        _lib = new PdfTextExtractorLib();
 
         // Subscribe to progress updates
-        _eventBus.Subscribe<ExtractionProgressUpdated>(e =>
-        {
-            Application.Current.Dispatcher.Invoke(() =>
+        _lib.Events.OfType<ExtractionProgressUpdated>()
+            .Subscribe(e => Dispatcher.Invoke(() =>
             {
-                ProgressPercentage = e.OverallPercentage;
-                CurrentOperation = e.CurrentOperation;
-            });
-        });
+                ProgressBar.Value = e.OverallPercentage;
+                StatusLabel.Content = e.CurrentOperation;
+            }));
 
-        // Subscribe to OCR completion for live text preview
-        _eventBus.Subscribe<OcrProcessingCompleted>(e =>
-        {
-            Application.Current.Dispatcher.Invoke(() =>
+        // Subscribe to completion
+        _lib.Events.OfType<DocumentExtractionCompleted>()
+            .Subscribe(e => Dispatcher.Invoke(() =>
             {
-                ExtractedText += $"\n--- Page {e.PageNumber} ---\n{e.ExtractedText}\n";
-            });
-        });
-
-        // Subscribe to errors for notifications
-        _eventBus.Subscribe<PageExtractionFailed>(e =>
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                MessageBox.Show($"Error on page {e.PageNumber}: {e.ErrorMessage}",
-                              "Extraction Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            });
-        });
-
-        // Subscribe to completion for final actions
-        _eventBus.Subscribe<DocumentExtractionCompleted>(e =>
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                MessageBox.Show($"Extraction completed!\n\nPages: {e.TotalPages}\n" +
-                              $"Chunks: {e.TotalChunks}\nTime: {e.Duration.TotalSeconds:F1}s",
+                MessageBox.Show($"Extraction complete!\n\n" +
+                              $"Pages: {e.TotalPages}\n" +
+                              $"Chunks: {e.TotalChunks}\n" +
+                              $"Duration: {e.Duration.TotalSeconds:F1}s",
                               "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                IsExtractionComplete = true;
-            });
+            }));
+    }
+
+    private async void ExtractButton_Click(object sender, RoutedEventArgs e)
+    {
+        var result = await _lib.ExtractWithPdfPigAsync(new PdfPigParameters
+        {
+            PdfFolderPath = PdfFolderTextBox.Text,
+            OutputFolderPath = OutputFolderTextBox.Text
         });
-    }
-
-    public double ProgressPercentage
-    {
-        get => _progressPercentage;
-        set { _progressPercentage = value; OnPropertyChanged(); }
-    }
-
-    public string CurrentOperation
-    {
-        get => _currentOperation;
-        set { _currentOperation = value; OnPropertyChanged(); }
-    }
-
-    public string ExtractedText
-    {
-        get => _extractedText;
-        set { _extractedText = value; OnPropertyChanged(); }
     }
 }
 ```
 
-### Integration with PdfTextExtractor Projects
+---
 
-#### Core Library (PdfTextExtractor.Core)
+## 🔮 Future Enhancements
 
-The Core library contains all event infrastructure:
+### Phase 6: LM Studio OCR Implementation
+- Implement page rasterization (PDF → PNG/JPEG)
+- Integrate LM Studio vision API (`/v1/chat/completions`)
+- Extract text from vision model response
+- Publish rasterization and OCR events
 
-**Event Classes:**
+### Phase 7: Ollama OCR Implementation
+- Implement Ollama vision API integration (`/api/generate`)
+- Support local, free OCR extraction
+- Same event publishing pattern as LM Studio
 
-- `Events/PdfExtractionEventBase.cs` - Base class with metadata
-- `Events/Batch/*.cs` - 4 batch event classes
-- `Events/Document/*.cs` - 4 document event classes
-- `Events/Page/*.cs` - 4 page event classes
-- `Events/Ocr/*.cs` - 6 OCR/rasterization event classes
-- `Events/TextProcessing/*.cs` - 2 text processing event classes
-- `Events/Infrastructure/*.cs` - 3 infrastructure event classes
+### Phase 8: Advanced Features
+- **Rasterization service** with configurable DPI
+- **Temp file management** for OCR images
+- **Batch processing optimization** with parallel page processing
+- **Retry logic** for API failures
+- **Confidence scoring** for OCR results
+- **Event persistence** (SQLite/JSON) for debugging/auditing
+- **Event replay** for timeline reconstruction
 
-**Event Infrastructure:**
+---
 
-- `Events/IEventPublisher.cs` - Publisher interface
-- `Events/IEventSubscriber.cs` - Subscriber interface
-- `Events/InMemoryEventBus.cs` - Thread-safe event bus implementation
+## 📝 License
 
-**Modified Interfaces:**
+This project is part of the SemanticKernel-FundDocsQnA solution.
 
-- `IPdfExtractor.ExtractAsync()` signature includes `IEventPublisher`, `correlationId`, `sessionId` parameters
+---
 
-#### CLI Application (PdfTextExtractor.Cli)
+## 🤝 Contributing
 
-The CLI subscribes to events for console logging and progress reporting:
+Follow DDD principles when adding new features:
+- **Domain layer**: Pure business logic, no external dependencies
+- **Infrastructure layer**: Technical implementations (extractors, file system, APIs)
+- **ApplicationCore layer**: Use cases, DTOs, orchestration
+- **Events**: Publish domain events at every significant operation
+- **Autofac**: Register all new services in `PdfTextExtractorModule`
 
-```csharp
-// Subscribe to key events
-eventBus.Subscribe<DocumentExtractionStarted>(e => LogDocumentStarted(e));
-eventBus.Subscribe<ExtractionProgressUpdated>(e => UpdateProgressBar(e));
-eventBus.Subscribe<DocumentExtractionCompleted>(e => LogDocumentCompleted(e));
-eventBus.Subscribe<DocumentExtractionFailed>(e => LogError(e));
-```
+---
 
-**Use Cases:**
-
-- Log extraction progress to console
-- Display progress bar (ASCII art or percentage)
-- Report errors with context
-- Track batch statistics (total time, success/failure counts)
-
-#### WPF Application (PdfTextExtractor.Wpf)
-
-The WPF GUI subscribes to events for real-time UI updates:
-
-```csharp
-// Progress tracking
-eventBus.Subscribe<ExtractionProgressUpdated>(e => UpdateProgressBar(e));
-
-// Live text preview
-eventBus.Subscribe<OcrProcessingCompleted>(e => AppendTextPreview(e));
-
-// Page image display
-eventBus.Subscribe<TempImageSaved>(e => DisplayPageImage(e.TempFilePath));
-
-// Error handling
-eventBus.Subscribe<PageExtractionFailed>(e => ShowErrorDialog(e));
-eventBus.Subscribe<DocumentExtractionFailed>(e => ShowErrorDialog(e));
-
-// Completion handling
-eventBus.Subscribe<DocumentExtractionCompleted>(e => EnableSaveButton(e));
-```
-
-### WPF GUI Features Enabled by Events
-
-Domain events enable rich, real-time GUI functionality:
-
-1. **Real-time Progress Tracking**
-   - Subscribe to `ExtractionProgressUpdated` to update progress bar
-   - Show current operation description ("Processing page 5 of 10")
-   - Display percentage complete with smooth updates
-
-2. **Live Text Preview**
-   - Subscribe to `OcrProcessingCompleted` to display extracted text as pages are processed
-   - Show text in scrollable text box, appending each page
-   - Enable "Copy to Clipboard" as text becomes available
-
-3. **Page Image Display**
-   - Subscribe to `TempImageSaved` to display rasterized page images
-   - Show thumbnail gallery of processed pages
-   - Allow users to click thumbnails to view full-size images
-
-4. **Error Notifications**
-   - Subscribe to `*Failed` events to show error dialogs
-   - Display specific error details (page number, error message)
-   - Offer retry/skip/cancel options
-
-5. **Cancellation Support**
-   - Subscribe to `ExtractionProgressUpdated` to enable "Cancel" button
-   - Show cancellation confirmation dialog
-   - Subscribe to `*Cancelled` events to update UI state
-
-6. **Performance Monitoring**
-   - Subscribe to `DocumentExtractionCompleted` to display statistics
-   - Show total time, pages/second, chunks created
-   - Track historical extraction performance
-
-7. **Batch Processing UI**
-   - Subscribe to `BatchExtractionStarted` to show batch progress
-   - Display multi-file progress (e.g., "Processing file 3 of 10")
-   - Show overall batch completion percentage
-
-### Future Enhancements
-
-**Event Persistence/Replay:**
-
-- Store events to SQLite or JSON for debugging and auditing
-- Replay events to reconstruct extraction timeline
-- Enable "what went wrong" analysis for failed extractions
-
-**Event Filtering:**
-
-- Filter events by `CorrelationId` for single-file tracking
-- Filter events by `SessionId` for batch-level analysis
-- Filter by event type for focused monitoring
-
-**Async Event Handlers:**
-
-- Support async event handlers for I/O-bound operations
-- Enable background processing (save events to database, send to monitoring service)
-
-**External Event Buses:**
-
-- Integrate with SignalR for real-time web dashboard
-- Publish to RabbitMQ/Azure Service Bus for distributed processing
-- Enable remote monitoring of extraction operations
-
-**Event Aggregation:**
-
-- Aggregate events for batch-level statistics
-- Calculate average processing time per page
-- Identify slowest pages/documents for optimization
+**Built with ❤️ using Domain-Driven Design and Rx.NET**
