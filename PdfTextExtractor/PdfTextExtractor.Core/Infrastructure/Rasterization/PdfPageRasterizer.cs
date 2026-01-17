@@ -14,9 +14,9 @@ public class PdfPageRasterizer : IRasterizationService
 {
     private readonly ILogger<PdfPageRasterizer> _logger;
 
-    public PdfPageRasterizer(ILogger<PdfPageRasterizer>? logger = null)
+    public PdfPageRasterizer(ILogger<PdfPageRasterizer> logger)
     {
-        _logger = logger ?? NullLogger<PdfPageRasterizer>.Instance;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<RasterizationResult> RasterizePageAsync(

@@ -10,13 +10,13 @@ namespace PdfTextExtractor.Core.Infrastructure.LMStudio;
 /// </summary>
 public class LMStudioVisionClient : ILMStudioVisionClient
 {
-    private readonly HttpClient _httpClient;
     private readonly ILogger<LMStudioVisionClient> _logger;
+    private readonly HttpClient _httpClient;
 
-    public LMStudioVisionClient(HttpClient httpClient, ILogger<LMStudioVisionClient>? logger = null)
+    public LMStudioVisionClient(ILogger<LMStudioVisionClient> logger, HttpClient httpClient)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? NullLogger<LMStudioVisionClient>.Instance;
     }
 
     public async Task<string> ExtractTextFromImageAsync(

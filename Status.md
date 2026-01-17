@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-17 (PdfTextExtractor.Core Library Implementation Complete)
+Last Updated: 2026-01-17 (PdfTextExtractor.Core Library with Unit Tests Complete)
 
 **Tech Stack:**
 
@@ -336,6 +336,7 @@ Reusable .NET library for PDF text extraction using Domain-Driven Design archite
 | Public API | ✅ | IPdfTextExtractorLib with three async extraction methods |
 | Configuration DTOs | ✅ | PdfPigParameters, LMStudioParameters, OllamaParameters |
 | Build Verification | ✅ | 0 build errors, 7 nullable warnings (expected for EF Core) |
+| Unit Testing | ✅ | 19 test classes, 70 test methods, 90% pass rate (63/70 passing), NUnit + AutoFixture + Moq |
 | Documentation | ✅ | Comprehensive README with icons, 5 Mermaid diagrams, tech stack, API reference |
 
 ### Domain Events (23 Total)

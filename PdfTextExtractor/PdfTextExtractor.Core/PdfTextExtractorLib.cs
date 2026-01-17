@@ -1,4 +1,6 @@
 using Autofac;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PdfTextExtractor.Core.Configuration;
 using PdfTextExtractor.Core.Domain.Events;
 using PdfTextExtractor.Core.Domain.Events.Batch;
@@ -50,7 +52,9 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
     {
         ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
 
-        var extractor = new PdfPigExtractor(parameters.ChunkSize);
+        var logger = _container.ResolveOptional<ILogger<PdfPigExtractor>>()
+            ?? NullLogger<PdfPigExtractor>.Instance;
+        var extractor = new PdfPigExtractor(logger, parameters.ChunkSize);
         return await ExtractCoreAsync(
             extractor,
             parameters.PdfFolderPath,
@@ -68,14 +72,15 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         // Resolve dependencies from container
         var rasterizationService = _container.Resolve<IRasterizationService>();
         var visionClient = _container.Resolve<ILMStudioVisionClient>();
-        var logger = _container.ResolveOptional<Microsoft.Extensions.Logging.ILogger<LMStudioOcrExtractor>>();
+        var logger = _container.ResolveOptional<ILogger<LMStudioOcrExtractor>>()
+            ?? NullLogger<LMStudioOcrExtractor>.Instance;
 
         // Manually construct extractor with parameters
         var extractor = new LMStudioOcrExtractor(
+            logger,
             rasterizationService,
             visionClient,
-            parameters,
-            logger);
+            parameters);
 
         return await ExtractCoreAsync(
             extractor,
@@ -226,12 +231,14 @@ public class PdfTextExtractorModule : Module
         // Rasterization service
         builder.RegisterType<PdfPageRasterizer>()
             .As<IRasterizationService>()
-            .InstancePerDependency();
+            .InstancePerDependency()
+            .WithParameter(new TypedParameter(typeof(ILogger<PdfPageRasterizer>), NullLogger<PdfPageRasterizer>.Instance));
 
         // LM Studio vision client
         builder.RegisterType<LMStudioVisionClient>()
             .As<ILMStudioVisionClient>()
             .InstancePerDependency()
+            .WithParameter(new TypedParameter(typeof(ILogger<LMStudioVisionClient>), NullLogger<LMStudioVisionClient>.Instance))
             .WithParameter(new TypedParameter(typeof(HttpClient), new HttpClient()));
 
         // Extractors

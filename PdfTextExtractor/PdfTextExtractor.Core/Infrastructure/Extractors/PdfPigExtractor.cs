@@ -19,15 +19,15 @@ namespace PdfTextExtractor.Core.Infrastructure.Extractors;
 /// </summary>
 public class PdfPigExtractor : IPdfTextExtractor
 {
-    private readonly int _chunkSize;
     private readonly ILogger<PdfPigExtractor> _logger;
+    private readonly int _chunkSize;
 
     public TextExtractionMethod Method => TextExtractionMethod.PdfPig;
 
-    public PdfPigExtractor(int chunkSize = 1000, ILogger<PdfPigExtractor>? logger = null)
+    public PdfPigExtractor(ILogger<PdfPigExtractor> logger, int chunkSize = 1000)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _chunkSize = chunkSize;
-        _logger = logger ?? NullLogger<PdfPigExtractor>.Instance;
     }
 
     public async Task<IEnumerable<DocumentChunk>> ExtractAsync(

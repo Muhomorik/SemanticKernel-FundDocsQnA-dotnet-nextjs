@@ -21,23 +21,23 @@ namespace PdfTextExtractor.Core.Infrastructure.Extractors;
 /// </summary>
 public class LMStudioOcrExtractor : IPdfTextExtractor
 {
+    private readonly ILogger<LMStudioOcrExtractor> _logger;
     private readonly IRasterizationService _rasterizationService;
     private readonly ILMStudioVisionClient _visionClient;
     private readonly LMStudioParameters _parameters;
-    private readonly ILogger<LMStudioOcrExtractor> _logger;
 
     public TextExtractionMethod Method => TextExtractionMethod.LMStudio;
 
     public LMStudioOcrExtractor(
+        ILogger<LMStudioOcrExtractor> logger,
         IRasterizationService rasterizationService,
         ILMStudioVisionClient visionClient,
-        LMStudioParameters parameters,
-        ILogger<LMStudioOcrExtractor>? logger = null)
+        LMStudioParameters parameters)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _rasterizationService = rasterizationService ?? throw new ArgumentNullException(nameof(rasterizationService));
         _visionClient = visionClient ?? throw new ArgumentNullException(nameof(visionClient));
         _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
-        _logger = logger ?? NullLogger<LMStudioOcrExtractor>.Instance;
     }
 
     public async Task<IEnumerable<DocumentChunk>> ExtractAsync(
