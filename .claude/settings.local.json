@@ -12,6 +12,7 @@
   "enabledMcpjsonServers": [
     "microsoft-learn",
     "next-devtools",
-    "shadcn"
+    "shadcn",
+    "dxdocs"
   ]
 }

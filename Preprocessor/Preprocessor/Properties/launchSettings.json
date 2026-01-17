@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Preprocessor": {
-      "commandName": "Project",
-      "commandLineArgs": "cosmosdb --url http://localhost:5000 --batch-size 10 --key kpEjMGBj1F0vyJsiqjQWqVmhyLlcRZ8QZMzaCr9wYwI= --operation replace-all\r\n"
-    }
-  }
-}
