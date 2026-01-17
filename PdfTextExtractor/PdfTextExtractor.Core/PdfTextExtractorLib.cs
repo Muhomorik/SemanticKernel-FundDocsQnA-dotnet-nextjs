@@ -5,6 +5,8 @@ using PdfTextExtractor.Core.Domain.Events.Batch;
 using PdfTextExtractor.Core.Infrastructure.EventBus;
 using PdfTextExtractor.Core.Infrastructure.Extractors;
 using PdfTextExtractor.Core.Infrastructure.FileSystem;
+using PdfTextExtractor.Core.Infrastructure.LMStudio;
+using PdfTextExtractor.Core.Infrastructure.Rasterization;
 using PdfTextExtractor.Core.Models;
 
 namespace PdfTextExtractor.Core;
@@ -63,7 +65,18 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
     {
         ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
 
-        var extractor = _container.Resolve<LMStudioOcrExtractor>();
+        // Resolve dependencies from container
+        var rasterizationService = _container.Resolve<IRasterizationService>();
+        var visionClient = _container.Resolve<ILMStudioVisionClient>();
+        var logger = _container.ResolveOptional<Microsoft.Extensions.Logging.ILogger<LMStudioOcrExtractor>>();
+
+        // Manually construct extractor with parameters
+        var extractor = new LMStudioOcrExtractor(
+            rasterizationService,
+            visionClient,
+            parameters,
+            logger);
+
         return await ExtractCoreAsync(
             extractor,
             parameters.PdfFolderPath,
@@ -209,6 +222,17 @@ public class PdfTextExtractorModule : Module
         builder.RegisterType<TextFileWriter>()
             .As<ITextFileWriter>()
             .InstancePerDependency();
+
+        // Rasterization service
+        builder.RegisterType<PdfPageRasterizer>()
+            .As<IRasterizationService>()
+            .InstancePerDependency();
+
+        // LM Studio vision client
+        builder.RegisterType<LMStudioVisionClient>()
+            .As<ILMStudioVisionClient>()
+            .InstancePerDependency()
+            .WithParameter(new TypedParameter(typeof(HttpClient), new HttpClient()));
 
         // Extractors
         builder.RegisterType<PdfPigExtractor>()

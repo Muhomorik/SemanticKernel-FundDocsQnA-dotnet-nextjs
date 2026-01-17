@@ -27,6 +27,9 @@
 
     <!-- Logging -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+
+    <!-- PDF to Image conversion for OCR -->
+    <PackageReference Include="PDFtoImage" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

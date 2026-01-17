@@ -24,6 +24,7 @@
 - **🖥️ PdfTextExtractor.Wpf** - Windows desktop GUI (`PdfTextExtractor.exe`)
 
 **Key Features:**
+
 - ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), Ollama (OCR - planned)
 - ✅ **Real-time events**: Rx.NET observable streams for progress tracking and UI updates
 - ✅ **Domain-Driven Design**: Clean separation of concerns with Domain/ApplicationCore/Infrastructure layers
@@ -243,6 +244,7 @@ Task<ExtractionResult> ExtractWithPdfPigAsync(
 ```
 
 **PdfPigParameters:**
+
 ```csharp
 public class PdfPigParameters
 {
@@ -265,6 +267,7 @@ Task<ExtractionResult> ExtractWithLMStudioAsync(
 ```
 
 **LMStudioParameters:**
+
 ```csharp
 public class LMStudioParameters
 {
@@ -290,6 +293,7 @@ Task<ExtractionResult> ExtractWithOllamaAsync(
 ```
 
 **OllamaParameters:**
+
 ```csharp
 public class OllamaParameters
 {
@@ -440,6 +444,7 @@ graph TD
 ### 📋 Batch Events
 
 #### BatchExtractionStarted
+
 Raised before processing any PDF files in a batch.
 
 ```csharp
@@ -451,6 +456,7 @@ public class BatchExtractionStarted : PdfExtractionEventBase
 ```
 
 #### BatchExtractionCompleted
+
 Raised after all PDF files processed successfully.
 
 ```csharp
@@ -463,6 +469,7 @@ public class BatchExtractionCompleted : PdfExtractionEventBase
 ```
 
 #### BatchExtractionFailed
+
 Raised when batch processing fails.
 
 ```csharp
@@ -475,6 +482,7 @@ public class BatchExtractionFailed : PdfExtractionEventBase
 ```
 
 #### BatchExtractionCancelled
+
 Raised when batch operation is cancelled.
 
 ```csharp
@@ -488,6 +496,7 @@ public class BatchExtractionCancelled : PdfExtractionEventBase
 ### 📄 Document Events
 
 #### DocumentExtractionStarted
+
 Raised before opening/processing a PDF document.
 
 ```csharp
@@ -500,6 +509,7 @@ public class DocumentExtractionStarted : PdfExtractionEventBase
 ```
 
 #### DocumentExtractionCompleted
+
 Raised after successfully processing all pages.
 
 ```csharp
@@ -514,6 +524,7 @@ public class DocumentExtractionCompleted : PdfExtractionEventBase
 ```
 
 #### DocumentExtractionFailed
+
 Raised when document processing fails.
 
 ```csharp
@@ -527,6 +538,7 @@ public class DocumentExtractionFailed : PdfExtractionEventBase
 ```
 
 #### DocumentExtractionCancelled
+
 Raised when document processing is cancelled.
 
 ```csharp
@@ -540,6 +552,7 @@ public class DocumentExtractionCancelled : PdfExtractionEventBase
 ### 📃 Page Events
 
 #### PageExtractionStarted
+
 Raised before processing a specific page.
 
 ```csharp
@@ -552,6 +565,7 @@ public class PageExtractionStarted : PdfExtractionEventBase
 ```
 
 #### PageExtractionCompleted
+
 Raised after page is fully processed.
 
 ```csharp
@@ -565,6 +579,7 @@ public class PageExtractionCompleted : PdfExtractionEventBase
 ```
 
 #### PageExtractionFailed
+
 Raised when page processing fails.
 
 ```csharp
@@ -578,6 +593,7 @@ public class PageExtractionFailed : PdfExtractionEventBase
 ```
 
 #### EmptyPageDetected
+
 Raised when a page has no extractable text.
 
 ```csharp
@@ -591,6 +607,7 @@ public class EmptyPageDetected : PdfExtractionEventBase
 ### 🖼️ OCR Events
 
 #### PageRasterizationStarted
+
 Raised before converting page to image.
 
 ```csharp
@@ -603,6 +620,7 @@ public class PageRasterizationStarted : PdfExtractionEventBase
 ```
 
 #### PageRasterizationCompleted
+
 Raised after page is rasterized to image.
 
 ```csharp
@@ -616,6 +634,7 @@ public class PageRasterizationCompleted : PdfExtractionEventBase
 ```
 
 #### PageRasterizationFailed
+
 Raised when page rasterization fails.
 
 ```csharp
@@ -629,6 +648,7 @@ public class PageRasterizationFailed : PdfExtractionEventBase
 ```
 
 #### OcrProcessingStarted
+
 Raised before OCR processing on page image.
 
 ```csharp
@@ -641,6 +661,7 @@ public class OcrProcessingStarted : PdfExtractionEventBase
 ```
 
 #### OcrProcessingCompleted
+
 Raised after OCR text extraction is completed.
 
 ```csharp
@@ -654,6 +675,7 @@ public class OcrProcessingCompleted : PdfExtractionEventBase
 ```
 
 #### OcrProcessingFailed
+
 Raised when OCR processing fails.
 
 ```csharp
@@ -669,6 +691,7 @@ public class OcrProcessingFailed : PdfExtractionEventBase
 ### ✂️ Text Processing Events
 
 #### TextChunked
+
 Raised after text is split into chunks.
 
 ```csharp
@@ -682,6 +705,7 @@ public class TextChunked : PdfExtractionEventBase
 ```
 
 #### ChunkCreated
+
 Raised when an individual text chunk is created.
 
 ```csharp
@@ -698,6 +722,7 @@ public class ChunkCreated : PdfExtractionEventBase
 ### ⚙️ Infrastructure Events
 
 #### TempImageSaved
+
 Raised when a rasterized page image is saved.
 
 ```csharp
@@ -711,6 +736,7 @@ public class TempImageSaved : PdfExtractionEventBase
 ```
 
 #### TempFilesCleanedUp
+
 Raised when temporary files are deleted.
 
 ```csharp
@@ -722,6 +748,7 @@ public class TempFilesCleanedUp : PdfExtractionEventBase
 ```
 
 #### ExtractionProgressUpdated
+
 Raised periodically to report progress.
 
 ```csharp
@@ -917,17 +944,20 @@ public partial class MainWindow : Window
 ## 🔮 Future Enhancements
 
 ### Phase 6: LM Studio OCR Implementation
+
 - Implement page rasterization (PDF → PNG/JPEG)
 - Integrate LM Studio vision API (`/v1/chat/completions`)
 - Extract text from vision model response
 - Publish rasterization and OCR events
 
 ### Phase 7: Ollama OCR Implementation
+
 - Implement Ollama vision API integration (`/api/generate`)
 - Support local, free OCR extraction
 - Same event publishing pattern as LM Studio
 
 ### Phase 8: Advanced Features
+
 - **Rasterization service** with configurable DPI
 - **Temp file management** for OCR images
 - **Batch processing optimization** with parallel page processing
@@ -947,6 +977,7 @@ This project is part of the SemanticKernel-FundDocsQnA solution.
 ## 🤝 Contributing
 
 Follow DDD principles when adding new features:
+
 - **Domain layer**: Pure business logic, no external dependencies
 - **Infrastructure layer**: Technical implementations (extractors, file system, APIs)
 - **ApplicationCore layer**: Use cases, DTOs, orchestration
