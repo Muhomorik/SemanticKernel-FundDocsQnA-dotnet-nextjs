@@ -12,4 +12,12 @@
     <ProjectReference Include="..\PdfTextExtractor.Core\PdfTextExtractor.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="9.0.0" />
+    <PackageReference Include="DevExpressMvvm" Version="24.1.6" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+    <PackageReference Include="NLog" Version="6.0.7" />
+    <PackageReference Include="System.Reactive" Version="6.1.0" />
+  </ItemGroup>
+
 </Project>
