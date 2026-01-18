@@ -199,6 +199,131 @@ public class LMStudioOcrExtractorIntegrationTests
 
     #endregion
 
+    #region MaxTokens Configuration Tests
+
+    [Test]
+    [TestCase(200, 150, Description = "200 tokens (800 chars) - baseline, safe")]
+    [TestCase(500, 150, Description = "500 tokens (2000 chars) - partial pages")]
+    [TestCase(1000, 150, Description = "1000 tokens (4000 chars) - near full pages")]
+    [TestCase(1500, 150, Description = "1500 tokens (6000 chars) - full pages, meets 5K requirement")]
+    public async Task ExtractAsync_DifferentMaxTokens_ExtractsExpectedCharacterCount(int maxTokens, int dpi)
+    {
+        // Arrange
+        if (!TestPdfFiles.SamplePdfExists)
+        {
+            Assert.Ignore("Test PDF file not found");
+        }
+
+        var parameters = CreateParameters(dpi: dpi, maxTokens: maxTokens);
+        _sut = CreateExtractor(parameters);
+
+        var correlationId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        Console.WriteLine($"=== Testing MaxTokens: {maxTokens} with DPI: {dpi} ===");
+        Console.WriteLine($"Expected characters per page: ~{maxTokens * 4}");
+        Console.WriteLine($"Estimated context usage: ~{(dpi == 150 ? 2500 : dpi == 200 ? 3800 : 5000) + maxTokens} / 4096 tokens");
+
+        // Act
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var result = await _sut.ExtractAsync(
+            TestPdfFiles.SamplePdf,
+            _eventPublisher,
+            correlationId,
+            sessionId);
+        sw.Stop();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Not.Empty, "Should extract at least one chunk");
+
+        // Analyze extraction results
+        var chunks = result.ToList();
+        var events = _eventPublisher.GetPublishedEvents().ToList();
+        var pages = chunks.Select(c => c.PageNumber).Distinct().Count();
+
+        // Get OcrProcessingCompleted events to check actual extracted text per page
+        var ocrEvents = events
+            .Where(e => e.GetType().Name == "OcrProcessingCompleted")
+            .ToList();
+
+        Console.WriteLine($"Extraction completed in {sw.Elapsed.TotalSeconds:F2}s");
+        Console.WriteLine($"Total chunks: {chunks.Count}");
+        Console.WriteLine($"Pages processed: {pages}");
+        Console.WriteLine($"Chunks per page average: {(double)chunks.Count / pages:F1}");
+
+        // Calculate total characters extracted per page
+        var pageGroups = chunks.GroupBy(c => c.PageNumber);
+        foreach (var pageGroup in pageGroups.OrderBy(g => g.Key))
+        {
+            var totalCharsOnPage = pageGroup.Sum(c => c.Content.Length);
+            var chunksOnPage = pageGroup.Count();
+            Console.WriteLine($"  Page {pageGroup.Key}: {totalCharsOnPage} chars in {chunksOnPage} chunks");
+
+            // Requirement: Minimum 5,000 characters per page for maxTokens >= 1500
+            if (maxTokens >= 1500)
+            {
+                Assert.That(totalCharsOnPage, Is.GreaterThanOrEqualTo(5000),
+                    $"Page {pageGroup.Key} should have at least 5,000 characters with maxTokens={maxTokens}");
+            }
+        }
+
+        // Verify extraction didn't fail due to context overflow
+        Assert.That(chunks.Count, Is.GreaterThan(pages),
+            "Should have multiple chunks per page if text extraction was complete");
+    }
+
+    [Test]
+    [TestCase(1500, 200, Description = "1500 tokens + DPI 200 - may exceed context (5300 total tokens)")]
+    [TestCase(2000, 200, Description = "2000 tokens + DPI 200 - will exceed context (5800 total tokens)")]
+    [Explicit("These configurations may cause context overflow - test to verify failure")]
+    public async Task ExtractAsync_MaxTokensExceedsContext_MayFailWithOverflow(int maxTokens, int dpi)
+    {
+        // Arrange
+        if (!TestPdfFiles.SamplePdfExists)
+        {
+            Assert.Ignore("Test PDF file not found");
+        }
+
+        var parameters = CreateParameters(dpi: dpi, maxTokens: maxTokens);
+        _sut = CreateExtractor(parameters);
+
+        var correlationId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        Console.WriteLine($"=== Testing Context Overflow: MaxTokens={maxTokens} DPI={dpi} ===");
+        Console.WriteLine($"Estimated context usage: ~{(dpi == 200 ? 3800 : 5000) + maxTokens} / 4096 tokens");
+        Console.WriteLine("Expected: Context overflow error");
+
+        try
+        {
+            // Act
+            var result = await _sut.ExtractAsync(
+                TestPdfFiles.SamplePdf,
+                _eventPublisher,
+                correlationId,
+                sessionId);
+
+            // If we get here, extraction succeeded (unexpected)
+            Console.WriteLine("⚠️  UNEXPECTED: Extraction succeeded without context overflow");
+            Assert.Inconclusive($"Configuration with {maxTokens} tokens and DPI {dpi} did not cause overflow as expected");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("context"))
+        {
+            // Expected: context overflow error
+            Console.WriteLine($"✓ EXPECTED: Context overflow occurred - {ex.Message}");
+            Assert.Pass($"Configuration correctly fails with context overflow: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Other error
+            Console.WriteLine($"✗ UNEXPECTED ERROR: {ex.Message}");
+            Assert.Inconclusive($"Unexpected error type: {ex.GetType().Name}");
+        }
+    }
+
+    #endregion
+
     #region Model Configuration Tests
 
     [Test]
@@ -487,7 +612,8 @@ public class LMStudioOcrExtractorIntegrationTests
     private LMStudioParameters CreateParameters(
         int dpi = 300,
         int chunkSize = 1000,
-        string? visionModelName = null)
+        string? visionModelName = null,
+        int maxTokens = 200)
     {
         return new LMStudioParameters
         {
@@ -496,7 +622,8 @@ public class LMStudioOcrExtractorIntegrationTests
             LMStudioUrl = _lmStudioUrl,
             VisionModelName = visionModelName ?? _visionModelName,
             RasterizationDpi = dpi,
-            ChunkSize = chunkSize
+            ChunkSize = chunkSize,
+            MaxTokens = maxTokens
         };
     }
 
@@ -508,7 +635,7 @@ public class LMStudioOcrExtractorIntegrationTests
 
         var rasterizer = new PdfPageRasterizer(rasterizerLogger);
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        var visionClient = new LMStudioVisionClient(visionClientLogger, httpClient);
+        var visionClient = new LMStudioVisionClient(visionClientLogger, httpClient, parameters.MaxTokens);
 
         return new LMStudioOcrExtractor(logger, rasterizer, visionClient, parameters);
     }

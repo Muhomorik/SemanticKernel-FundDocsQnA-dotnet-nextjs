@@ -282,12 +282,55 @@ public class LMStudioParameters
 ```
 
 **MaxTokens Configuration:**
-- Default: 2000 tokens (~8000 characters per page)
-- Low value (500): Partial extraction, faster processing
-- Recommended (2000): Full page extraction for most documents
-- High value (4000+): May exceed context window with high-DPI images
-- Context calculation: Image tokens + max_tokens must fit in model's context length (typically 4096)
-- With DPI 200, images typically use ~3800 tokens, leaving ~296 tokens available
+
+⚠️ **Critical Requirement:** Extracting 5,000+ characters per page requires 8,192+ context length in LM Studio.
+
+**Context Window Limitations (Based on Integration Testing):**
+
+With **4,096 context length** (default):
+
+- DPI 150 images: ~3,600 tokens (image encoding)
+- Available for output: ~496 tokens (~2,000 characters max)
+- **Cannot extract 5,000+ characters per page**
+- Configuration: DPI 150 + maxTokens 200 = ~800 chars per page (safe baseline)
+
+With **8,192 context length** (recommended):
+
+- DPI 150 images: ~3,600 tokens (image encoding)
+- Available for output: ~4,592 tokens (~18,000 characters max)
+- **Can extract 5,000-8,000 characters per page** ✅
+- Configuration: DPI 150 + maxTokens 1500 = ~6,000 chars per page (recommended)
+
+**Recommended Production Configuration:**
+
+```csharp
+var parameters = new LMStudioParameters
+{
+    RasterizationDpi = 150,        // Low DPI to minimize image tokens
+    MaxTokens = 1500,              // Allows ~6,000 characters per page
+    // Requires: LM Studio context length >= 8,192
+};
+```
+
+**Context Calculation Formula:**
+
+```text
+image_tokens + max_tokens ≤ context_length
+```
+
+**DPI Impact on Image Tokens (Measured):**
+
+- DPI 150: ~3,600 tokens (✅ Use this for 5K+ char extraction with 8K context)
+- DPI 200: ~3,800 tokens (⚠️ Exceeds 4K context with maxTokens > 200)
+- DPI 300: ~5,000+ tokens (❌ Exceeds 4K context even with maxTokens = 0)
+
+**Setup Instructions for 5K+ Character Extraction:**
+
+1. Open LM Studio
+2. Unload current model (if loaded)
+3. Reload `qwen/qwen2.5-vl-7b` with **Context Length = 8192** (or higher)
+4. Verify GPU memory is sufficient (~8GB+ VRAM recommended for 8K context)
+5. Use configuration: DPI 150 + maxTokens 1500
 
 ##### ExtractWithOllamaAsync
 

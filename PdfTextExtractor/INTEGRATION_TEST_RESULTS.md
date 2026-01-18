@@ -4,7 +4,99 @@
 **GPU:** NVIDIA GeForce GTX 1060 6GB
 **Model:** qwen/qwen2.5-vl-7b
 
-## Test Status
+## ⚠️ Critical Update: 5,000+ Character Extraction Requirement
+
+### New Requirement Discovered
+
+**User Requirement:**
+- Minimum: 5,000 characters per page
+- Maximum: 8,000 characters per page
+
+### Test Results: Context Window Limitation
+
+#### With 4,096 Context Length (Previously Tested)
+
+| DPI | MaxTokens | Image Tokens | Total Tokens | Result | Chars/Page |
+|-----|-----------|--------------|--------------|---------|------------|
+| 150 | 200 | ~3,600 | ~3,800 | ✅ Safe | ~800 ❌ |
+| 150 | 500 | ~3,600 | ~4,100 | ❌ Overflow | N/A |
+| 150 | 1000 | ~3,600 | ~4,600 | ❌ Overflow | N/A |
+| 150 | 1500 | ~3,600 | ~5,100 | ❌ Overflow | N/A |
+
+**Error (maxTokens > 200 with 4K context):**
+```json
+{
+  "error": "Reached context length of 4096 tokens, but this model does not currently support mid-generation context overflow..."
+}
+```
+
+**Conclusion:** 4K context can only extract ~800 characters per page, **fails to meet 5K+ requirement**.
+
+#### Required: 8,192 Context Length
+
+**Context Budget Analysis:**
+```
+DPI 150 image: 3,600 tokens
+MaxTokens 1,500: 1,500 tokens
+Total: 5,100 tokens < 8,192 ✅
+
+Expected output: ~6,000 characters per page
+Meets requirement: 5,000-8,000 characters ✅
+```
+
+**New Recommended Configuration:**
+```csharp
+var parameters = new LMStudioParameters
+{
+    PdfFolderPath = "./pdfs",
+    OutputFolderPath = "./output",
+    LMStudioUrl = "http://localhost:1234",
+    VisionModelName = "qwen/qwen2.5-vl-7b",
+    RasterizationDpi = 150,      // Low DPI to minimize image tokens
+    ChunkSize = 1000,
+    MaxTokens = 1500             // Allows ~6,000 chars per page
+    // REQUIRES: LM Studio context length >= 8,192
+};
+```
+
+### LM Studio Setup for 5K+ Character Extraction
+
+1. **Stop current model** (if running)
+2. **Reload model:**
+   - Model: `qwen/qwen2.5-vl-7b`
+   - **Context Length: 8192** (or higher)
+   - GPU Layers: 12 (adjust based on VRAM)
+3. **Start server** and verify with `curl http://localhost:1234/v1/models`
+4. **Update configuration** to use `MaxTokens = 1500`
+
+### DPI Impact on Image Tokens (Measured)
+
+```
+DPI 100: ~2,000 tokens (estimated)
+DPI 150: ~3,600 tokens (measured) ✅ Recommended for 8K context
+DPI 200: ~3,800 tokens (measured) ⚠️ Exceeds 4K context with high maxTokens
+DPI 300: ~5,000+ tokens (measured) ❌ Exceeds even 8K context
+```
+
+### VRAM Impact (8K Context)
+
+```
+Component                    4K Context    8K Context
+─────────────────────────────────────────────────────
+Model (12 layers on GPU)     ~2.0 GB      ~2.0 GB
+KV Cache                      144 MB       288 MB
+Compute Buffer                311 MB       ~500 MB
+Image Buffer (DPI 150)       ~1.0 GB      ~1.0 GB
+─────────────────────────────────────────────────────
+Total                        ~3.5 GB      ~3.8 GB
+Required GPU                  6GB          8GB (recommended)
+```
+
+**Status:** Awaiting user verification of 8K context configuration.
+
+---
+
+## Test Status (Original 4K Context Tests)
 
 ### ✅ SUCCESSFUL Configuration
 

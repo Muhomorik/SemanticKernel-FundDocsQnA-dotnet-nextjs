@@ -44,9 +44,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _outputFolderPath = "";
     private string _lmStudioUrl = "http://localhost:1234";
     private string _visionModelName = "qwen/qwen2.5-vl-7b";
-    private int _dpi = 300;
+    private int _dpi = 150;
     private int _chunkSize = 1000;
-    private int _maxTokens = 2000;
+    private int _maxTokens = 200;
 
     // State
     private bool _isExtracting;
