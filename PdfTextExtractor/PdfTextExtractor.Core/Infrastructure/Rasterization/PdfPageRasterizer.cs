@@ -55,10 +55,14 @@ public class PdfPageRasterizer : IRasterizationService
 
             // Render PDF page to image using PDFtoImage
             // PDFtoImage 5.0.0 uses synchronous API - wrap in Task.Run
-            // Note: Using default DPI as PDFtoImage 5.0 has different API
+            // Note: PDFtoImage 5.0.0 expects Base64-encoded PDF content
             await Task.Run(() =>
             {
-                using var skBitmap = Conversion.ToImage(pdfFilePath, pageNumber - 1);
+                // Read PDF file and convert to Base64
+                var pdfBytes = File.ReadAllBytes(pdfFilePath);
+                var pdfBase64 = Convert.ToBase64String(pdfBytes);
+
+                using var skBitmap = Conversion.ToImage(pdfBase64, pageNumber - 1);
 
                 // Save SKBitmap as PNG
                 using var image = skBitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);

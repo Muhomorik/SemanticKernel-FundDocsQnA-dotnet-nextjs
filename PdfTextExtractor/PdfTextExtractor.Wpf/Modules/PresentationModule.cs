@@ -1,5 +1,6 @@
 using Autofac;
 using NLog;
+using PdfTextExtractor.Core;
 using System.Reactive.Concurrency;
 
 namespace PdfTextExtractor.Wpf.Modules;
@@ -11,6 +12,11 @@ public class PresentationModule : Module
 {
     protected override void Load(ContainerBuilder builder)
     {
+        // Register PdfTextExtractorLib as singleton (share event stream across app)
+        builder.RegisterType<PdfTextExtractorLib>()
+            .As<IPdfTextExtractorLib>()
+            .SingleInstance();
+
         // Register all ViewModels with type-aware ILogger and UI scheduler injection
         builder.RegisterAssemblyTypes(typeof(PresentationModule).Assembly)
             .Where(t => t.Name.EndsWith("ViewModel"))
