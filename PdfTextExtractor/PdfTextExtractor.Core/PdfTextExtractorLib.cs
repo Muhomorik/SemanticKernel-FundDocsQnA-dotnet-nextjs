@@ -77,7 +77,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             ?? NullLogger<LMStudioOcrExtractor>.Instance;
 
         // Manually construct vision client with maxTokens from parameters
-        var httpClient = new HttpClient();
+        var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         var visionClient = new LMStudioVisionClient(visionLogger, httpClient, parameters.MaxTokens);
 
         // Manually construct extractor with parameters
@@ -244,7 +244,7 @@ public class PdfTextExtractorModule : Module
             .As<ILMStudioVisionClient>()
             .InstancePerDependency()
             .WithParameter(new TypedParameter(typeof(ILogger<LMStudioVisionClient>), NullLogger<LMStudioVisionClient>.Instance))
-            .WithParameter(new TypedParameter(typeof(HttpClient), new HttpClient()));
+            .WithParameter(new TypedParameter(typeof(HttpClient), new HttpClient { Timeout = TimeSpan.FromMinutes(5) }));
 
         // Extractors
         builder.RegisterType<PdfPigExtractor>()
