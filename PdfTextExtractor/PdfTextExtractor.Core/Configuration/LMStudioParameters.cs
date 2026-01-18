@@ -11,4 +11,5 @@ public class LMStudioParameters
     public string VisionModelName { get; init; } = "qwen/qwen2.5-vl-7b";
     public int RasterizationDpi { get; init; } = 300;
     public int ChunkSize { get; init; } = 1000;
+    public int MaxTokens { get; init; } = 2000;
 }

@@ -71,13 +71,18 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
         // Resolve dependencies from container
         var rasterizationService = _container.Resolve<IRasterizationService>();
-        var visionClient = _container.Resolve<ILMStudioVisionClient>();
-        var logger = _container.ResolveOptional<ILogger<LMStudioOcrExtractor>>()
+        var visionLogger = _container.ResolveOptional<ILogger<LMStudioVisionClient>>()
+            ?? NullLogger<LMStudioVisionClient>.Instance;
+        var extractorLogger = _container.ResolveOptional<ILogger<LMStudioOcrExtractor>>()
             ?? NullLogger<LMStudioOcrExtractor>.Instance;
+
+        // Manually construct vision client with maxTokens from parameters
+        var httpClient = new HttpClient();
+        var visionClient = new LMStudioVisionClient(visionLogger, httpClient, parameters.MaxTokens);
 
         // Manually construct extractor with parameters
         var extractor = new LMStudioOcrExtractor(
-            logger,
+            extractorLogger,
             rasterizationService,
             visionClient,
             parameters);

@@ -277,8 +277,17 @@ public class LMStudioParameters
     public required string VisionModelName { get; init; }
     public int RasterizationDpi { get; init; } = 300;
     public int ChunkSize { get; init; } = 1000;
+    public int MaxTokens { get; init; } = 2000;  // Vision model output limit
 }
 ```
+
+**MaxTokens Configuration:**
+- Default: 2000 tokens (~8000 characters per page)
+- Low value (500): Partial extraction, faster processing
+- Recommended (2000): Full page extraction for most documents
+- High value (4000+): May exceed context window with high-DPI images
+- Context calculation: Image tokens + max_tokens must fit in model's context length (typically 4096)
+- With DPI 200, images typically use ~3800 tokens, leaving ~296 tokens available
 
 ##### ExtractWithOllamaAsync
 

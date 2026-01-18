@@ -12,11 +12,13 @@ public class LMStudioVisionClient : ILMStudioVisionClient
 {
     private readonly ILogger<LMStudioVisionClient> _logger;
     private readonly HttpClient _httpClient;
+    private readonly int _maxTokens;
 
-    public LMStudioVisionClient(ILogger<LMStudioVisionClient> logger, HttpClient httpClient)
+    public LMStudioVisionClient(ILogger<LMStudioVisionClient> logger, HttpClient httpClient, int maxTokens = 2000)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _maxTokens = maxTokens;
     }
 
     public async Task<string> ExtractTextFromImageAsync(
@@ -50,7 +52,9 @@ public class LMStudioVisionClient : ILMStudioVisionClient
 
             // Construct request payload (OpenAI-compatible format)
             // Note: max_tokens must be small enough that input_tokens + max_tokens <= context_length
-            // Image typically takes ~3800 tokens, so with 4096 context, we can only request ~200-300 output tokens
+            // With 4096 context, image (DPI 200) = ~3800 tokens
+            // Configurable max_tokens allows extraction of full pages
+            // Default 2000 tokens = ~8000 chars (sufficient for most pages)
             var requestPayload = new
             {
                 model = modelName,
@@ -67,7 +71,7 @@ public class LMStudioVisionClient : ILMStudioVisionClient
                     }
                 },
                 temperature = 0.1,
-                max_tokens = 200  // Low value to fit within context after image tokens
+                max_tokens = _maxTokens
             };
 
             // Send HTTP request

@@ -46,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _visionModelName = "qwen/qwen2.5-vl-7b";
     private int _dpi = 300;
     private int _chunkSize = 1000;
+    private int _maxTokens = 2000;
 
     // State
     private bool _isExtracting;
@@ -71,6 +72,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         StartExtractionCommand = new AsyncCommand(StartExtractionAsync, CanStartExtraction);
         CancelExtractionCommand = new DelegateCommand(OnCancelExtraction, () => IsExtracting);
         SetDpiCommand = new DelegateCommand<string>(OnSetDpi);
+        SetMaxTokensCommand = new DelegateCommand<string>(OnSetMaxTokens);
     }
 
     /// <summary>
@@ -89,6 +91,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         StartExtractionCommand = new AsyncCommand(async () => { });
         CancelExtractionCommand = new DelegateCommand(() => { });
         SetDpiCommand = new DelegateCommand<string>(_ => { });
+        SetMaxTokensCommand = new DelegateCommand<string>(_ => { });
     }
 
     #region Properties
@@ -147,6 +150,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _chunkSize, value, nameof(ChunkSize));
     }
 
+    public int MaxTokens
+    {
+        get => _maxTokens;
+        set => SetProperty(ref _maxTokens, value, nameof(MaxTokens));
+    }
+
     public bool IsExtracting
     {
         get => _isExtracting;
@@ -175,6 +184,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand StartExtractionCommand { get; }
     public ICommand CancelExtractionCommand { get; }
     public ICommand SetDpiCommand { get; }
+    public ICommand SetMaxTokensCommand { get; }
 
     #endregion
 
@@ -435,7 +445,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 LMStudioUrl = LMStudioUrl,
                 VisionModelName = VisionModelName,
                 RasterizationDpi = Dpi,
-                ChunkSize = ChunkSize
+                ChunkSize = ChunkSize,
+                MaxTokens = MaxTokens
             };
 
             await _extractorLib.ExtractWithLMStudioAsync(parameters, _cancellationTokenSource.Token);
@@ -474,6 +485,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             Dpi = dpi;
             _logger.Info($"DPI preset selected: {dpi}");
             Status = $"DPI set to {dpi}";
+        }
+    }
+
+    private void OnSetMaxTokens(string? tokenValue)
+    {
+        if (!string.IsNullOrWhiteSpace(tokenValue) && int.TryParse(tokenValue, out int tokens))
+        {
+            MaxTokens = tokens;
+            _logger.Info($"Max tokens set to: {tokens}");
+            Status = $"Max tokens set to {tokens}";
         }
     }
 
