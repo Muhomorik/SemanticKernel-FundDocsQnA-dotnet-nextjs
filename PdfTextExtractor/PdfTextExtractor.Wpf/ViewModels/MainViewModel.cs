@@ -70,6 +70,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         BrowseOutputFolderCommand = new DelegateCommand(OnBrowseOutputFolder);
         StartExtractionCommand = new AsyncCommand(StartExtractionAsync, CanStartExtraction);
         CancelExtractionCommand = new DelegateCommand(OnCancelExtraction, () => IsExtracting);
+        SetDpiCommand = new DelegateCommand<string>(OnSetDpi);
     }
 
     /// <summary>
@@ -87,6 +88,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         BrowseOutputFolderCommand = new DelegateCommand(() => { });
         StartExtractionCommand = new AsyncCommand(async () => { });
         CancelExtractionCommand = new DelegateCommand(() => { });
+        SetDpiCommand = new DelegateCommand<string>(_ => { });
     }
 
     #region Properties
@@ -172,6 +174,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand BrowseOutputFolderCommand { get; }
     public ICommand StartExtractionCommand { get; }
     public ICommand CancelExtractionCommand { get; }
+    public ICommand SetDpiCommand { get; }
 
     #endregion
 
@@ -450,6 +453,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         _cancellationTokenSource?.Cancel();
         _logger.Info("Cancellation requested");
+    }
+
+    private void OnSetDpi(string? dpiValue)
+    {
+        if (!string.IsNullOrWhiteSpace(dpiValue) && int.TryParse(dpiValue, out int dpi))
+        {
+            Dpi = dpi;
+            _logger.Info($"DPI preset selected: {dpi}");
+            Status = $"DPI set to {dpi}";
+        }
     }
 
     #endregion

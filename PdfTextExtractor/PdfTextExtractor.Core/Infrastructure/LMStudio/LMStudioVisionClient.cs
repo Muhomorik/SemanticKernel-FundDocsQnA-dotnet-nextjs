@@ -49,6 +49,8 @@ public class LMStudioVisionClient : ILMStudioVisionClient
             var dataUri = $"data:image/png;base64,{base64Image}";
 
             // Construct request payload (OpenAI-compatible format)
+            // Note: max_tokens must be small enough that input_tokens + max_tokens <= context_length
+            // Image typically takes ~3800 tokens, so with 4096 context, we can only request ~200-300 output tokens
             var requestPayload = new
             {
                 model = modelName,
@@ -65,7 +67,7 @@ public class LMStudioVisionClient : ILMStudioVisionClient
                     }
                 },
                 temperature = 0.1,
-                max_tokens = 4096
+                max_tokens = 200  // Low value to fit within context after image tokens
             };
 
             // Send HTTP request
@@ -76,10 +78,21 @@ public class LMStudioVisionClient : ILMStudioVisionClient
             _logger.LogDebug("Sending OCR request to {Endpoint}", endpoint);
 
             var response = await _httpClient.PostAsync(endpoint, requestContent, cancellationToken);
-            response.EnsureSuccessStatusCode();
+
+            // Read response body (needed for both success and error cases)
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "LM Studio returned HTTP {StatusCode}. Response: {ResponseBody}",
+                    (int)response.StatusCode, responseBody);
+
+                throw new HttpRequestException(
+                    $"LM Studio returned HTTP {(int)response.StatusCode} ({response.StatusCode}). Response: {responseBody}");
+            }
 
             // Parse response
-            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
             using var jsonDoc = JsonDocument.Parse(responseBody);
 
             var extractedText = jsonDoc.RootElement
