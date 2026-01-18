@@ -671,6 +671,7 @@ public class OcrProcessingCompleted : PdfExtractionEventBase
     public int PageNumber { get; init; }          // Page number (1-based)
     public int ExtractedTextLength { get; init; } // Text length
     public TimeSpan ProcessingDuration { get; init; } // OCR time
+    public string ExtractedText { get; init; }    // Extracted text content
 }
 ```
 

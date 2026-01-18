@@ -9,4 +9,5 @@ public class OcrProcessingCompleted : PdfExtractionEventBase
     public int PageNumber { get; init; }
     public int ExtractedTextLength { get; init; }
     public TimeSpan ProcessingDuration { get; init; }
+    public required string ExtractedText { get; init; }
 }

@@ -209,6 +209,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             case PageRasterizationCompleted e:
                 HandlePageRasterizationCompleted(e);
                 break;
+            case OcrProcessingCompleted e:
+                HandleOcrProcessingCompleted(e);
+                break;
             case PageExtractionStarted e:
                 HandlePageExtractionStarted(e);
                 break;
@@ -309,6 +312,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     Status = PageStatus.Rasterizing
                 });
             }
+        }
+    }
+
+    private void HandleOcrProcessingCompleted(OcrProcessingCompleted e)
+    {
+        // Append extracted text to the text viewer
+        if (!string.IsNullOrWhiteSpace(e.ExtractedText))
+        {
+            ExtractedText += $"--- Page {e.PageNumber} ---{Environment.NewLine}{e.ExtractedText}{Environment.NewLine}{Environment.NewLine}";
         }
     }
 

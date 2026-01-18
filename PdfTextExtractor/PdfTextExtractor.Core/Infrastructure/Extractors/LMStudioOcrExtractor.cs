@@ -144,7 +144,8 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                     FilePath = filePath,
                     PageNumber = pageNumber,
                     ExtractedTextLength = cleanedText.Length,
-                    ProcessingDuration = DateTimeOffset.UtcNow - ocrStartTime
+                    ProcessingDuration = DateTimeOffset.UtcNow - ocrStartTime,
+                    ExtractedText = cleanedText
                 }, cancellationToken);
 
                 // Check for empty page
