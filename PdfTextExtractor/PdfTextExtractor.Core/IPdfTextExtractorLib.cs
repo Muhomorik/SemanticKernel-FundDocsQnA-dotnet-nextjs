@@ -44,4 +44,11 @@ public interface IPdfTextExtractorLib
     Task<ExtractionResult> ExtractWithOllamaAsync(
         OllamaParameters parameters,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Extract text using OpenAI vision models (OCR).
+    /// </summary>
+    Task<ExtractionResult> ExtractWithOpenAIAsync(
+        OpenAIParameters parameters,
+        CancellationToken cancellationToken = default);
 }

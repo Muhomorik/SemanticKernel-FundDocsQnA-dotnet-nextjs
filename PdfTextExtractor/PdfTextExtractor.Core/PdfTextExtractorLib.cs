@@ -8,6 +8,7 @@ using PdfTextExtractor.Core.Infrastructure.EventBus;
 using PdfTextExtractor.Core.Infrastructure.Extractors;
 using PdfTextExtractor.Core.Infrastructure.FileSystem;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
+using PdfTextExtractor.Core.Infrastructure.OpenAI;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
 using PdfTextExtractor.Core.Models;
 
@@ -107,6 +108,38 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             parameters.PdfFolderPath,
             parameters.OutputFolderPath,
             TextExtractionMethod.Ollama,
+            cancellationToken);
+    }
+
+    public async Task<ExtractionResult> ExtractWithOpenAIAsync(
+        OpenAIParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
+
+        // Resolve dependencies from container
+        var rasterizationService = _container.Resolve<IRasterizationService>();
+        var visionLogger = _container.ResolveOptional<ILogger<OpenAIVisionClient>>()
+            ?? NullLogger<OpenAIVisionClient>.Instance;
+        var extractorLogger = _container.ResolveOptional<ILogger<OpenAIOcrExtractor>>()
+            ?? NullLogger<OpenAIOcrExtractor>.Instance;
+
+        // Manually construct vision client
+        var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        var visionClient = new OpenAIVisionClient(httpClient, visionLogger);
+
+        // Manually construct extractor with parameters
+        var extractor = new OpenAIOcrExtractor(
+            extractorLogger,
+            rasterizationService,
+            visionClient,
+            parameters);
+
+        return await ExtractCoreAsync(
+            extractor,
+            parameters.PdfFolderPath,
+            parameters.OutputFolderPath,
+            TextExtractionMethod.OpenAI,
             cancellationToken);
     }
 

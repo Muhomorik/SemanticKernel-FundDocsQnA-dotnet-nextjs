@@ -170,6 +170,20 @@
                             FontWeight="Bold"
                             Text="PDF Text Extractor" />
 
+                        <!--  Extraction Method Selection  -->
+                        <TextBlock
+                            Margin="0,5,0,3"
+                            FontWeight="SemiBold"
+                            Text="Extraction Method:" />
+                        <ComboBox
+                            Margin="0,0,0,15"
+                            ItemsSource="{Binding AvailableMethods}"
+                            SelectedItem="{Binding SelectedMethod}"
+                            DisplayMemberPath="."
+                            ToolTip="Select text extraction method (LM Studio or OpenAI)" />
+
+                        <Separator Margin="0,10" />
+
                         <!--  Input Folder  -->
                         <TextBlock
                             Margin="0,5,0,3"
@@ -253,18 +267,19 @@
                             </Border>
                         </Expander>
 
-                        <!--  LM Studio Configuration  -->
-                        <TextBlock
-                            Margin="0,10,0,10"
-                            FontSize="14"
-                            FontWeight="Bold"
-                            Text="LM Studio Configuration" />
+                        <!--  LM Studio Configuration Panel (visible only when LM Studio is selected)  -->
+                        <StackPanel Visibility="{Binding IsLMStudioSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock
+                                Margin="0,10,0,10"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Text="LM Studio Configuration" />
 
-                        <TextBlock
-                            Margin="0,5,0,3"
-                            FontWeight="SemiBold"
-                            Text="LM Studio URL:" />
-                        <TextBox Margin="0,0,0,10" Text="{Binding LMStudioUrl, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock
+                                Margin="0,5,0,3"
+                                FontWeight="SemiBold"
+                                Text="LM Studio URL:" />
+                            <TextBox Margin="0,0,0,10" Text="{Binding LMStudioUrl, UpdateSourceTrigger=PropertyChanged}" />
 
                         <TextBlock
                             Margin="0,5,0,3"
@@ -358,6 +373,141 @@
                                 Minimum="100"
                                 Value="{Binding MaxTokens}" />
                         </DockPanel>
+                        </StackPanel>
+
+                        <!--  OpenAI Configuration Panel (visible only when OpenAI is selected)  -->
+                        <StackPanel Visibility="{Binding IsOpenAISelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock
+                                Margin="0,10,0,10"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Text="OpenAI Configuration" />
+
+                            <TextBlock
+                                Margin="0,5,0,3"
+                                FontWeight="SemiBold"
+                                Text="OpenAI API Key:" />
+                            <PasswordBox
+                                x:Name="OpenAIApiKeyBox"
+                                Margin="0,0,0,10"
+                                PasswordChanged="OnOpenAIApiKeyChanged"
+                                ToolTip="Enter your OpenAI API key (sk-...)" />
+
+                            <TextBlock
+                                Margin="0,5,0,3"
+                                FontWeight="SemiBold"
+                                Text="Vision Model Name:" />
+                            <TextBox
+                                Margin="0,0,0,10"
+                                Text="{Binding OpenAIModelName, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="Default: gpt-4o" />
+
+                            <TextBlock
+                                Margin="0,5,0,3"
+                                FontWeight="SemiBold"
+                                Text="Rasterization DPI:" />
+                            <DockPanel Margin="0,0,0,5">
+                                <StackPanel
+                                    DockPanel.Dock="Right"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="40"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIDpiCommand}"
+                                        CommandParameter="150"
+                                        Content="150"
+                                        Style="{DynamicResource MahApps.Styles.Button.Square.Accent}"
+                                        ToolTip="Recommended - balance quality/cost" />
+                                    <Button
+                                        Width="40"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIDpiCommand}"
+                                        CommandParameter="200"
+                                        Content="200"
+                                        ToolTip="Higher quality" />
+                                    <Button
+                                        Width="40"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIDpiCommand}"
+                                        CommandParameter="300"
+                                        Content="300"
+                                        ToolTip="Best quality - higher cost" />
+                                </StackPanel>
+                                <mah:NumericUpDown
+                                    Interval="50"
+                                    Maximum="600"
+                                    Minimum="72"
+                                    Value="{Binding OpenAIDpi}" />
+                            </DockPanel>
+
+                            <TextBlock
+                                Margin="0,5,0,3"
+                                FontWeight="SemiBold"
+                                Text="Max Tokens (vision model output):" />
+                            <DockPanel Margin="0,0,0,15">
+                                <StackPanel
+                                    DockPanel.Dock="Right"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="50"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIMaxTokensCommand}"
+                                        CommandParameter="1000"
+                                        Content="1000"
+                                        ToolTip="Standard pages" />
+                                    <Button
+                                        Width="50"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIMaxTokensCommand}"
+                                        CommandParameter="2000"
+                                        Content="2000"
+                                        Style="{DynamicResource MahApps.Styles.Button.Square.Accent}"
+                                        ToolTip="Full pages - recommended" />
+                                    <Button
+                                        Width="50"
+                                        Margin="2,0"
+                                        Command="{Binding SetOpenAIMaxTokensCommand}"
+                                        CommandParameter="4000"
+                                        Content="4000"
+                                        ToolTip="Very long pages" />
+                                </StackPanel>
+                                <mah:NumericUpDown
+                                    Interval="100"
+                                    Maximum="16000"
+                                    Minimum="100"
+                                    Value="{Binding OpenAIMaxTokens}" />
+                            </DockPanel>
+
+                            <Border
+                                Margin="0,10"
+                                Padding="10"
+                                Background="{DynamicResource MahApps.Brushes.Gray10}"
+                                CornerRadius="5">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                        Text="💰 Cost Estimation (gpt-4o):" />
+                                    <TextBlock
+                                        Margin="5,5,0,2"
+                                        FontSize="10"
+                                        Text="• High detail: ~$0.003 per page" />
+                                    <TextBlock
+                                        Margin="5,0,0,2"
+                                        FontSize="10"
+                                        Text="• Low detail: ~$0.0002 per page" />
+                                    <TextBlock
+                                        Margin="5,0,0,2"
+                                        FontSize="10"
+                                        Text="• 10 pages ≈ $0.03 (high) / $0.002 (low)" />
+                                    <TextBlock
+                                        Margin="5,0,0,0"
+                                        FontSize="10"
+                                        Foreground="Orange"
+                                        Text="⚠️ Requires API key with billing enabled" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
 
                         <Separator Margin="0,10" />
 

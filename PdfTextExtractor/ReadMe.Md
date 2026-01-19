@@ -25,7 +25,7 @@
 
 **Key Features:**
 
-- ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), Ollama (OCR - planned)
+- ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), OpenAI (OCR), Ollama (OCR - planned)
 - ✅ **Real-time events**: Rx.NET observable streams for progress tracking and UI updates
 - ✅ **Domain-Driven Design**: Clean separation of concerns with Domain/ApplicationCore/Infrastructure layers
 - ✅ **Autofac DI**: Fully configured dependency injection container
@@ -60,7 +60,8 @@
 | Method | Status | Description |
 |--------|--------|-------------|
 | **PdfPig** | ✅ Implemented | Native PDF text extraction (fast, no OCR) |
-| **LM Studio** | 🚧 Stub (Phase 6) | OCR via vision models (rasterize → API) |
+| **LM Studio** | ✅ Implemented | OCR via vision models (local, self-hosted) |
+| **OpenAI** | ✅ Implemented | OCR via vision models (cloud-based, gpt-4o) |
 | **Ollama** | 📅 Planned (Phase 7) | OCR via vision models (local, free) |
 
 ---
@@ -260,7 +261,6 @@ public class PdfPigParameters
 /// <summary>
 /// Extract text using LM Studio vision models (OCR).
 /// </summary>
-/// <remarks>⚠️ Currently stub - implementation coming in Phase 6</remarks>
 Task<ExtractionResult> ExtractWithLMStudioAsync(
     LMStudioParameters parameters,
     CancellationToken cancellationToken = default);
@@ -331,6 +331,75 @@ image_tokens + max_tokens ≤ context_length
 3. Reload `qwen/qwen2.5-vl-7b` with **Context Length = 8192** (or higher)
 4. Verify GPU memory is sufficient (~8GB+ VRAM recommended for 8K context)
 5. Use configuration: DPI 150 + maxTokens 1500
+
+##### ExtractWithOpenAIAsync
+
+```csharp
+/// <summary>
+/// Extract text using OpenAI vision models (OCR).
+/// </summary>
+Task<ExtractionResult> ExtractWithOpenAIAsync(
+    OpenAIParameters parameters,
+    CancellationToken cancellationToken = default);
+```
+
+**OpenAIParameters:**
+
+```csharp
+public class OpenAIParameters
+{
+    public required string PdfFolderPath { get; init; }
+    public required string OutputFolderPath { get; init; }
+    public required string ApiKey { get; init; }
+    public string VisionModelName { get; init; } = "gpt-4o";
+    public int RasterizationDpi { get; init; } = 150;
+    public int ChunkSize { get; init; } = 1000;
+    public int MaxTokens { get; init; } = 2000;
+    public string DetailLevel { get; init; } = "high";  // "low", "high", or "auto"
+}
+```
+
+**Supported Models:**
+
+- **gpt-4o** (default) - Latest multimodal model, recommended for production
+- **gpt-4o-mini** - Faster, cheaper alternative for cost-sensitive scenarios
+
+**Cost Estimation (gpt-4o):**
+
+| Detail Level | Cost per Page | 10 Pages | 100 Pages |
+|--------------|---------------|----------|-----------|
+| **High** (recommended) | ~$0.003 | ~$0.03 | ~$0.30 |
+| **Low** (cost-saving) | ~$0.0002 | ~$0.002 | ~$0.02 |
+
+**Detail Level Options:**
+
+- `"high"` - Full resolution processing, better text extraction quality (~$0.003/page)
+- `"low"` - 512×512 downsampling, faster and cheaper (~$0.0002/page)
+- `"auto"` - Model automatically selects appropriate level
+
+**Recommended Configuration:**
+
+```csharp
+var parameters = new OpenAIParameters
+{
+    PdfFolderPath = "./pdfs",
+    OutputFolderPath = "./output",
+    ApiKey = "sk-...",              // Your OpenAI API key
+    VisionModelName = "gpt-4o",     // Recommended
+    RasterizationDpi = 150,         // Balance quality/cost
+    MaxTokens = 2000,               // Full-page extraction
+    DetailLevel = "high"            // Better accuracy
+};
+```
+
+**Setup Requirements:**
+
+1. Get an OpenAI API key from [platform.openai.com](https://platform.openai.com/)
+2. Ensure billing is enabled on your OpenAI account
+3. Store API key securely (environment variable or user secrets)
+4. Test with a small PDF (1-2 pages) to estimate costs
+
+**Security Note:** API keys are never persisted to disk by the library.
 
 ##### ExtractWithOllamaAsync
 
@@ -854,15 +923,26 @@ PdfTextExtractor.Core/
 │   │   └── TextFileWriter.cs
 │   ├── 📁 EventBus/ (1 file)
 │   │   └── ReactiveEventPublisher.cs (Rx.NET)
+│   ├── 📁 Rasterization/ (2 files)
+│   │   ├── IRasterizationService.cs
+│   │   └── PdfPageRasterizer.cs
+│   ├── 📁 LMStudio/ (2 files)
+│   │   ├── ILMStudioVisionClient.cs
+│   │   └── LMStudioVisionClient.cs
+│   ├── 📁 OpenAI/ (2 files)
+│   │   ├── IOpenAIVisionClient.cs
+│   │   └── OpenAIVisionClient.cs
 │   └── 📁 Extractors/ (4 files)
 │       ├── IPdfTextExtractor.cs
 │       ├── PdfPigExtractor.cs (✅ Implemented)
-│       ├── LMStudioOcrExtractor.cs (🚧 Stub)
+│       ├── LMStudioOcrExtractor.cs (✅ Implemented)
+│       ├── OpenAIOcrExtractor.cs (✅ Implemented)
 │       └── OllamaOcrExtractor.cs (📅 Planned)
-├── 📁 Configuration/ (4 files)
+├── 📁 Configuration/ (5 files)
 │   ├── TextExtractionMethod.cs (enum)
 │   ├── PdfPigParameters.cs
 │   ├── LMStudioParameters.cs
+│   ├── OpenAIParameters.cs
 │   └── OllamaParameters.cs
 ├── 📁 Models/ (2 files)
 │   ├── DocumentChunk.cs
@@ -994,30 +1074,42 @@ public partial class MainWindow : Window
 
 ---
 
-## 🔮 Future Enhancements
+## 🔮 Recent Enhancements & Future Roadmap
 
-### Phase 6: LM Studio OCR Implementation
+### ✅ Phase 6: LM Studio OCR Implementation (Completed)
 
-- Implement page rasterization (PDF → PNG/JPEG)
-- Integrate LM Studio vision API (`/v1/chat/completions`)
-- Extract text from vision model response
-- Publish rasterization and OCR events
+- ✅ Implemented page rasterization (PDF → PNG with configurable DPI)
+- ✅ Integrated LM Studio vision API (`/v1/chat/completions`)
+- ✅ Extract text from vision model response with token limits
+- ✅ Published rasterization and OCR events (6 event types)
+- ✅ Temp file cleanup and session management
 
-### Phase 7: Ollama OCR Implementation
+### ✅ OpenAI Vision Implementation (Completed)
+
+- ✅ Implemented OpenAI Chat Completions API integration
+- ✅ Support for gpt-4o and gpt-4o-mini vision models
+- ✅ Configurable detail level (low/high/auto) for cost optimization
+- ✅ Base64 image encoding with data URIs
+- ✅ User-friendly error handling (401, 429, 500 errors)
+- ✅ Secure API key handling (no disk persistence)
+- ✅ WPF UI with dropdown method selector and conditional settings panels
+
+### 📅 Phase 7: Ollama OCR Implementation (Planned)
 
 - Implement Ollama vision API integration (`/api/generate`)
-- Support local, free OCR extraction
-- Same event publishing pattern as LM Studio
+- Support local, free OCR extraction (llama3.2-vision, minicpm-v, etc.)
+- Same event publishing pattern as LM Studio/OpenAI
+- WPF UI integration with method selector
 
-### Phase 8: Advanced Features
+### 🚀 Phase 8: Advanced Features
 
-- **Rasterization service** with configurable DPI
-- **Temp file management** for OCR images
 - **Batch processing optimization** with parallel page processing
-- **Retry logic** for API failures
+- **Retry logic** for API failures with exponential backoff
 - **Confidence scoring** for OCR results
 - **Event persistence** (SQLite/JSON) for debugging/auditing
 - **Event replay** for timeline reconstruction
+- **PDF preprocessing** (rotation correction, contrast enhancement)
+- **Multi-language support** for OCR prompts
 
 ---
 

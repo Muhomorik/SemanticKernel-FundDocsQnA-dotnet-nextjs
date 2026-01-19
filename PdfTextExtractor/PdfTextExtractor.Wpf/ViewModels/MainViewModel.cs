@@ -42,11 +42,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     // Settings
     private string _inputFolderPath = "";
     private string _outputFolderPath = "";
+    private TextExtractionMethod _selectedMethod = TextExtractionMethod.LMStudio;
     private string _lmStudioUrl = "http://localhost:1234";
     private string _visionModelName = "qwen/qwen2.5-vl-7b";
     private int _dpi = 150;
     private int _chunkSize = 1000;
     private int _maxTokens = 200;
+    private string _openAIApiKey = "";
+    private string _openAIModelName = "gpt-4o";
+    private int _openAIDpi = 150;
+    private int _openAIMaxTokens = 2000;
 
     // State
     private bool _isExtracting;
@@ -73,6 +78,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CancelExtractionCommand = new DelegateCommand(OnCancelExtraction, () => IsExtracting);
         SetDpiCommand = new DelegateCommand<string>(OnSetDpi);
         SetMaxTokensCommand = new DelegateCommand<string>(OnSetMaxTokens);
+        SetOpenAIDpiCommand = new DelegateCommand<string>(OnSetOpenAIDpi);
+        SetOpenAIMaxTokensCommand = new DelegateCommand<string>(OnSetOpenAIMaxTokens);
     }
 
     /// <summary>
@@ -92,6 +99,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CancelExtractionCommand = new DelegateCommand(() => { });
         SetDpiCommand = new DelegateCommand<string>(_ => { });
         SetMaxTokensCommand = new DelegateCommand<string>(_ => { });
+        SetOpenAIDpiCommand = new DelegateCommand<string>(_ => { });
+        SetOpenAIMaxTokensCommand = new DelegateCommand<string>(_ => { });
     }
 
     #region Properties
@@ -126,6 +135,31 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _outputFolderPath, value, nameof(OutputFolderPath));
     }
 
+    public TextExtractionMethod SelectedMethod
+    {
+        get => _selectedMethod;
+        set
+        {
+            if (SetProperty(ref _selectedMethod, value, nameof(SelectedMethod)))
+            {
+                // Notify visibility properties when method changes
+                RaisePropertyChanged(nameof(IsLMStudioSelected));
+                RaisePropertyChanged(nameof(IsOpenAISelected));
+            }
+        }
+    }
+
+    // Helper properties for XAML binding
+    public bool IsLMStudioSelected => SelectedMethod == TextExtractionMethod.LMStudio;
+    public bool IsOpenAISelected => SelectedMethod == TextExtractionMethod.OpenAI;
+
+    // ComboBox items source
+    public IEnumerable<TextExtractionMethod> AvailableMethods => new[]
+    {
+        TextExtractionMethod.LMStudio,
+        TextExtractionMethod.OpenAI
+    };
+
     public string LMStudioUrl
     {
         get => _lmStudioUrl;
@@ -154,6 +188,30 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         get => _maxTokens;
         set => SetProperty(ref _maxTokens, value, nameof(MaxTokens));
+    }
+
+    public string OpenAIApiKey
+    {
+        get => _openAIApiKey;
+        set => SetProperty(ref _openAIApiKey, value, nameof(OpenAIApiKey));
+    }
+
+    public string OpenAIModelName
+    {
+        get => _openAIModelName;
+        set => SetProperty(ref _openAIModelName, value, nameof(OpenAIModelName));
+    }
+
+    public int OpenAIDpi
+    {
+        get => _openAIDpi;
+        set => SetProperty(ref _openAIDpi, value, nameof(OpenAIDpi));
+    }
+
+    public int OpenAIMaxTokens
+    {
+        get => _openAIMaxTokens;
+        set => SetProperty(ref _openAIMaxTokens, value, nameof(OpenAIMaxTokens));
     }
 
     public bool IsExtracting
@@ -185,6 +243,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand CancelExtractionCommand { get; }
     public ICommand SetDpiCommand { get; }
     public ICommand SetMaxTokensCommand { get; }
+    public ICommand SetOpenAIDpiCommand { get; }
+    public ICommand SetOpenAIMaxTokensCommand { get; }
 
     #endregion
 
@@ -424,10 +484,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     private bool CanStartExtraction()
     {
-        return !IsExtracting
-            && !string.IsNullOrWhiteSpace(InputFolderPath)
-            && !string.IsNullOrWhiteSpace(OutputFolderPath)
-            && !string.IsNullOrWhiteSpace(VisionModelName);
+        if (IsExtracting || string.IsNullOrWhiteSpace(InputFolderPath) || string.IsNullOrWhiteSpace(OutputFolderPath))
+            return false;
+
+        return SelectedMethod switch
+        {
+            TextExtractionMethod.LMStudio => !string.IsNullOrWhiteSpace(VisionModelName),
+            TextExtractionMethod.OpenAI => !string.IsNullOrWhiteSpace(OpenAIApiKey) && !string.IsNullOrWhiteSpace(OpenAIModelName),
+            _ => false
+        };
     }
 
     private async Task StartExtractionAsync()
@@ -436,20 +501,41 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         {
             _cancellationTokenSource = new CancellationTokenSource();
             Status = "Starting extraction...";
-            _logger.Info("Starting LM Studio extraction");
+            _logger.Info($"Starting {SelectedMethod} extraction");
 
-            var parameters = new LMStudioParameters
+            switch (SelectedMethod)
             {
-                PdfFolderPath = InputFolderPath,
-                OutputFolderPath = OutputFolderPath,
-                LMStudioUrl = LMStudioUrl,
-                VisionModelName = VisionModelName,
-                RasterizationDpi = Dpi,
-                ChunkSize = ChunkSize,
-                MaxTokens = MaxTokens
-            };
+                case TextExtractionMethod.LMStudio:
+                    var lmStudioParams = new LMStudioParameters
+                    {
+                        PdfFolderPath = InputFolderPath,
+                        OutputFolderPath = OutputFolderPath,
+                        LMStudioUrl = LMStudioUrl,
+                        VisionModelName = VisionModelName,
+                        RasterizationDpi = Dpi,
+                        ChunkSize = ChunkSize,
+                        MaxTokens = MaxTokens
+                    };
+                    await _extractorLib.ExtractWithLMStudioAsync(lmStudioParams, _cancellationTokenSource.Token);
+                    break;
 
-            await _extractorLib.ExtractWithLMStudioAsync(parameters, _cancellationTokenSource.Token);
+                case TextExtractionMethod.OpenAI:
+                    var openAIParams = new OpenAIParameters
+                    {
+                        PdfFolderPath = InputFolderPath,
+                        OutputFolderPath = OutputFolderPath,
+                        ApiKey = OpenAIApiKey,
+                        VisionModelName = OpenAIModelName,
+                        RasterizationDpi = OpenAIDpi,
+                        ChunkSize = ChunkSize,
+                        MaxTokens = OpenAIMaxTokens
+                    };
+                    await _extractorLib.ExtractWithOpenAIAsync(openAIParams, _cancellationTokenSource.Token);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported extraction method: {SelectedMethod}");
+            }
 
             Status = "Extraction completed successfully";
             _logger.Info("Extraction completed successfully");
@@ -495,6 +581,26 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             MaxTokens = tokens;
             _logger.Info($"Max tokens set to: {tokens}");
             Status = $"Max tokens set to {tokens}";
+        }
+    }
+
+    private void OnSetOpenAIDpi(string? dpiValue)
+    {
+        if (!string.IsNullOrWhiteSpace(dpiValue) && int.TryParse(dpiValue, out int dpi))
+        {
+            OpenAIDpi = dpi;
+            _logger.Info($"OpenAI DPI preset selected: {dpi}");
+            Status = $"OpenAI DPI set to {dpi}";
+        }
+    }
+
+    private void OnSetOpenAIMaxTokens(string? tokenValue)
+    {
+        if (!string.IsNullOrWhiteSpace(tokenValue) && int.TryParse(tokenValue, out int tokens))
+        {
+            OpenAIMaxTokens = tokens;
+            _logger.Info($"OpenAI Max tokens set to: {tokens}");
+            Status = $"OpenAI Max tokens set to {tokens}";
         }
     }
 
