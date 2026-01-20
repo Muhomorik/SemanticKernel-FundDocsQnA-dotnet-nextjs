@@ -1,0 +1,117 @@
+<UserControl x:Class="PdfTextExtractor.Wpf.Views.LMStudioConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:viewModels="clr-namespace:PdfTextExtractor.Wpf.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:LMStudioConfigViewModel, IsDesignTimeCreatable=True}"
+             d:DesignHeight="450" d:DesignWidth="400">
+    <StackPanel>
+        <TextBlock
+            Margin="0,10,0,10"
+            FontSize="14"
+            FontWeight="Bold"
+            Text="LM Studio Configuration" />
+
+        <TextBlock
+            Margin="0,5,0,3"
+            FontWeight="SemiBold"
+            Text="LM Studio URL:" />
+        <TextBox Margin="0,0,0,10" Text="{Binding LMStudioUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock
+            Margin="0,5,0,3"
+            FontWeight="SemiBold"
+            Text="Vision Model Name:" />
+        <TextBox Margin="0,0,0,10" Text="{Binding VisionModelName, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock
+            Margin="0,5,0,3"
+            FontWeight="SemiBold"
+            Text="Rasterization DPI:" />
+        <DockPanel Margin="0,0,0,5">
+            <StackPanel
+                DockPanel.Dock="Right"
+                Orientation="Horizontal">
+                <Button
+                    Width="40"
+                    Margin="2,0"
+                    Command="{Binding SetDpiCommand}"
+                    CommandParameter="150"
+                    Content="150"
+                    ToolTip="Fast - 2 min/page" />
+                <Button
+                    Width="40"
+                    Margin="2,0"
+                    Command="{Binding SetDpiCommand}"
+                    CommandParameter="200"
+                    Content="200"
+                    Style="{DynamicResource MahApps.Styles.Button.Square.Accent}"
+                    ToolTip="Recommended - 2 min/page" />
+                <Button
+                    Width="40"
+                    Margin="2,0"
+                    Command="{Binding SetDpiCommand}"
+                    CommandParameter="300"
+                    Content="300"
+                    ToolTip="Best quality - 3 min/page" />
+            </StackPanel>
+            <mah:NumericUpDown
+                Interval="50"
+                Maximum="600"
+                Minimum="72"
+                Value="{Binding Dpi}" />
+        </DockPanel>
+
+        <TextBlock
+            Margin="0,5,0,3"
+            FontWeight="SemiBold"
+            Text="Chunk Size (characters):" />
+        <mah:NumericUpDown
+            Margin="0,0,0,15"
+            Interval="100"
+            Maximum="5000"
+            Minimum="100"
+            Value="{Binding ChunkSize}" />
+
+        <TextBlock
+            Margin="0,5,0,3"
+            FontWeight="SemiBold"
+            Text="Max Tokens (vision model output):" />
+        <DockPanel Margin="0,0,0,15">
+            <StackPanel
+                DockPanel.Dock="Right"
+                Orientation="Horizontal">
+                <Button
+                    Width="50"
+                    Margin="2,0"
+                    Command="{Binding SetMaxTokensCommand}"
+                    CommandParameter="500"
+                    Content="500"
+                    ToolTip="Partial pages - fast" />
+                <Button
+                    Width="50"
+                    Margin="2,0"
+                    Command="{Binding SetMaxTokensCommand}"
+                    CommandParameter="2000"
+                    Content="2000"
+                    Style="{DynamicResource MahApps.Styles.Button.Square.Accent}"
+                    ToolTip="Full pages - recommended" />
+                <Button
+                    Width="50"
+                    Margin="2,0"
+                    Command="{Binding SetMaxTokensCommand}"
+                    CommandParameter="4000"
+                    Content="4000"
+                    ToolTip="Very long pages - may fail" />
+            </StackPanel>
+            <mah:NumericUpDown
+                Interval="100"
+                Maximum="8000"
+                Minimum="100"
+                Value="{Binding MaxTokens}" />
+        </DockPanel>
+    </StackPanel>
+</UserControl>

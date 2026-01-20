@@ -43,15 +43,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _inputFolderPath = "";
     private string _outputFolderPath = "";
     private TextExtractionMethod _selectedMethod = TextExtractionMethod.LMStudio;
-    private string _lmStudioUrl = "http://localhost:1234";
-    private string _visionModelName = "qwen/qwen2.5-vl-7b";
-    private int _dpi = 150;
-    private int _chunkSize = 1000;
-    private int _maxTokens = 200;
-    private string _openAIApiKey = "";
-    private string _openAIModelName = "gpt-4o";
-    private int _openAIDpi = 150;
-    private int _openAIMaxTokens = 2000;
+
+    // Configuration ViewModels
+    public LMStudioConfigViewModel LMStudioConfig { get; }
+    public OpenAIConfigViewModel OpenAIConfig { get; }
 
     // State
     private bool _isExtracting;
@@ -70,16 +65,20 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
         _extractorLib = extractorLib ?? throw new ArgumentNullException(nameof(extractorLib));
 
+        // Initialize configuration ViewModels
+        LMStudioConfig = new LMStudioConfigViewModel();
+        OpenAIConfig = new OpenAIConfigViewModel();
+
+        // Subscribe to child ViewModel property changes
+        LMStudioConfig.PropertyChanged += OnChildConfigChanged;
+        OpenAIConfig.PropertyChanged += OnChildConfigChanged;
+
         // Initialize commands
         LoadedCommand = new DelegateCommand(OnLoaded);
         BrowseInputFolderCommand = new DelegateCommand(OnBrowseInputFolder);
         BrowseOutputFolderCommand = new DelegateCommand(OnBrowseOutputFolder);
         StartExtractionCommand = new AsyncCommand(StartExtractionAsync, CanStartExtraction);
         CancelExtractionCommand = new DelegateCommand(OnCancelExtraction, () => IsExtracting);
-        SetDpiCommand = new DelegateCommand<string>(OnSetDpi);
-        SetMaxTokensCommand = new DelegateCommand<string>(OnSetMaxTokens);
-        SetOpenAIDpiCommand = new DelegateCommand<string>(OnSetOpenAIDpi);
-        SetOpenAIMaxTokensCommand = new DelegateCommand<string>(OnSetOpenAIMaxTokens);
     }
 
     /// <summary>
@@ -91,16 +90,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _uiScheduler = DispatcherScheduler.Current;
         _extractorLib = new PdfTextExtractorLib();
 
+        // Initialize configuration ViewModels
+        LMStudioConfig = new LMStudioConfigViewModel();
+        OpenAIConfig = new OpenAIConfigViewModel();
+
         // Initialize commands with no-op implementations for designer
         LoadedCommand = new DelegateCommand(() => { });
         BrowseInputFolderCommand = new DelegateCommand(() => { });
         BrowseOutputFolderCommand = new DelegateCommand(() => { });
         StartExtractionCommand = new AsyncCommand(async () => { });
         CancelExtractionCommand = new DelegateCommand(() => { });
-        SetDpiCommand = new DelegateCommand<string>(_ => { });
-        SetMaxTokensCommand = new DelegateCommand<string>(_ => { });
-        SetOpenAIDpiCommand = new DelegateCommand<string>(_ => { });
-        SetOpenAIMaxTokensCommand = new DelegateCommand<string>(_ => { });
     }
 
     #region Properties
@@ -160,60 +159,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         TextExtractionMethod.OpenAI
     };
 
-    public string LMStudioUrl
-    {
-        get => _lmStudioUrl;
-        set => SetProperty(ref _lmStudioUrl, value, nameof(LMStudioUrl));
-    }
-
-    public string VisionModelName
-    {
-        get => _visionModelName;
-        set => SetProperty(ref _visionModelName, value, nameof(VisionModelName));
-    }
-
-    public int Dpi
-    {
-        get => _dpi;
-        set => SetProperty(ref _dpi, value, nameof(Dpi));
-    }
-
-    public int ChunkSize
-    {
-        get => _chunkSize;
-        set => SetProperty(ref _chunkSize, value, nameof(ChunkSize));
-    }
-
-    public int MaxTokens
-    {
-        get => _maxTokens;
-        set => SetProperty(ref _maxTokens, value, nameof(MaxTokens));
-    }
-
-    public string OpenAIApiKey
-    {
-        get => _openAIApiKey;
-        set => SetProperty(ref _openAIApiKey, value, nameof(OpenAIApiKey));
-    }
-
-    public string OpenAIModelName
-    {
-        get => _openAIModelName;
-        set => SetProperty(ref _openAIModelName, value, nameof(OpenAIModelName));
-    }
-
-    public int OpenAIDpi
-    {
-        get => _openAIDpi;
-        set => SetProperty(ref _openAIDpi, value, nameof(OpenAIDpi));
-    }
-
-    public int OpenAIMaxTokens
-    {
-        get => _openAIMaxTokens;
-        set => SetProperty(ref _openAIMaxTokens, value, nameof(OpenAIMaxTokens));
-    }
-
     public bool IsExtracting
     {
         get => _isExtracting;
@@ -241,10 +186,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand BrowseOutputFolderCommand { get; }
     public ICommand StartExtractionCommand { get; }
     public ICommand CancelExtractionCommand { get; }
-    public ICommand SetDpiCommand { get; }
-    public ICommand SetMaxTokensCommand { get; }
-    public ICommand SetOpenAIDpiCommand { get; }
-    public ICommand SetOpenAIMaxTokensCommand { get; }
 
     #endregion
 
@@ -489,8 +430,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
         return SelectedMethod switch
         {
-            TextExtractionMethod.LMStudio => !string.IsNullOrWhiteSpace(VisionModelName),
-            TextExtractionMethod.OpenAI => !string.IsNullOrWhiteSpace(OpenAIApiKey) && !string.IsNullOrWhiteSpace(OpenAIModelName),
+            TextExtractionMethod.LMStudio => LMStudioConfig.IsValid(),
+            TextExtractionMethod.OpenAI => OpenAIConfig.IsValid(),
             _ => false
         };
     }
@@ -510,11 +451,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     {
                         PdfFolderPath = InputFolderPath,
                         OutputFolderPath = OutputFolderPath,
-                        LMStudioUrl = LMStudioUrl,
-                        VisionModelName = VisionModelName,
-                        RasterizationDpi = Dpi,
-                        ChunkSize = ChunkSize,
-                        MaxTokens = MaxTokens
+                        LMStudioUrl = LMStudioConfig.LMStudioUrl,
+                        VisionModelName = LMStudioConfig.VisionModelName,
+                        RasterizationDpi = LMStudioConfig.Dpi,
+                        ChunkSize = LMStudioConfig.ChunkSize,
+                        MaxTokens = LMStudioConfig.MaxTokens
                     };
                     await _extractorLib.ExtractWithLMStudioAsync(lmStudioParams, _cancellationTokenSource.Token);
                     break;
@@ -524,11 +465,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     {
                         PdfFolderPath = InputFolderPath,
                         OutputFolderPath = OutputFolderPath,
-                        ApiKey = OpenAIApiKey,
-                        VisionModelName = OpenAIModelName,
-                        RasterizationDpi = OpenAIDpi,
-                        ChunkSize = ChunkSize,
-                        MaxTokens = OpenAIMaxTokens
+                        ApiKey = OpenAIConfig.OpenAIApiKey,
+                        VisionModelName = OpenAIConfig.OpenAIModelName,
+                        RasterizationDpi = OpenAIConfig.OpenAIDpi,
+                        ChunkSize = OpenAIConfig.ChunkSize,
+                        MaxTokens = OpenAIConfig.MaxTokens
                     };
                     await _extractorLib.ExtractWithOpenAIAsync(openAIParams, _cancellationTokenSource.Token);
                     break;
@@ -564,50 +505,20 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _logger.Info("Cancellation requested");
     }
 
-    private void OnSetDpi(string? dpiValue)
+    private void OnChildConfigChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(dpiValue) && int.TryParse(dpiValue, out int dpi))
-        {
-            Dpi = dpi;
-            _logger.Info($"DPI preset selected: {dpi}");
-            Status = $"DPI set to {dpi}";
-        }
-    }
-
-    private void OnSetMaxTokens(string? tokenValue)
-    {
-        if (!string.IsNullOrWhiteSpace(tokenValue) && int.TryParse(tokenValue, out int tokens))
-        {
-            MaxTokens = tokens;
-            _logger.Info($"Max tokens set to: {tokens}");
-            Status = $"Max tokens set to {tokens}";
-        }
-    }
-
-    private void OnSetOpenAIDpi(string? dpiValue)
-    {
-        if (!string.IsNullOrWhiteSpace(dpiValue) && int.TryParse(dpiValue, out int dpi))
-        {
-            OpenAIDpi = dpi;
-            _logger.Info($"OpenAI DPI preset selected: {dpi}");
-            Status = $"OpenAI DPI set to {dpi}";
-        }
-    }
-
-    private void OnSetOpenAIMaxTokens(string? tokenValue)
-    {
-        if (!string.IsNullOrWhiteSpace(tokenValue) && int.TryParse(tokenValue, out int tokens))
-        {
-            OpenAIMaxTokens = tokens;
-            _logger.Info($"OpenAI Max tokens set to: {tokens}");
-            Status = $"OpenAI Max tokens set to {tokens}";
-        }
+        // When child configuration changes, re-evaluate command can-execute state
+        (StartExtractionCommand as AsyncCommand)?.RaiseCanExecuteChanged();
     }
 
     #endregion
 
     public void Dispose()
     {
+        // Unsubscribe from child ViewModel events
+        LMStudioConfig.PropertyChanged -= OnChildConfigChanged;
+        OpenAIConfig.PropertyChanged -= OnChildConfigChanged;
+
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _disposables.Dispose();

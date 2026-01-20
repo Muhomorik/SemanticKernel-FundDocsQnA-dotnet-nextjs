@@ -13,12 +13,4 @@ public partial class MainWindow
     {
         InitializeComponent();
     }
-
-    private void OnOpenAIApiKeyChanged(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel && sender is PasswordBox passwordBox)
-        {
-            viewModel.OpenAIApiKey = passwordBox.Password;
-        }
-    }
 }
