@@ -25,7 +25,7 @@
 
 **Key Features:**
 
-- ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), OpenAI (OCR), Ollama (OCR - planned)
+- ✅ **Multiple extraction methods**: PdfPig (native text), LM Studio (OCR), OpenAI (OCR)
 - ✅ **Real-time events**: Rx.NET observable streams for progress tracking and UI updates
 - ✅ **Domain-Driven Design**: Clean separation of concerns with Domain/ApplicationCore/Infrastructure layers
 - ✅ **Autofac DI**: Fully configured dependency injection container
@@ -51,7 +51,7 @@
 | **System.Reactive** | 6.0.0 | 📡 Rx.NET for IObservable event streams |
 | **PdfPig** | 0.1.12 | 📄 Native PDF text extraction |
 | **SixLabors.ImageSharp** | 3.1.12 | 🖼️ Image processing for OCR rasterization |
-| **Microsoft.Extensions.Http** | 9.0.0 | 🌐 HTTP client for LM Studio/Ollama APIs |
+| **Microsoft.Extensions.Http** | 9.0.0 | 🌐 HTTP client for LM Studio/OpenAI APIs |
 | **System.Text.Json** | 9.0.0 | 📋 JSON serialization |
 | **Microsoft.Extensions.Logging.Abstractions** | 9.0.0 | 📝 Logging infrastructure |
 
@@ -62,7 +62,6 @@
 | **PdfPig** | ✅ Implemented | Native PDF text extraction (fast, no OCR) |
 | **LM Studio** | ✅ Implemented | OCR via vision models (local, self-hosted) |
 | **OpenAI** | ✅ Implemented | OCR via vision models (cloud-based, gpt-4o) |
-| **Ollama** | 📅 Planned (Phase 7) | OCR via vision models (local, free) |
 
 ---
 
@@ -400,32 +399,6 @@ var parameters = new OpenAIParameters
 4. Test with a small PDF (1-2 pages) to estimate costs
 
 **Security Note:** API keys are never persisted to disk by the library.
-
-##### ExtractWithOllamaAsync
-
-```csharp
-/// <summary>
-/// Extract text using Ollama vision models (OCR - planned).
-/// </summary>
-/// <remarks>⚠️ Currently stub - planned for Phase 7</remarks>
-Task<ExtractionResult> ExtractWithOllamaAsync(
-    OllamaParameters parameters,
-    CancellationToken cancellationToken = default);
-```
-
-**OllamaParameters:**
-
-```csharp
-public class OllamaParameters
-{
-    public required string PdfFolderPath { get; init; }
-    public required string OutputFolderPath { get; init; }
-    public string OllamaUrl { get; init; } = "http://localhost:11434";
-    public required string VisionModelName { get; init; }
-    public int RasterizationDpi { get; init; } = 300;
-    public int ChunkSize { get; init; } = 1000;
-}
-```
 
 ### ExtractionResult
 
@@ -936,14 +909,12 @@ PdfTextExtractor.Core/
 │       ├── IPdfTextExtractor.cs
 │       ├── PdfPigExtractor.cs (✅ Implemented)
 │       ├── LMStudioOcrExtractor.cs (✅ Implemented)
-│       ├── OpenAIOcrExtractor.cs (✅ Implemented)
-│       └── OllamaOcrExtractor.cs (📅 Planned)
-├── 📁 Configuration/ (5 files)
+│       └── OpenAIOcrExtractor.cs (✅ Implemented)
+├── 📁 Configuration/ (4 files)
 │   ├── TextExtractionMethod.cs (enum)
 │   ├── PdfPigParameters.cs
 │   ├── LMStudioParameters.cs
-│   ├── OpenAIParameters.cs
-│   └── OllamaParameters.cs
+│   └── OpenAIParameters.cs
 ├── 📁 Models/ (2 files)
 │   ├── DocumentChunk.cs
 │   └── ExtractionResult.cs
@@ -1093,13 +1064,6 @@ public partial class MainWindow : Window
 - ✅ User-friendly error handling (401, 429, 500 errors)
 - ✅ Secure API key handling (no disk persistence)
 - ✅ WPF UI with dropdown method selector and conditional settings panels
-
-### 📅 Phase 7: Ollama OCR Implementation (Planned)
-
-- Implement Ollama vision API integration (`/api/generate`)
-- Support local, free OCR extraction (llama3.2-vision, minicpm-v, etc.)
-- Same event publishing pattern as LM Studio/OpenAI
-- WPF UI integration with method selector
 
 ### 🚀 Phase 8: Advanced Features
 

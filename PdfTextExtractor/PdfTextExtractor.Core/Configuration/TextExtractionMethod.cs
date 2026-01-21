@@ -7,6 +7,5 @@ public enum TextExtractionMethod
 {
     PdfPig,
     LMStudio,
-    Ollama,
     OpenAI
 }

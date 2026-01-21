@@ -41,15 +41,4 @@ public class ExtractorTypeTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Value, Is.EqualTo("LMStudio"));
     }
-
-    [Test]
-    public void FromString_Ollama_ReturnsOllamaType()
-    {
-        // Arrange & Act
-        var result = ExtractorType.FromString("Ollama");
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Value, Is.EqualTo("Ollama"));
-    }
 }

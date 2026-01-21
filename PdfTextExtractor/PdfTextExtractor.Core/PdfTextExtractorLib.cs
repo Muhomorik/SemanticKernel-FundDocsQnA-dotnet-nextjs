@@ -96,21 +96,6 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             cancellationToken);
     }
 
-    public async Task<ExtractionResult> ExtractWithOllamaAsync(
-        OllamaParameters parameters,
-        CancellationToken cancellationToken = default)
-    {
-        ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
-
-        var extractor = _container.Resolve<OllamaOcrExtractor>();
-        return await ExtractCoreAsync(
-            extractor,
-            parameters.PdfFolderPath,
-            parameters.OutputFolderPath,
-            TextExtractionMethod.Ollama,
-            cancellationToken);
-    }
-
     public async Task<ExtractionResult> ExtractWithOpenAIAsync(
         OpenAIParameters parameters,
         CancellationToken cancellationToken = default)
@@ -285,11 +270,6 @@ public class PdfTextExtractorModule : Module
             .InstancePerDependency();
 
         builder.RegisterType<LMStudioOcrExtractor>()
-            .As<IPdfTextExtractor>()
-            .AsSelf()
-            .InstancePerDependency();
-
-        builder.RegisterType<OllamaOcrExtractor>()
             .As<IPdfTextExtractor>()
             .AsSelf()
             .InstancePerDependency();

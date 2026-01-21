@@ -14,7 +14,6 @@ public sealed record ExtractorType
 
     public static readonly ExtractorType PdfPig = new("PdfPig");
     public static readonly ExtractorType LMStudio = new("LMStudio");
-    public static readonly ExtractorType Ollama = new("Ollama");
 
     public static ExtractorType FromString(string value)
     {
@@ -22,7 +21,6 @@ public sealed record ExtractorType
         {
             "pdfpig" => PdfPig,
             "lmstudio" => LMStudio,
-            "ollama" => Ollama,
             _ => throw new ArgumentException($"Unknown extractor type: {value}", nameof(value))
         };
     }

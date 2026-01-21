@@ -19,7 +19,7 @@
     <!-- Image Processing for OCR -->
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
 
-    <!-- HTTP client for LM Studio/Ollama APIs -->
+    <!-- HTTP client for LM Studio/OpenAI APIs -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
 
     <!-- JSON serialization -->
