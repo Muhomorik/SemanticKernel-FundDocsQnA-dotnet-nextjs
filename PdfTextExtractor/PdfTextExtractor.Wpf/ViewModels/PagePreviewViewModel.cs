@@ -85,6 +85,7 @@ public sealed class PagePreviewViewModel : ViewModelBase
     public string StatusText => Status switch
     {
         PageStatus.Completed => "Completed",
+        PageStatus.OcrProcessing => "OCR Processing...",
         PageStatus.Extracting => "Extracting...",
         PageStatus.Rasterizing => "Rasterizing...",
         PageStatus.Failed => "Failed",
@@ -97,6 +98,7 @@ public sealed class PagePreviewViewModel : ViewModelBase
     public string StatusIcon => Status switch
     {
         PageStatus.Completed => "✓",
+        PageStatus.OcrProcessing => "👁",
         PageStatus.Extracting => "⟳",
         PageStatus.Rasterizing => "⚙",
         PageStatus.Failed => "✗",
@@ -114,6 +116,9 @@ public enum PageStatus
 
     /// <summary>Page is being rasterized to an image.</summary>
     Rasterizing,
+
+    /// <summary>OCR vision processing is in progress.</summary>
+    OcrProcessing,
 
     /// <summary>Text extraction is in progress.</summary>
     Extracting,

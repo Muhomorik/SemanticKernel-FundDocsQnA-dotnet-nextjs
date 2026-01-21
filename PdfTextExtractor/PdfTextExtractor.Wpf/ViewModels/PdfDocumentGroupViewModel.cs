@@ -13,6 +13,8 @@ public sealed class PdfDocumentGroupViewModel : ViewModelBase
     private string _filePath = "";
     private ObservableCollection<PagePreviewViewModel> _pages = new();
     private bool _isExpanded = true;
+    private DocumentStatus _status = DocumentStatus.Processing;
+    private string _errorMessage = "";
 
     /// <summary>
     /// Gets or sets the PDF file name (without path).
@@ -60,6 +62,24 @@ public sealed class PdfDocumentGroupViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets the document extraction status.
+    /// </summary>
+    public DocumentStatus Status
+    {
+        get => _status;
+        set => SetProperty(ref _status, value, nameof(Status));
+    }
+
+    /// <summary>
+    /// Gets or sets the error message if extraction failed.
+    /// </summary>
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        set => SetProperty(ref _errorMessage, value, nameof(ErrorMessage));
+    }
+
+    /// <summary>
     /// Gets the total number of pages in this document.
     /// </summary>
     public int TotalPages => Pages.Count;
@@ -80,4 +100,22 @@ public sealed class PdfDocumentGroupViewModel : ViewModelBase
     public double ProgressPercentage => TotalPages > 0
         ? (double)CompletedPages / TotalPages * 100
         : 0;
+}
+
+/// <summary>
+/// Represents the extraction status of a PDF document.
+/// </summary>
+public enum DocumentStatus
+{
+    /// <summary>Document is being processed.</summary>
+    Processing,
+
+    /// <summary>Document extraction completed successfully.</summary>
+    Completed,
+
+    /// <summary>Document extraction failed.</summary>
+    Failed,
+
+    /// <summary>Document extraction was cancelled.</summary>
+    Cancelled
 }

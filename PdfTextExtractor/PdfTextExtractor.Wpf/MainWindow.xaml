@@ -19,6 +19,7 @@
 
     <Window.Resources>
         <converters:PageStatusToBrushConverter x:Key="StatusToBrushConverter" />
+        <converters:StatusBarBrushConverter x:Key="StatusBarBrushConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </Window.Resources>
@@ -313,10 +314,13 @@
         <Border
             Grid.Row="1"
             Padding="10,5"
-            Background="{DynamicResource MahApps.Brushes.Control.Background}"
+            Background="{Binding Status, Converter={StaticResource StatusBarBrushConverter}}"
             BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
             BorderThickness="0,1,0,0">
-            <TextBlock VerticalAlignment="Center" Text="{Binding Status}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="White"
+                Text="{Binding Status}" />
         </Border>
     </Grid>
 </mah:MetroWindow>

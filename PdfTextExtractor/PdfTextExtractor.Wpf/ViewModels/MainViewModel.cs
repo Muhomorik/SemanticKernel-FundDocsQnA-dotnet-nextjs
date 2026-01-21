@@ -18,6 +18,7 @@ using PdfTextExtractor.Core.Domain.Events.Document;
 using PdfTextExtractor.Core.Domain.Events.Infrastructure;
 using PdfTextExtractor.Core.Domain.Events.Ocr;
 using PdfTextExtractor.Core.Domain.Events.Page;
+using PdfTextExtractor.Core.Domain.Events.TextProcessing;
 
 namespace PdfTextExtractor.Wpf.ViewModels;
 
@@ -241,6 +242,42 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             case ExtractionProgressUpdated e:
                 HandleProgressUpdated(e);
                 break;
+            case BatchExtractionFailed e:
+                HandleBatchFailed(e);
+                break;
+            case BatchExtractionCancelled e:
+                HandleBatchCancelled(e);
+                break;
+            case DocumentExtractionFailed e:
+                HandleDocumentFailed(e);
+                break;
+            case DocumentExtractionCancelled e:
+                HandleDocumentCancelled(e);
+                break;
+            case PageRasterizationFailed e:
+                HandlePageRasterizationFailed(e);
+                break;
+            case OcrProcessingStarted e:
+                HandleOcrProcessingStarted(e);
+                break;
+            case OcrProcessingFailed e:
+                HandleOcrProcessingFailed(e);
+                break;
+            case EmptyPageDetected e:
+                HandleEmptyPageDetected(e);
+                break;
+            case TextChunked e:
+                HandleTextChunked(e);
+                break;
+            case ChunkCreated e:
+                HandleChunkCreated(e);
+                break;
+            case TempImageSaved e:
+                HandleTempImageSaved(e);
+                break;
+            case TempFilesCleanedUp e:
+                HandleTempFilesCleanedUp(e);
+                break;
         }
     }
 
@@ -388,6 +425,116 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         return PdfDocuments
             .FirstOrDefault(d => d.FilePath == filePath)
             ?.Pages.FirstOrDefault(p => p.PageNumber == pageNumber);
+    }
+
+    private void HandleBatchFailed(BatchExtractionFailed e)
+    {
+        IsExtracting = false;
+        Status = $"❌ Batch extraction failed: {e.ErrorMessage} ({e.FilesProcessedBeforeFailure} files processed)";
+        _logger.Error($"Batch extraction failed. Exception: {e.ExceptionType}, Message: {e.ErrorMessage}, Files processed: {e.FilesProcessedBeforeFailure}");
+    }
+
+    private void HandleBatchCancelled(BatchExtractionCancelled e)
+    {
+        IsExtracting = false;
+        Status = $"⚠️ Batch extraction cancelled: {e.Reason} ({e.FilesProcessedBeforeCancellation} files processed)";
+        _logger.Info($"Batch extraction cancelled. Reason: {e.Reason}, Files processed: {e.FilesProcessedBeforeCancellation}");
+    }
+
+    private void HandleDocumentFailed(DocumentExtractionFailed e)
+    {
+        var fileName = Path.GetFileName(e.FilePath);
+        var pageInfo = e.PageNumberWhereFailed.HasValue ? $" at page {e.PageNumberWhereFailed.Value}" : "";
+        Status = $"❌ Document failed: {fileName}{pageInfo} - {e.ErrorMessage}";
+
+        var docGroup = PdfDocuments.FirstOrDefault(d => d.FilePath == e.FilePath);
+        if (docGroup != null)
+        {
+            docGroup.Status = DocumentStatus.Failed;
+            docGroup.ErrorMessage = e.ErrorMessage;
+        }
+
+        _logger.Error($"Document extraction failed: {e.FilePath}, Exception: {e.ExceptionType}, Message: {e.ErrorMessage}, Page: {e.PageNumberWhereFailed}");
+    }
+
+    private void HandleDocumentCancelled(DocumentExtractionCancelled e)
+    {
+        var fileName = Path.GetFileName(e.FilePath);
+        Status = $"⚠️ Document cancelled: {fileName} ({e.PagesProcessedBeforeCancellation} pages processed)";
+
+        var docGroup = PdfDocuments.FirstOrDefault(d => d.FilePath == e.FilePath);
+        if (docGroup != null)
+        {
+            docGroup.Status = DocumentStatus.Cancelled;
+        }
+
+        _logger.Info($"Document extraction cancelled: {e.FilePath}, Pages processed: {e.PagesProcessedBeforeCancellation}");
+    }
+
+    private void HandlePageRasterizationFailed(PageRasterizationFailed e)
+    {
+        var page = FindPage(e.FilePath, e.PageNumber);
+        if (page != null)
+        {
+            page.Status = PageStatus.Failed;
+        }
+
+        _logger.Error($"Page rasterization failed: {e.FilePath}, Page {e.PageNumber}, Exception: {e.ExceptionType}, Message: {e.ErrorMessage}");
+    }
+
+    private void HandleOcrProcessingFailed(OcrProcessingFailed e)
+    {
+        var page = FindPage(e.FilePath, e.PageNumber);
+        if (page != null)
+        {
+            page.Status = PageStatus.Failed;
+        }
+
+        _logger.Error($"OCR processing failed: {e.FilePath}, Page {e.PageNumber}, Exception: {e.ExceptionType}, Message: {e.ErrorMessage}");
+    }
+
+    private void HandleOcrProcessingStarted(OcrProcessingStarted e)
+    {
+        var page = FindPage(e.FilePath, e.PageNumber);
+        if (page != null)
+        {
+            page.Status = PageStatus.OcrProcessing;
+        }
+
+        Status = $"OCR processing page {e.PageNumber} (Model: {e.VisionModelName})";
+        _logger.Info($"OCR processing started: {e.FilePath}, Page {e.PageNumber}, Model: {e.VisionModelName}");
+    }
+
+    private void HandleEmptyPageDetected(EmptyPageDetected e)
+    {
+        var page = FindPage(e.FilePath, e.PageNumber);
+        if (page != null)
+        {
+            page.Status = PageStatus.Completed;
+        }
+
+        _logger.Info($"Empty page detected: {e.FilePath}, Page {e.PageNumber}");
+    }
+
+    private void HandleTextChunked(TextChunked e)
+    {
+        _logger.Debug($"Text chunked: {e.FilePath}, Page {e.PageNumber}, Chunks: {e.ChunkCount}, Sizes: [{string.Join(", ", e.ChunkSizes)}]");
+    }
+
+    private void HandleChunkCreated(ChunkCreated e)
+    {
+        // High-volume event - only trace logging
+        _logger.Trace($"Chunk created: {e.FilePath}, Page {e.PageNumber}, Chunk {e.ChunkIndex}, Length: {e.ContentLength}");
+    }
+
+    private void HandleTempImageSaved(TempImageSaved e)
+    {
+        _logger.Debug($"Temp image saved: {e.TempImagePath}, Size: {e.ImageSizeBytes} bytes, Page {e.PageNumber}");
+    }
+
+    private void HandleTempFilesCleanedUp(TempFilesCleanedUp e)
+    {
+        _logger.Debug($"Temp files cleaned up: {e.TotalFilesDeleted} files deleted");
     }
 
     #endregion

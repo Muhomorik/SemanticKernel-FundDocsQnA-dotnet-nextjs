@@ -21,6 +21,7 @@ public class PageStatusToBrushConverter : IValueConverter
             return status switch
             {
                 PageStatus.Completed => System.Windows.Media.Brushes.Green,
+                PageStatus.OcrProcessing => System.Windows.Media.Brushes.Purple,
                 PageStatus.Extracting => System.Windows.Media.Brushes.DodgerBlue,
                 PageStatus.Rasterizing => System.Windows.Media.Brushes.Orange,
                 PageStatus.Failed => System.Windows.Media.Brushes.Red,
