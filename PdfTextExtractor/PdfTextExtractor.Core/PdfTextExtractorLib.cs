@@ -21,10 +21,25 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 {
     private readonly IContainer _container;
     private readonly ReactiveEventPublisher _eventPublisher;
+    private readonly ILoggerFactory? _loggerFactory;
 
-    public PdfTextExtractorLib()
+    public PdfTextExtractorLib(ILoggerFactory? loggerFactory = null)
     {
+        _loggerFactory = loggerFactory;
+
         var builder = new ContainerBuilder();
+
+        // Register ILoggerFactory if provided (enables logging)
+        if (_loggerFactory != null)
+        {
+            builder.RegisterInstance(_loggerFactory).As<ILoggerFactory>();
+            builder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>));
+        }
+        else
+        {
+            // Fallback: Register NullLogger<T> for design-time/test scenarios
+            builder.RegisterGeneric(typeof(NullLogger<>)).As(typeof(ILogger<>));
+        }
 
         // Register module
         builder.RegisterModule<PdfTextExtractorModule>();
@@ -53,8 +68,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
     {
         ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
 
-        var logger = _container.ResolveOptional<ILogger<PdfPigExtractor>>()
-            ?? NullLogger<PdfPigExtractor>.Instance;
+        var logger = _container.Resolve<ILogger<PdfPigExtractor>>();
         var extractor = new PdfPigExtractor(logger, parameters.ChunkSize);
         return await ExtractCoreAsync(
             extractor,
@@ -72,10 +86,8 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
         // Resolve dependencies from container
         var rasterizationService = _container.Resolve<IRasterizationService>();
-        var visionLogger = _container.ResolveOptional<ILogger<LMStudioVisionClient>>()
-            ?? NullLogger<LMStudioVisionClient>.Instance;
-        var extractorLogger = _container.ResolveOptional<ILogger<LMStudioOcrExtractor>>()
-            ?? NullLogger<LMStudioOcrExtractor>.Instance;
+        var visionLogger = _container.Resolve<ILogger<LMStudioVisionClient>>();
+        var extractorLogger = _container.Resolve<ILogger<LMStudioOcrExtractor>>();
 
         // Manually construct vision client with maxTokens from parameters
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
@@ -104,10 +116,8 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
         // Resolve dependencies from container
         var rasterizationService = _container.Resolve<IRasterizationService>();
-        var visionLogger = _container.ResolveOptional<ILogger<OpenAIVisionClient>>()
-            ?? NullLogger<OpenAIVisionClient>.Instance;
-        var extractorLogger = _container.ResolveOptional<ILogger<OpenAIOcrExtractor>>()
-            ?? NullLogger<OpenAIOcrExtractor>.Instance;
+        var visionLogger = _container.Resolve<ILogger<OpenAIVisionClient>>();
+        var extractorLogger = _container.Resolve<ILogger<OpenAIOcrExtractor>>();
 
         // Manually construct vision client
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
@@ -254,14 +264,12 @@ public class PdfTextExtractorModule : Module
         // Rasterization service
         builder.RegisterType<PdfPageRasterizer>()
             .As<IRasterizationService>()
-            .InstancePerDependency()
-            .WithParameter(new TypedParameter(typeof(ILogger<PdfPageRasterizer>), NullLogger<PdfPageRasterizer>.Instance));
+            .InstancePerDependency();
 
         // LM Studio vision client
         builder.RegisterType<LMStudioVisionClient>()
             .As<ILMStudioVisionClient>()
             .InstancePerDependency()
-            .WithParameter(new TypedParameter(typeof(ILogger<LMStudioVisionClient>), NullLogger<LMStudioVisionClient>.Instance))
             .WithParameter(new TypedParameter(typeof(HttpClient), new HttpClient { Timeout = TimeSpan.FromMinutes(5) }));
 
         // Extractors

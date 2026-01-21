@@ -18,7 +18,14 @@
     <PackageReference Include="DevExpressMvvm" Version="24.1.6" />
     <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="NLog" Version="6.0.7" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />
     <PackageReference Include="System.Reactive" Version="6.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
