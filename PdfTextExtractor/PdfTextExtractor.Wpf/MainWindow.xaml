@@ -218,57 +218,6 @@
 
                         <Separator Margin="0,10" />
 
-                        <!--  Optimal Settings Info Panel  -->
-                        <Expander
-                            Margin="0,10,0,10"
-                            IsExpanded="True"
-                            Header="✅ Tested Configuration (GTX 1060 6GB)">
-                            <Border
-                                Margin="5"
-                                Padding="10"
-                                Background="{DynamicResource MahApps.Brushes.Gray10}"
-                                CornerRadius="5">
-                                <StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        FontWeight="Bold"
-                                        Text="Recommended LM Studio Settings:" />
-                                    <TextBlock
-                                        Margin="5,5,0,2"
-                                        FontSize="11"
-                                        Text="• GPU Offload: 12 layers" />
-                                    <TextBlock
-                                        Margin="5,0,0,2"
-                                        FontSize="11"
-                                        Text="• Context Length: 4096 tokens" />
-                                    <TextBlock
-                                        Margin="5,0,0,2"
-                                        FontSize="11"
-                                        Text="• Model: qwen/qwen2.5-vl-7b" />
-
-                                    <Separator Margin="0,8" />
-
-                                    <TextBlock
-                                        Margin="0,5,0,5"
-                                        FontSize="12"
-                                        FontWeight="Bold"
-                                        Text="Performance (per page):" />
-                                    <TextBlock
-                                        Margin="5,0,0,2"
-                                        FontSize="11"
-                                        Text="• DPI 150: ~2 min (fastest)" />
-                                    <TextBlock
-                                        Margin="5,0,0,2"
-                                        FontSize="11"
-                                        Text="• DPI 200: ~2 min (recommended)" />
-                                    <TextBlock
-                                        Margin="5,0,0,2"
-                                        FontSize="11"
-                                        Text="• DPI 300: ~3 min (best quality)" />
-                                </StackPanel>
-                            </Border>
-                        </Expander>
-
                         <!--  LM Studio Configuration Panel (visible only when LM Studio is selected)  -->
                         <views:LMStudioConfigView
                             DataContext="{Binding LMStudioConfig}"
