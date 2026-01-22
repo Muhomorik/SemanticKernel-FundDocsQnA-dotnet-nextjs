@@ -125,6 +125,25 @@ public class OpenAIVisionClient : IOpenAIVisionClient
                 .GetProperty("content")
                 .GetString();
 
+            // Extract and log token usage
+            if (jsonDoc.RootElement.TryGetProperty("usage", out var usageElement))
+            {
+                var promptTokens = usageElement.GetProperty("prompt_tokens").GetInt32();
+                var completionTokens = usageElement.GetProperty("completion_tokens").GetInt32();
+                var totalTokens = usageElement.GetProperty("total_tokens").GetInt32();
+
+                _logger.LogInformation(
+                    "OpenAI Vision API token usage - Image: {ImagePath}, Model: {ModelName}, " +
+                    "Prompt tokens: {PromptTokens}, Completion tokens: {CompletionTokens}, Total tokens: {TotalTokens}",
+                    imagePath, modelName, promptTokens, completionTokens, totalTokens);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Token usage information not found in OpenAI API response for {ImagePath}",
+                    imagePath);
+            }
+
             _logger.LogInformation(
                 "Successfully extracted {TextLength} characters from {ImagePath} using OpenAI {ModelName}",
                 extractedText?.Length ?? 0, imagePath, modelName);
