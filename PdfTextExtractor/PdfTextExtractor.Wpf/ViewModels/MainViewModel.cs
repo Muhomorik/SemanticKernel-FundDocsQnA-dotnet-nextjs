@@ -38,9 +38,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     // Settings
     private string _inputFolderPath = "";
     private string _outputFolderPath = "";
-    private TextExtractionMethod _selectedMethod = TextExtractionMethod.LMStudio;
+    private TextExtractionMethod _selectedMethod = TextExtractionMethod.PdfPig;
 
     // Configuration ViewModels
+    public PdfPigConfigViewModel PdfPigConfig { get; }
     public LMStudioConfigViewModel LMStudioConfig { get; }
     public OpenAIConfigViewModel OpenAIConfig { get; }
 
@@ -62,10 +63,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _extractorLib = extractorLib ?? throw new ArgumentNullException(nameof(extractorLib));
 
         // Initialize configuration ViewModels
+        PdfPigConfig = new PdfPigConfigViewModel();
         LMStudioConfig = new LMStudioConfigViewModel();
         OpenAIConfig = new OpenAIConfigViewModel();
 
         // Subscribe to child ViewModel property changes
+        PdfPigConfig.PropertyChanged += OnChildConfigChanged;
         LMStudioConfig.PropertyChanged += OnChildConfigChanged;
         OpenAIConfig.PropertyChanged += OnChildConfigChanged;
 
@@ -87,6 +90,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _extractorLib = new PdfTextExtractorLib();
 
         // Initialize configuration ViewModels
+        PdfPigConfig = new PdfPigConfigViewModel();
         LMStudioConfig = new LMStudioConfigViewModel();
         OpenAIConfig = new OpenAIConfigViewModel();
 
@@ -138,6 +142,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             if (SetProperty(ref _selectedMethod, value, nameof(SelectedMethod)))
             {
                 // Notify visibility properties when method changes
+                RaisePropertyChanged(nameof(IsPdfPigSelected));
                 RaisePropertyChanged(nameof(IsLMStudioSelected));
                 RaisePropertyChanged(nameof(IsOpenAISelected));
             }
@@ -145,12 +150,14 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     }
 
     // Helper properties for XAML binding
+    public bool IsPdfPigSelected => SelectedMethod == TextExtractionMethod.PdfPig;
     public bool IsLMStudioSelected => SelectedMethod == TextExtractionMethod.LMStudio;
     public bool IsOpenAISelected => SelectedMethod == TextExtractionMethod.OpenAI;
 
     // ComboBox items source
     public IEnumerable<TextExtractionMethod> AvailableMethods => new[]
     {
+        TextExtractionMethod.PdfPig,
         TextExtractionMethod.LMStudio,
         TextExtractionMethod.OpenAI
     };
@@ -555,6 +562,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
         return SelectedMethod switch
         {
+            TextExtractionMethod.PdfPig => PdfPigConfig.IsValid(),
             TextExtractionMethod.LMStudio => LMStudioConfig.IsValid(),
             TextExtractionMethod.OpenAI => OpenAIConfig.IsValid(),
             _ => false
@@ -571,6 +579,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
             switch (SelectedMethod)
             {
+                case TextExtractionMethod.PdfPig:
+                    var pdfPigParams = new PdfPigParameters
+                    {
+                        PdfFolderPath = InputFolderPath,
+                        OutputFolderPath = OutputFolderPath
+                    };
+                    await _extractorLib.ExtractWithPdfPigAsync(pdfPigParams, _cancellationTokenSource.Token);
+                    break;
+
                 case TextExtractionMethod.LMStudio:
                     var lmStudioParams = new LMStudioParameters
                     {
@@ -639,6 +656,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         // Unsubscribe from child ViewModel events
+        PdfPigConfig.PropertyChanged -= OnChildConfigChanged;
         LMStudioConfig.PropertyChanged -= OnChildConfigChanged;
         OpenAIConfig.PropertyChanged -= OnChildConfigChanged;
 

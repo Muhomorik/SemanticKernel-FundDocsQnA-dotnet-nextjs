@@ -182,7 +182,7 @@
                             ItemsSource="{Binding AvailableMethods}"
                             SelectedItem="{Binding SelectedMethod}"
                             DisplayMemberPath="."
-                            ToolTip="Select text extraction method (LM Studio or OpenAI)" />
+                            ToolTip="Select text extraction method (PdfPig, LM Studio, or OpenAI)" />
 
                         <Separator Margin="0,10" />
 
@@ -217,6 +217,11 @@
                         </DockPanel>
 
                         <Separator Margin="0,10" />
+
+                        <!--  PdfPig Configuration Panel (visible only when PdfPig is selected)  -->
+                        <views:PdfPigConfigView
+                            DataContext="{Binding PdfPigConfig}"
+                            Visibility="{Binding DataContext.IsPdfPigSelected, RelativeSource={RelativeSource AncestorType=mah:MetroWindow}, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <!--  LM Studio Configuration Panel (visible only when LM Studio is selected)  -->
                         <views:LMStudioConfigView

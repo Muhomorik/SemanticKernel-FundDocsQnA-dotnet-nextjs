@@ -1,0 +1,101 @@
+<UserControl x:Class="PdfTextExtractor.Wpf.Views.PdfPigConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:viewModels="clr-namespace:PdfTextExtractor.Wpf.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:PdfPigConfigViewModel, IsDesignTimeCreatable=True}"
+             d:DesignHeight="450" d:DesignWidth="400">
+    <StackPanel>
+        <!--  PdfPig Info Panel  -->
+        <Expander
+            Margin="0,0,0,10"
+            IsExpanded="True"
+            Header="About PdfPig">
+            <Border
+                Margin="5"
+                Padding="10"
+                Background="{DynamicResource MahApps.Brushes.Gray10}"
+                CornerRadius="5">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Bold"
+                        Text="Native PDF Text Extraction"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        FontSize="11"
+                        Text="{Binding Description}"
+                        TextWrapping="Wrap" />
+
+                    <Separator Margin="0,12" />
+
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Bold"
+                        Text="When to Use PdfPig:" />
+                    <TextBlock
+                        Margin="5,5,0,2"
+                        FontSize="11"
+                        Text="✓ PDFs with native text (not scanned images)"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="5,0,0,2"
+                        FontSize="11"
+                        Text="✓ Fast processing required"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="5,0,0,2"
+                        FontSize="11"
+                        Text="✓ No API keys or internet connection available"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="5,0,0,2"
+                        FontSize="11"
+                        Text="✓ Free, offline extraction"
+                        TextWrapping="Wrap" />
+
+                    <Separator Margin="0,12" />
+
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Bold"
+                        Text="When NOT to Use:" />
+                    <TextBlock
+                        Margin="5,5,0,2"
+                        FontSize="11"
+                        Text="✗ Scanned PDFs or image-based documents"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="5,0,0,2"
+                        FontSize="11"
+                        Text="✗ PDFs with embedded images requiring OCR"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="5,0,0,2"
+                        FontSize="11"
+                        Foreground="{DynamicResource MahApps.Brushes.Accent2}"
+                        Text="→ Use LM Studio or OpenAI for OCR instead"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Expander>
+
+        <!--  No Configuration Required  -->
+        <Border
+            Margin="0,10"
+            Padding="12"
+            Background="{DynamicResource MahApps.Brushes.Accent4}"
+            CornerRadius="5">
+            <TextBlock
+                FontSize="11"
+                FontWeight="SemiBold"
+                Foreground="White"
+                Text="No configuration required - just select input and output folders above."
+                TextWrapping="Wrap" />
+        </Border>
+    </StackPanel>
+</UserControl>
