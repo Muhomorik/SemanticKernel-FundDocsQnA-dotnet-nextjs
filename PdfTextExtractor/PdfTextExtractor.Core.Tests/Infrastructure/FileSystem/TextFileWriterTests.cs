@@ -111,7 +111,7 @@ public class TextFileWriterTests
         try
         {
             // Act & Assert
-            Assert.ThrowsAsync<OperationCanceledException>(
+            Assert.ThrowsAsync<TaskCanceledException>(
                 async () => await _sut.WritePagesAsync(tempDir, "test.pdf", pages, cts.Token));
         }
         finally

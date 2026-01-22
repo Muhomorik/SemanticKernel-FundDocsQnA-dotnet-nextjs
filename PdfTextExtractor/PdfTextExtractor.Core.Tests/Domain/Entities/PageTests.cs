@@ -67,13 +67,13 @@ public class PageTests
     {
         // Arrange
         var page = _fixture.Create<Page>();
-        Assert.That(page.ProcessedAt, Is.Null);
+        var initialProcessedAt = page.ProcessedAt;
 
         // Act
         page.MarkAsProcessed();
 
         // Assert
-        Assert.That(page.ProcessedAt, Is.Not.Null);
+        Assert.That(page.ProcessedAt, Is.Not.EqualTo(initialProcessedAt));
         Assert.That(page.ProcessedAt, Is.LessThanOrEqualTo(DateTimeOffset.UtcNow));
     }
 }

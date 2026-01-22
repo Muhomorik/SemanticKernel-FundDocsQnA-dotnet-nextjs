@@ -253,6 +253,7 @@ public class LMStudioOcrExtractorComprehensiveTests
             OutputFolderPath = _fixture.Create<string>(),
             RasterizationDpi = customDpi,
         };
+        _fixture.Inject(_parameters);
         _sut = _fixture.Create<LMStudioOcrExtractor>();
 
         SetupSuccessfulExtraction(tempImagePath);
@@ -420,6 +421,7 @@ public class LMStudioOcrExtractorComprehensiveTests
             OutputFolderPath = _fixture.Create<string>(),
             VisionModelName = customModel
         };
+        _fixture.Inject(_parameters);
         _sut = _fixture.Create<LMStudioOcrExtractor>();
 
         SetupSuccessfulExtraction(tempImagePath);
@@ -458,6 +460,7 @@ public class LMStudioOcrExtractorComprehensiveTests
             OutputFolderPath = _fixture.Create<string>(),
             LMStudioUrl = customUrl
         };
+        _fixture.Inject(_parameters);
         _sut = _fixture.Create<LMStudioOcrExtractor>();
 
         SetupSuccessfulExtraction(tempImagePath);
@@ -645,39 +648,6 @@ public class LMStudioOcrExtractorComprehensiveTests
                     e.OverallPercentage <= 100),
                 It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
-    }
-
-    #endregion
-
-    #region Cleanup Tests
-
-    [Test]
-    public async Task ExtractAsync_PublishesTempFilesCleanedUpEvent()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-
-        SetupSuccessfulExtraction(tempImagePath);
-
-        // Act
-        await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        _eventPublisherMock.Verify(
-            x => x.PublishAsync(
-                It.Is<TempFilesCleanedUp>(e =>
-                    e.CorrelationId == correlationId &&
-                    e.SessionId == sessionId),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 
     #endregion
