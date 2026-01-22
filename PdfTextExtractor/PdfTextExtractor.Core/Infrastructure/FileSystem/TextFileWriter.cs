@@ -12,10 +12,13 @@ public class TextFileWriter : ITextFileWriter
         await File.WriteAllTextAsync(filePath, content, cancellationToken);
     }
 
-    public async Task WriteChunksAsync(string filePath, IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default)
+    public async Task WritePagesAsync(string outputFolderPath, string pdfFileName, IEnumerable<DocumentPage> pages, CancellationToken cancellationToken = default)
     {
-        var content = string.Join("\n\n", chunks.Select(c =>
-            $"--- Page {c.PageNumber}, Chunk {c.ChunkIndex} ---\n{c.Content}"));
-        await WriteTextFileAsync(filePath, content, cancellationToken);
+        foreach (var page in pages)
+        {
+            var fileName = $"{Path.GetFileNameWithoutExtension(pdfFileName)}_page_{page.PageNumber}.txt";
+            var filePath = Path.Combine(outputFolderPath, fileName);
+            await WriteTextFileAsync(filePath, page.PageText, cancellationToken);
+        }
     }
 }

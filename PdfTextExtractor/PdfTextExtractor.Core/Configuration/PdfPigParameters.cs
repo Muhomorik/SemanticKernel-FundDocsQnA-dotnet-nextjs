@@ -7,5 +7,4 @@ public class PdfPigParameters
 {
     public required string PdfFolderPath { get; init; }
     public required string OutputFolderPath { get; init; }
-    public int ChunkSize { get; init; } = 1000;
 }

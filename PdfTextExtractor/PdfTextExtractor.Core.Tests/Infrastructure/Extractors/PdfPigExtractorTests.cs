@@ -29,18 +29,17 @@ public class PdfPigExtractorTests
 
         _eventPublisherMock = _fixture.Freeze<Mock<IEventPublisher>>();
         _loggerMock = _fixture.Freeze<Mock<ILogger<PdfPigExtractor>>>();
-        _sut = new PdfPigExtractor(_loggerMock.Object, chunkSize: 1000);
+        _sut = new PdfPigExtractor(_loggerMock.Object);
     }
 
     [Test]
     public void ExtractAsync_ValidParameters_CreatesExtractor()
     {
         // Arrange
-        var chunkSize = 500;
         var loggerMock = _fixture.Create<Mock<ILogger<PdfPigExtractor>>>();
 
         // Act
-        var extractor = new PdfPigExtractor(loggerMock.Object, chunkSize);
+        var extractor = new PdfPigExtractor(loggerMock.Object);
 
         // Assert
         Assert.That(extractor, Is.Not.Null);
@@ -68,7 +67,7 @@ public class PdfPigExtractorTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.Not.Empty);
-        Assert.That(result.All(c => !string.IsNullOrWhiteSpace(c.Content)), Is.True);
+        Assert.That(result.All(c => !string.IsNullOrWhiteSpace(c.PageText)), Is.True);
 
         // Verify DocumentExtractionStarted event was published
         _eventPublisherMock.Verify(

@@ -20,19 +20,18 @@ public class PdfTextExtractorCustomization : ICustomization
         // Add custom specimen builders for value objects
         fixture.Customizations.Add(new FilePathBuilder());
         fixture.Customizations.Add(new PageNumberBuilder());
-        fixture.Customizations.Add(new ChunkContentBuilder());
+        fixture.Customizations.Add(new PageContentBuilder());
         fixture.Customizations.Add(new SessionIdBuilder());
         fixture.Customizations.Add(new CorrelationIdBuilder());
         fixture.Customizations.Add(new ExtractorTypeBuilder());
 
         // Add custom specimen builders for entities
-        fixture.Customizations.Add(new TextChunkBuilder());
         fixture.Customizations.Add(new PageBuilder());
         fixture.Customizations.Add(new DocumentBuilder());
         fixture.Customizations.Add(new ExtractionSessionBuilder());
 
         // Add custom specimen builders for models and events
-        fixture.Customizations.Add(new DocumentChunkBuilder());
+        fixture.Customizations.Add(new DocumentPageBuilder());
         fixture.Customizations.Add(new PdfExtractionEventBuilder());
         fixture.Customizations.Add(new LMStudioParametersBuilder());
 

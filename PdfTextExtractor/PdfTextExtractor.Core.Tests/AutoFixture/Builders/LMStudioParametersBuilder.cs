@@ -15,8 +15,7 @@ public class LMStudioParametersBuilder : ISpecimenBuilder
                 OutputFolderPath = Path.Combine(Path.GetTempPath(), "PdfTextExtractor.Tests", "output"),
                 LMStudioUrl = "http://localhost:1234",
                 VisionModelName = "llava-v1.6-mistral-7b",
-                RasterizationDpi = 300,
-                ChunkSize = 1000
+                RasterizationDpi = 300
             };
         }
 

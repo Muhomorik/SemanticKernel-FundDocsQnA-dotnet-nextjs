@@ -8,5 +8,5 @@ namespace PdfTextExtractor.Core.Infrastructure.FileSystem;
 public interface ITextFileWriter
 {
     Task WriteTextFileAsync(string filePath, string content, CancellationToken cancellationToken = default);
-    Task WriteChunksAsync(string filePath, IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken = default);
+    Task WritePagesAsync(string outputFolderPath, string pdfFileName, IEnumerable<DocumentPage> pages, CancellationToken cancellationToken = default);
 }

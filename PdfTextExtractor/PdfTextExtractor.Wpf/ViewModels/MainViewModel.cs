@@ -1,12 +1,8 @@
-using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using NLog;
@@ -18,7 +14,6 @@ using PdfTextExtractor.Core.Domain.Events.Document;
 using PdfTextExtractor.Core.Domain.Events.Infrastructure;
 using PdfTextExtractor.Core.Domain.Events.Ocr;
 using PdfTextExtractor.Core.Domain.Events.Page;
-using PdfTextExtractor.Core.Domain.Events.TextProcessing;
 
 namespace PdfTextExtractor.Wpf.ViewModels;
 
@@ -266,12 +261,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             case EmptyPageDetected e:
                 HandleEmptyPageDetected(e);
                 break;
-            case TextChunked e:
-                HandleTextChunked(e);
-                break;
-            case ChunkCreated e:
-                HandleChunkCreated(e);
-                break;
             case TempImageSaved e:
                 HandleTempImageSaved(e);
                 break;
@@ -516,17 +505,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _logger.Info($"Empty page detected: {e.FilePath}, Page {e.PageNumber}");
     }
 
-    private void HandleTextChunked(TextChunked e)
-    {
-        _logger.Debug($"Text chunked: {e.FilePath}, Page {e.PageNumber}, Chunks: {e.ChunkCount}, Sizes: [{string.Join(", ", e.ChunkSizes)}]");
-    }
-
-    private void HandleChunkCreated(ChunkCreated e)
-    {
-        // High-volume event - only trace logging
-        _logger.Trace($"Chunk created: {e.FilePath}, Page {e.PageNumber}, Chunk {e.ChunkIndex}, Length: {e.ContentLength}");
-    }
-
     private void HandleTempImageSaved(TempImageSaved e)
     {
         _logger.Debug($"Temp image saved: {e.TempImagePath}, Size: {e.ImageSizeBytes} bytes, Page {e.PageNumber}");
@@ -601,7 +579,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         LMStudioUrl = LMStudioConfig.LMStudioUrl,
                         VisionModelName = LMStudioConfig.VisionModelName,
                         RasterizationDpi = LMStudioConfig.Dpi,
-                        ChunkSize = LMStudioConfig.ChunkSize,
                         MaxTokens = LMStudioConfig.MaxTokens
                     };
                     await _extractorLib.ExtractWithLMStudioAsync(lmStudioParams, _cancellationTokenSource.Token);
@@ -615,7 +592,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         ApiKey = OpenAIConfig.OpenAIApiKey,
                         VisionModelName = OpenAIConfig.OpenAIModelName,
                         RasterizationDpi = OpenAIConfig.OpenAIDpi,
-                        ChunkSize = OpenAIConfig.ChunkSize,
                         MaxTokens = OpenAIConfig.MaxTokens
                     };
                     await _extractorLib.ExtractWithOpenAIAsync(openAIParams, _cancellationTokenSource.Token);

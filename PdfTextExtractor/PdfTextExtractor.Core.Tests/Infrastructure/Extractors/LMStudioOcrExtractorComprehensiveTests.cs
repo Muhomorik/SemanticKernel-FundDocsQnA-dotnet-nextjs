@@ -8,7 +8,6 @@ using PdfTextExtractor.Core.Domain.Events.Document;
 using PdfTextExtractor.Core.Domain.Events.Infrastructure;
 using PdfTextExtractor.Core.Domain.Events.Ocr;
 using PdfTextExtractor.Core.Domain.Events.Page;
-using PdfTextExtractor.Core.Domain.Events.TextProcessing;
 using PdfTextExtractor.Core.Infrastructure.Extractors;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
@@ -253,7 +252,6 @@ public class LMStudioOcrExtractorComprehensiveTests
             PdfFolderPath = _fixture.Create<string>(),
             OutputFolderPath = _fixture.Create<string>(),
             RasterizationDpi = customDpi,
-            ChunkSize = 1000
         };
         _sut = _fixture.Create<LMStudioOcrExtractor>();
 
@@ -612,193 +610,6 @@ public class LMStudioOcrExtractorComprehensiveTests
 
         // Assert
         Assert.That(result, Is.Empty);
-    }
-
-    #endregion
-
-    #region Text Chunking Tests
-
-    [Test]
-    public async Task ExtractAsync_PublishesTextChunkedEvent()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-
-        SetupSuccessfulExtraction(tempImagePath);
-
-        // Act
-        await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        _eventPublisherMock.Verify(
-            x => x.PublishAsync(
-                It.Is<TextChunked>(e =>
-                    e.CorrelationId == correlationId &&
-                    e.SessionId == sessionId &&
-                    e.ChunkCount > 0),
-                It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
-    }
-
-    [Test]
-    public async Task ExtractAsync_PublishesChunkCreatedEvents()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-
-        SetupSuccessfulExtraction(tempImagePath);
-
-        // Act
-        await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        _eventPublisherMock.Verify(
-            x => x.PublishAsync(
-                It.Is<ChunkCreated>(e =>
-                    e.CorrelationId == correlationId &&
-                    e.SessionId == sessionId),
-                It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
-    }
-
-    [Test]
-    public async Task ExtractAsync_ChunksRespectChunkSizeLimit()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var customChunkSize = 500;
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-
-        _parameters = new LMStudioParameters
-        {
-            PdfFolderPath = _fixture.Create<string>(),
-            OutputFolderPath = _fixture.Create<string>(),
-            ChunkSize = customChunkSize
-        };
-        _sut = _fixture.Create<LMStudioOcrExtractor>();
-
-        // Create long text that will require chunking
-        var longText = string.Join(" ", Enumerable.Repeat("This is a test sentence.", 100));
-        SetupSuccessfulExtraction(tempImagePath, longText);
-
-        // Act
-        var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        Assert.That(result.All(c => c.Content.Length <= customChunkSize + 100), Is.True); // Allow some overflow for sentence completion
-    }
-
-    [Test]
-    public async Task ExtractAsync_SmallText_CreatesSingleChunk()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-        var shortText = "This is a short sentence.";
-
-        SetupSuccessfulExtraction(tempImagePath, shortText);
-
-        // Act
-        var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        var chunks = result.ToList();
-        Assert.That(chunks, Has.Count.EqualTo(1));
-        Assert.That(chunks[0].ChunkIndex, Is.EqualTo(0));
-    }
-
-    [Test]
-    public async Task ExtractAsync_LongText_CreatesMultipleChunks()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-        var longText = string.Join(" ", Enumerable.Repeat("This is a test sentence.", 200));
-
-        _parameters = new LMStudioParameters
-        {
-            PdfFolderPath = _fixture.Create<string>(),
-            OutputFolderPath = _fixture.Create<string>(),
-            ChunkSize = 500
-        };
-        _sut = _fixture.Create<LMStudioOcrExtractor>();
-
-        SetupSuccessfulExtraction(tempImagePath, longText);
-
-        // Act
-        var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        Assert.That(result.Count(), Is.GreaterThan(1));
-        var chunks = result.ToList();
-        for (int i = 0; i < chunks.Count; i++)
-        {
-            Assert.That(chunks[i].ChunkIndex, Is.EqualTo(i));
-        }
-    }
-
-    [Test]
-    public async Task ExtractAsync_Chunks_HaveSequentialIndices()
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var pdfPath = TestPdfFiles.SamplePdf;
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
-
-        SetupSuccessfulExtraction(tempImagePath);
-
-        // Act
-        var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
-
-        // Assert
-        var chunks = result.OrderBy(c => c.ChunkIndex).ToList();
-        for (int i = 0; i < chunks.Count; i++)
-        {
-            Assert.That(chunks[i].ChunkIndex, Is.EqualTo(i));
-        }
     }
 
     #endregion

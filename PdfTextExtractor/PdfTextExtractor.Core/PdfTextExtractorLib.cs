@@ -69,7 +69,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         ValidateParameters(parameters.PdfFolderPath, parameters.OutputFolderPath);
 
         var logger = _container.Resolve<ILogger<PdfPigExtractor>>();
-        var extractor = new PdfPigExtractor(logger, parameters.ChunkSize);
+        var extractor = new PdfPigExtractor(logger);
         return await ExtractCoreAsync(
             extractor,
             parameters.PdfFolderPath,
@@ -172,24 +172,28 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
             try
             {
-                var chunks = await extractor.ExtractAsync(
+                var pages = await extractor.ExtractAsync(
                     pdfFile,
                     _eventPublisher,
                     correlationId,
                     sessionId,
                     cancellationToken);
 
-                // Write to text file
-                var outputFileName = Path.GetFileNameWithoutExtension(pdfFile) + ".txt";
-                var outputPath = Path.Combine(outputFolderPath, outputFileName);
-                await textWriter.WriteChunksAsync(outputPath, chunks, cancellationToken);
+                // Write pages to individual text files
+                var pageFiles = new Dictionary<int, string>();
+                await textWriter.WritePagesAsync(outputFolderPath, pdfFile, pages, cancellationToken);
+
+                foreach (var page in pages)
+                {
+                    var fileName = $"{Path.GetFileNameWithoutExtension(pdfFile)}_page_{page.PageNumber}.txt";
+                    pageFiles[page.PageNumber] = Path.Combine(outputFolderPath, fileName);
+                }
 
                 allResults.Add(new ExtractionResult
                 {
                     PdfFilePath = pdfFile,
-                    TextFilePath = outputPath,
-                    TotalPages = chunks.Select(c => c.PageNumber).Distinct().Count(),
-                    TotalChunks = chunks.Count(),
+                    PageTextFiles = pageFiles,
+                    TotalPages = pages.Select(p => p.PageNumber).Distinct().Count(),
                     Duration = DateTimeOffset.UtcNow - startTime,
                     Method = method
                 });
@@ -211,7 +215,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             CorrelationId = Guid.NewGuid(),
             SessionId = sessionId,
             ExtractorName = method.ToString(),
-            OutputFilePaths = allResults.Select(r => r.TextFilePath).ToArray(),
+            OutputFilePaths = allResults.SelectMany(r => r.PageTextFiles.Values).ToArray(),
             TotalFilesProcessed = allResults.Count,
             TotalDuration = DateTimeOffset.UtcNow - startTime
         }, cancellationToken);

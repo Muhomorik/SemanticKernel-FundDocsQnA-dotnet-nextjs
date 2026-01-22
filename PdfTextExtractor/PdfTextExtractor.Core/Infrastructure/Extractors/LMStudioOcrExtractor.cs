@@ -8,7 +8,6 @@ using PdfTextExtractor.Core.Domain.Events.Document;
 using PdfTextExtractor.Core.Domain.Events.Infrastructure;
 using PdfTextExtractor.Core.Domain.Events.Ocr;
 using PdfTextExtractor.Core.Domain.Events.Page;
-using PdfTextExtractor.Core.Domain.Events.TextProcessing;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
 using PdfTextExtractor.Core.Models;
@@ -40,7 +39,7 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
         _parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
     }
 
-    public async Task<IEnumerable<DocumentChunk>> ExtractAsync(
+    public async Task<IEnumerable<DocumentPage>> ExtractAsync(
         string filePath,
         IEventPublisher eventPublisher,
         Guid correlationId,
@@ -48,7 +47,7 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
-        var chunks = new List<DocumentChunk>();
+        var pages = new List<DocumentPage>();
         var tempImagePaths = new List<string>();
 
         // Create session temp directory in Windows temp folder
@@ -164,37 +163,14 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                     continue;
                 }
 
-                // Step 3: Chunk text
-                var pageChunks = ChunkText(cleanedText, filePath, pageNumber);
-                chunks.AddRange(pageChunks);
-
-                // Publish text chunked event
-                await eventPublisher.PublishAsync(new TextChunked
+                // Create document page
+                var documentPage = new DocumentPage
                 {
-                    CorrelationId = correlationId,
-                    SessionId = sessionId,
-                    ExtractorName = "LMStudio",
-                    FilePath = filePath,
+                    SourceFile = filePath,
                     PageNumber = pageNumber,
-                    ChunkCount = pageChunks.Count,
-                    ChunkSizes = pageChunks.Select(c => c.Content.Length).ToArray()
-                }, cancellationToken);
-
-                // Publish chunk created events
-                foreach (var chunk in pageChunks)
-                {
-                    await eventPublisher.PublishAsync(new ChunkCreated
-                    {
-                        CorrelationId = correlationId,
-                        SessionId = sessionId,
-                        ExtractorName = "LMStudio",
-                        FilePath = filePath,
-                        PageNumber = chunk.PageNumber,
-                        ChunkIndex = chunk.ChunkIndex,
-                        ContentLength = chunk.Content.Length,
-                        ContentPreview = chunk.Content.Substring(0, Math.Min(100, chunk.Content.Length))
-                    }, cancellationToken);
-                }
+                    PageText = cleanedText
+                };
+                pages.Add(documentPage);
 
                 // Publish page completed event
                 await eventPublisher.PublishAsync(new PageExtractionCompleted
@@ -204,8 +180,7 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                     ExtractorName = "LMStudio",
                     FilePath = filePath,
                     PageNumber = pageNumber,
-                    ExtractedTextLength = cleanedText.Length,
-                    ChunkCount = pageChunks.Count
+                    ExtractedTextLength = cleanedText.Length
                 }, cancellationToken);
 
                 // Publish progress event
@@ -230,16 +205,16 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                 ExtractorName = "LMStudio",
                 FilePath = filePath,
                 TotalPages = totalPages,
-                TotalChunks = chunks.Count,
+                TotalChunks = pages.Count,
                 OutputFilePath = "", // Set by caller
                 Duration = DateTimeOffset.UtcNow - startTime
             }, cancellationToken);
 
             _logger.LogInformation(
-                "Successfully extracted {ChunkCount} chunks from {TotalPages} pages in {FilePath}",
-                chunks.Count, totalPages, filePath);
+                "Successfully extracted {PageCount} pages from {FilePath}",
+                pages.Count, filePath);
 
-            return chunks;
+            return pages;
         }
         catch (OperationCanceledException)
         {
@@ -249,7 +224,7 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                 SessionId = sessionId,
                 ExtractorName = "LMStudio",
                 FilePath = filePath,
-                PagesProcessedBeforeCancellation = chunks.Select(c => c.PageNumber).Distinct().Count()
+                PagesProcessedBeforeCancellation = pages.Select(p => p.PageNumber).Distinct().Count()
             }, cancellationToken);
 
             _logger.LogWarning("Extraction cancelled for {FilePath}", filePath);
@@ -265,7 +240,7 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                 FilePath = filePath,
                 ErrorMessage = ex.Message,
                 ExceptionType = ex.GetType().Name,
-                PageNumberWhereFailed = chunks.Select(c => c.PageNumber).Distinct().Count() + 1
+                PageNumberWhereFailed = pages.Select(p => p.PageNumber).Distinct().Count() + 1
             }, cancellationToken);
 
             _logger.LogError(ex, "Extraction failed for {FilePath}", filePath);
@@ -339,43 +314,5 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
     {
         // Remove excessive whitespace
         return Regex.Replace(text, @"\s+", " ").Trim();
-    }
-
-    private List<DocumentChunk> ChunkText(string text, string sourceFile, int pageNumber)
-    {
-        var chunks = new List<DocumentChunk>();
-        var sentences = Regex.Split(text, @"(?<=[.!?])\s+");
-        var currentChunk = new StringBuilder();
-        int chunkIndex = 0;
-
-        foreach (var sentence in sentences)
-        {
-            if (currentChunk.Length + sentence.Length > _parameters.ChunkSize && currentChunk.Length > 0)
-            {
-                chunks.Add(new DocumentChunk
-                {
-                    SourceFile = sourceFile,
-                    PageNumber = pageNumber,
-                    ChunkIndex = chunkIndex++,
-                    Content = currentChunk.ToString().Trim()
-                });
-                currentChunk.Clear();
-            }
-
-            currentChunk.Append(sentence).Append(" ");
-        }
-
-        if (currentChunk.Length > 0)
-        {
-            chunks.Add(new DocumentChunk
-            {
-                SourceFile = sourceFile,
-                PageNumber = pageNumber,
-                ChunkIndex = chunkIndex,
-                Content = currentChunk.ToString().Trim()
-            });
-        }
-
-        return chunks;
     }
 }

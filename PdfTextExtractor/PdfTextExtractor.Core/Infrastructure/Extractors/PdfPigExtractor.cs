@@ -7,7 +7,6 @@ using PdfTextExtractor.Core.Domain.Events;
 using PdfTextExtractor.Core.Domain.Events.Document;
 using PdfTextExtractor.Core.Domain.Events.Infrastructure;
 using PdfTextExtractor.Core.Domain.Events.Page;
-using PdfTextExtractor.Core.Domain.Events.TextProcessing;
 using PdfTextExtractor.Core.Models;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
@@ -20,17 +19,15 @@ namespace PdfTextExtractor.Core.Infrastructure.Extractors;
 public class PdfPigExtractor : IPdfTextExtractor
 {
     private readonly ILogger<PdfPigExtractor> _logger;
-    private readonly int _chunkSize;
 
     public TextExtractionMethod Method => TextExtractionMethod.PdfPig;
 
-    public PdfPigExtractor(ILogger<PdfPigExtractor> logger, int chunkSize = 1000)
+    public PdfPigExtractor(ILogger<PdfPigExtractor> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _chunkSize = chunkSize;
     }
 
-    public async Task<IEnumerable<DocumentChunk>> ExtractAsync(
+    public async Task<IEnumerable<DocumentPage>> ExtractAsync(
         string filePath,
         IEventPublisher eventPublisher,
         Guid correlationId,
@@ -38,7 +35,7 @@ public class PdfPigExtractor : IPdfTextExtractor
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTimeOffset.UtcNow;
-        var chunks = new List<DocumentChunk>();
+        var pages = new List<DocumentPage>();
 
         // Publish document started event
         await eventPublisher.PublishAsync(new DocumentExtractionStarted
@@ -92,37 +89,14 @@ public class PdfPigExtractor : IPdfTextExtractor
                     continue;
                 }
 
-                // Chunk text
-                var pageChunks = ChunkText(cleanedText, filePath, i);
-                chunks.AddRange(pageChunks);
-
-                // Publish text chunked event
-                await eventPublisher.PublishAsync(new TextChunked
+                // Create document page
+                var documentPage = new DocumentPage
                 {
-                    CorrelationId = correlationId,
-                    SessionId = sessionId,
-                    ExtractorName = "PdfPig",
-                    FilePath = filePath,
+                    SourceFile = filePath,
                     PageNumber = i,
-                    ChunkCount = pageChunks.Count,
-                    ChunkSizes = pageChunks.Select(c => c.Content.Length).ToArray()
-                }, cancellationToken);
-
-                // Publish chunk created events
-                foreach (var chunk in pageChunks)
-                {
-                    await eventPublisher.PublishAsync(new ChunkCreated
-                    {
-                        CorrelationId = correlationId,
-                        SessionId = sessionId,
-                        ExtractorName = "PdfPig",
-                        FilePath = filePath,
-                        PageNumber = chunk.PageNumber,
-                        ChunkIndex = chunk.ChunkIndex,
-                        ContentLength = chunk.Content.Length,
-                        ContentPreview = chunk.Content.Substring(0, Math.Min(100, chunk.Content.Length))
-                    }, cancellationToken);
-                }
+                    PageText = cleanedText
+                };
+                pages.Add(documentPage);
 
                 // Publish page completed event
                 await eventPublisher.PublishAsync(new PageExtractionCompleted
@@ -132,8 +106,7 @@ public class PdfPigExtractor : IPdfTextExtractor
                     ExtractorName = "PdfPig",
                     FilePath = filePath,
                     PageNumber = i,
-                    ExtractedTextLength = cleanedText.Length,
-                    ChunkCount = pageChunks.Count
+                    ExtractedTextLength = cleanedText.Length
                 }, cancellationToken);
 
                 // Publish progress event
@@ -158,12 +131,12 @@ public class PdfPigExtractor : IPdfTextExtractor
                 ExtractorName = "PdfPig",
                 FilePath = filePath,
                 TotalPages = totalPages,
-                TotalChunks = chunks.Count,
+                TotalChunks = pages.Count,
                 OutputFilePath = "", // Set by caller
                 Duration = DateTimeOffset.UtcNow - startTime
             }, cancellationToken);
 
-            return chunks;
+            return pages;
         }
         catch (OperationCanceledException)
         {
@@ -173,7 +146,7 @@ public class PdfPigExtractor : IPdfTextExtractor
                 SessionId = sessionId,
                 ExtractorName = "PdfPig",
                 FilePath = filePath,
-                PagesProcessedBeforeCancellation = chunks.Select(c => c.PageNumber).Distinct().Count()
+                PagesProcessedBeforeCancellation = pages.Select(p => p.PageNumber).Distinct().Count()
             }, cancellationToken);
             throw;
         }
@@ -197,43 +170,5 @@ public class PdfPigExtractor : IPdfTextExtractor
     {
         // Remove excessive whitespace
         return Regex.Replace(text, @"\s+", " ").Trim();
-    }
-
-    private List<DocumentChunk> ChunkText(string text, string sourceFile, int pageNumber)
-    {
-        var chunks = new List<DocumentChunk>();
-        var sentences = Regex.Split(text, @"(?<=[.!?])\s+");
-        var currentChunk = new StringBuilder();
-        int chunkIndex = 0;
-
-        foreach (var sentence in sentences)
-        {
-            if (currentChunk.Length + sentence.Length > _chunkSize && currentChunk.Length > 0)
-            {
-                chunks.Add(new DocumentChunk
-                {
-                    SourceFile = sourceFile,
-                    PageNumber = pageNumber,
-                    ChunkIndex = chunkIndex++,
-                    Content = currentChunk.ToString().Trim()
-                });
-                currentChunk.Clear();
-            }
-
-            currentChunk.Append(sentence).Append(" ");
-        }
-
-        if (currentChunk.Length > 0)
-        {
-            chunks.Add(new DocumentChunk
-            {
-                SourceFile = sourceFile,
-                PageNumber = pageNumber,
-                ChunkIndex = chunkIndex,
-                Content = currentChunk.ToString().Trim()
-            });
-        }
-
-        return chunks;
     }
 }

@@ -49,57 +49,75 @@ public class TextFileWriterTests
     }
 
     [Test]
-    public async Task WriteChunksAsync_ValidChunks_FormatsCorrectly()
+    public async Task WritePagesAsync_ValidPages_CreatesMultipleFiles()
     {
         // Arrange
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.txt");
-        var chunks = new[]
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        var pdfFileName = "test.pdf";
+        var pages = new[]
         {
-            new DocumentChunk
+            new DocumentPage
             {
                 SourceFile = "test.pdf",
                 PageNumber = 1,
-                ChunkIndex = 0,
-                Content = "First chunk"
+                PageText = "First page content"
             },
-            new DocumentChunk
+            new DocumentPage
             {
                 SourceFile = "test.pdf",
-                PageNumber = 1,
-                ChunkIndex = 1,
-                Content = "Second chunk"
+                PageNumber = 2,
+                PageText = "Second page content"
             }
         };
 
         try
         {
             // Act
-            await _sut.WriteChunksAsync(tempFile, chunks);
+            await _sut.WritePagesAsync(tempDir, pdfFileName, pages);
 
             // Assert
-            Assert.That(File.Exists(tempFile), Is.True);
-            var writtenContent = await File.ReadAllTextAsync(tempFile);
-            Assert.That(writtenContent, Does.Contain("First chunk"));
-            Assert.That(writtenContent, Does.Contain("Second chunk"));
+            var page1File = Path.Combine(tempDir, "test_page_1.txt");
+            var page2File = Path.Combine(tempDir, "test_page_2.txt");
+
+            Assert.That(File.Exists(page1File), Is.True);
+            Assert.That(File.Exists(page2File), Is.True);
+
+            var page1Content = await File.ReadAllTextAsync(page1File);
+            var page2Content = await File.ReadAllTextAsync(page2File);
+
+            Assert.That(page1Content, Is.EqualTo("First page content"));
+            Assert.That(page2Content, Is.EqualTo("Second page content"));
         }
         finally
         {
-            if (File.Exists(tempFile))
-                File.Delete(tempFile);
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
         }
     }
 
     [Test]
-    public async Task WriteChunksAsync_CancellationRequested_ThrowsOperationCanceledException()
+    public async Task WritePagesAsync_CancellationRequested_ThrowsOperationCanceledException()
     {
         // Arrange
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.txt");
-        var chunks = _fixture.CreateMany<DocumentChunk>().ToArray();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        var pages = _fixture.CreateMany<DocumentPage>().ToArray();
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        // Act & Assert
-        Assert.ThrowsAsync<OperationCanceledException>(
-            async () => await _sut.WriteChunksAsync(tempFile, chunks, cts.Token));
+        try
+        {
+            // Act & Assert
+            Assert.ThrowsAsync<OperationCanceledException>(
+                async () => await _sut.WritePagesAsync(tempDir, "test.pdf", pages, cts.Token));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
     }
 }

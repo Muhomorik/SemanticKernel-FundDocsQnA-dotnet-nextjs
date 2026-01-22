@@ -117,22 +117,4 @@ public class DocumentTests
         Assert.That(totalPages, Is.EqualTo(3));
     }
 
-    [Test]
-    public void TotalChunks_DocumentWithPages_ReturnsSumOfAllChunks()
-    {
-        // Arrange
-        var document = _fixture.Create<Document>();
-        var page1 = document.AddPage(_fixture.Create<PageNumber>());
-        var page2 = document.AddPage(_fixture.Create<PageNumber>());
-
-        page1.AddChunk(_fixture.Create<TextChunk>());
-        page1.AddChunk(_fixture.Create<TextChunk>());
-        page2.AddChunk(_fixture.Create<TextChunk>());
-
-        // Act
-        var totalChunks = document.TotalChunks;
-
-        // Assert
-        Assert.That(totalChunks, Is.EqualTo(3));
-    }
 }

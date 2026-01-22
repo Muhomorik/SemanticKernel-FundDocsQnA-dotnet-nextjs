@@ -149,56 +149,6 @@ public class LMStudioOcrExtractorIntegrationTests
 
     #endregion
 
-    #region Chunk Size Configuration Tests
-
-    [Test]
-    [TestCase(500, Description = "Small chunks - more granular")]
-    [TestCase(1000, Description = "Medium chunks - default")]
-    [TestCase(2000, Description = "Large chunks - fewer chunks")]
-    public async Task ExtractAsync_DifferentChunkSizes_CreatesAppropriateChunks(int chunkSize)
-    {
-        // Arrange
-        if (!TestPdfFiles.SamplePdfExists)
-        {
-            Assert.Ignore("Test PDF file not found");
-        }
-
-        var parameters = CreateParameters(chunkSize: chunkSize);
-        _sut = CreateExtractor(parameters);
-
-        var correlationId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-
-        Console.WriteLine($"=== Testing Chunk Size: {chunkSize} ===");
-
-        // Act
-        var result = await _sut.ExtractAsync(
-            TestPdfFiles.SamplePdf,
-            _eventPublisher,
-            correlationId,
-            sessionId);
-
-        // Assert
-        var chunks = result.ToList();
-        Assert.That(chunks, Is.Not.Empty);
-
-        // Verify chunk sizes
-        var avgChunkSize = chunks.Average(c => c.Content.Length);
-        var maxChunkSize = chunks.Max(c => c.Content.Length);
-
-        Console.WriteLine($"Total chunks: {chunks.Count}");
-        Console.WriteLine($"Average chunk size: {avgChunkSize:F0} chars");
-        Console.WriteLine($"Max chunk size: {maxChunkSize} chars");
-        Console.WriteLine($"Configured limit: {chunkSize} chars");
-
-        // Most chunks should be within reasonable range of configured size
-        // Allow overflow for sentence completion
-        Assert.That(maxChunkSize, Is.LessThanOrEqualTo(chunkSize + 200),
-            "Max chunk size should not exceed limit by more than 200 chars (for sentence completion)");
-    }
-
-    #endregion
-
     #region MaxTokens Configuration Tests
 
     [Test]
@@ -256,7 +206,7 @@ public class LMStudioOcrExtractorIntegrationTests
         var pageGroups = chunks.GroupBy(c => c.PageNumber);
         foreach (var pageGroup in pageGroups.OrderBy(g => g.Key))
         {
-            var totalCharsOnPage = pageGroup.Sum(c => c.Content.Length);
+            var totalCharsOnPage = pageGroup.Sum(c => c.PageText.Length);
             var chunksOnPage = pageGroup.Count();
             Console.WriteLine($"  Page {pageGroup.Key}: {totalCharsOnPage} chars in {chunksOnPage} chunks");
 
@@ -360,7 +310,7 @@ public class LMStudioOcrExtractorIntegrationTests
             Assert.That(result, Is.Not.Empty);
 
             var chunks = result.ToList();
-            var totalText = string.Join(" ", chunks.Select(c => c.Content));
+            var totalText = string.Join(" ", chunks.Select(c => c.PageText));
 
             Console.WriteLine($"Model: {modelName}");
             Console.WriteLine($"Extraction time: {sw.Elapsed.TotalSeconds:F2}s");
@@ -497,7 +447,7 @@ public class LMStudioOcrExtractorIntegrationTests
 
         // Act
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        IEnumerable<DocumentChunk> result;
+        IEnumerable<DocumentPage> result;
 
         try
         {
@@ -622,7 +572,6 @@ public class LMStudioOcrExtractorIntegrationTests
             LMStudioUrl = _lmStudioUrl,
             VisionModelName = visionModelName ?? _visionModelName,
             RasterizationDpi = dpi,
-            ChunkSize = chunkSize,
             MaxTokens = maxTokens
         };
     }

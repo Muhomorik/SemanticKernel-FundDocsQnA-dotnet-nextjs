@@ -3,14 +3,14 @@ using PdfTextExtractor.Core.Domain.ValueObjects;
 namespace PdfTextExtractor.Core.Domain.Entities;
 
 /// <summary>
-/// Page entity containing text chunks.
+/// Page entity containing extracted text.
 /// </summary>
 public class Page
 {
     public Guid PageId { get; private set; }
     public PageNumber PageNumber { get; private set; }
-    public List<TextChunk> Chunks { get; private set; } = new();
-    public int ExtractedTextLength { get; private set; }
+    public string PageText { get; private set; } = string.Empty;
+    public int ExtractedTextLength => PageText.Length;
     public bool IsEmpty { get; private set; }
     public DateTimeOffset ProcessedAt { get; private set; }
 
@@ -26,13 +26,9 @@ public class Page
         };
     }
 
-    public void AddChunk(TextChunk chunk)
+    public void SetPageText(string text)
     {
-        if (chunk == null)
-            throw new ArgumentNullException(nameof(chunk));
-
-        Chunks.Add(chunk);
-        ExtractedTextLength += chunk.Content.Length;
+        PageText = text ?? string.Empty;
     }
 
     public void MarkAsEmpty()

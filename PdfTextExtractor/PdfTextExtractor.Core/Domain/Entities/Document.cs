@@ -44,5 +44,4 @@ public class Document
     }
 
     public int TotalPages => Pages.Count;
-    public int TotalChunks => Pages.Sum(p => p.Chunks.Count);
 }

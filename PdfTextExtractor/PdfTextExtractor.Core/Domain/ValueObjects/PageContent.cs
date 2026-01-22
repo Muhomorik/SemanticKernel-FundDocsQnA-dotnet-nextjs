@@ -1,24 +1,24 @@
 namespace PdfTextExtractor.Core.Domain.ValueObjects;
 
 /// <summary>
-/// Immutable text content for a chunk.
+/// Immutable text content for a page.
 /// </summary>
-public sealed record ChunkContent
+public sealed record PageContent
 {
     public string Value { get; }
     public int Length => Value.Length;
 
-    private ChunkContent(string value)
+    private PageContent(string value)
     {
         Value = value;
     }
 
-    public static ChunkContent Create(string content)
+    public static PageContent Create(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Chunk content cannot be empty.", nameof(content));
+            throw new ArgumentException("Page content cannot be empty.", nameof(content));
 
-        return new ChunkContent(content);
+        return new PageContent(content);
     }
 
     public string Preview(int maxLength = 100)

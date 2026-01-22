@@ -11,7 +11,7 @@ public interface IPdfTextExtractor
 {
     TextExtractionMethod Method { get; }
 
-    Task<IEnumerable<DocumentChunk>> ExtractAsync(
+    Task<IEnumerable<DocumentPage>> ExtractAsync(
         string filePath,
         IEventPublisher eventPublisher,
         Guid correlationId,
