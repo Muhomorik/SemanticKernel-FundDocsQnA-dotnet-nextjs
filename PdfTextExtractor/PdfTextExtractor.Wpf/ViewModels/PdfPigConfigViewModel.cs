@@ -6,15 +6,24 @@ namespace PdfTextExtractor.Wpf.ViewModels;
 /// ViewModel for PdfPig configuration.
 /// PdfPig performs native PDF text extraction and requires no additional configuration.
 /// </summary>
-public class PdfPigConfigViewModel : ViewModelBase
+public sealed class PdfPigConfigViewModel : ViewModelBase
 {
     /// <summary>
-    /// PdfPig is always valid as it requires no configuration.
+    /// Initializes a new instance of the <see cref="PdfPigConfigViewModel"/> class.
     /// </summary>
+    public PdfPigConfigViewModel()
+    {
+        // No configuration required for PdfPig - it uses native PDF text extraction
+    }
+
+    /// <summary>
+    /// Validates the current configuration.
+    /// </summary>
+    /// <returns>Always returns true as PdfPig requires no configuration.</returns>
     public bool IsValid() => true;
 
     /// <summary>
-    /// Description of the PdfPig extraction method.
+    /// Gets the description of the PdfPig extraction method.
     /// </summary>
     public string Description =>
         "PdfPig extracts text directly from PDF files without OCR. " +
