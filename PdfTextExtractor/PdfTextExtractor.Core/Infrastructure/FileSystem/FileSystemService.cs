@@ -25,4 +25,14 @@ public class FileSystemService : IFileSystemService
     {
         Directory.CreateDirectory(folderPath);
     }
+
+    public bool FileExists(string filePath) => File.Exists(filePath);
+
+    public async Task<string> ReadTextFileAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"Text file not found: {filePath}", filePath);
+
+        return await File.ReadAllTextAsync(filePath, cancellationToken);
+    }
 }

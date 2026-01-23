@@ -26,4 +26,10 @@ public class DocumentPage
     /// Returns 0 if token usage information is not available or not applicable (e.g., PdfPig extraction).
     /// </summary>
     public int TotalTokens { get; init; }
+
+    /// <summary>
+    /// Indicates whether this page was loaded from an existing text file (true)
+    /// or freshly extracted from the PDF (false). Default is false.
+    /// </summary>
+    public bool WasSkipped { get; init; }
 }

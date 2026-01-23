@@ -10,6 +10,17 @@ public class ExtractionResult
     public required string PdfFilePath { get; init; }
     public required Dictionary<int, string> PageTextFiles { get; init; }
     public int TotalPages { get; init; }
+
+    /// <summary>
+    /// Number of pages that were skipped because text files already existed.
+    /// </summary>
+    public int SkippedPages { get; init; }
+
+    /// <summary>
+    /// Number of pages that were actually extracted (not skipped).
+    /// </summary>
+    public int ExtractedPages { get; init; }
+
     public TimeSpan Duration { get; init; }
     public TextExtractionMethod Method { get; init; }
 

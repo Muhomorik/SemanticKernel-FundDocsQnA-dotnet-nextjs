@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using PdfTextExtractor.Core.Configuration;
 using PdfTextExtractor.Core.Domain.Events;
 using PdfTextExtractor.Core.Domain.Events.Batch;
+using PdfTextExtractor.Core.Domain.Events.Page;
 using PdfTextExtractor.Core.Infrastructure.EventBus;
 using PdfTextExtractor.Core.Infrastructure.Extractors;
 using PdfTextExtractor.Core.Infrastructure.FileSystem;
@@ -11,6 +12,7 @@ using PdfTextExtractor.Core.Infrastructure.LMStudio;
 using PdfTextExtractor.Core.Infrastructure.OpenAI;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
 using PdfTextExtractor.Core.Models;
+using UglyToad.PdfPig;
 
 namespace PdfTextExtractor.Core;
 
@@ -75,6 +77,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             parameters.PdfFolderPath,
             parameters.OutputFolderPath,
             TextExtractionMethod.PdfPig,
+            parameters.SkipIfExists,
             cancellationToken);
     }
 
@@ -105,6 +108,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             parameters.PdfFolderPath,
             parameters.OutputFolderPath,
             TextExtractionMethod.LMStudio,
+            parameters.SkipIfExists,
             cancellationToken);
     }
 
@@ -135,6 +139,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             parameters.PdfFolderPath,
             parameters.OutputFolderPath,
             TextExtractionMethod.OpenAI,
+            parameters.SkipIfExists,
             cancellationToken);
     }
 
@@ -143,10 +148,12 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         string pdfFolderPath,
         string outputFolderPath,
         TextExtractionMethod method,
+        bool skipIfExists,
         CancellationToken cancellationToken)
     {
         var fileSystem = _container.Resolve<IFileSystemService>();
         var textWriter = _container.Resolve<ITextFileWriter>();
+        var logger = _container.Resolve<ILogger<PdfTextExtractorLib>>();
 
         fileSystem.EnsureDirectoryExists(outputFolderPath);
 
@@ -169,36 +176,146 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         foreach (var pdfFile in pdfFiles)
         {
             var correlationId = Guid.NewGuid();
+            var documentStartTime = DateTimeOffset.UtcNow;
 
             try
             {
-                var pages = await extractor.ExtractAsync(
-                    pdfFile,
-                    _eventPublisher,
-                    correlationId,
-                    sessionId,
-                    cancellationToken);
+                var totalPages = GetPdfPageCount(pdfFile);
+                var allPages = new List<DocumentPage>();
+                var skippedPageNumbers = new HashSet<int>();
 
-                // Write pages to individual text files
+                // Phase 1: Pre-flight check - which pages already exist?
+                if (skipIfExists)
+                {
+                    for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+                    {
+                        var outputFilePath = BuildPageTextFilePath(outputFolderPath, pdfFile, pageNumber);
+
+                        if (fileSystem.FileExists(outputFilePath))
+                        {
+                            try
+                            {
+                                var existingText = await fileSystem.ReadTextFileAsync(outputFilePath, cancellationToken);
+
+                                // Validate file is not empty
+                                if (string.IsNullOrWhiteSpace(existingText))
+                                {
+                                    logger.LogWarning(
+                                        "Existing text file is empty or whitespace-only, will re-extract: {FilePath}",
+                                        outputFilePath);
+                                    continue; // Don't skip, will extract
+                                }
+
+                                // File is valid, load it
+                                skippedPageNumbers.Add(pageNumber);
+
+                                var skippedPage = new DocumentPage
+                                {
+                                    SourceFile = pdfFile,
+                                    PageNumber = pageNumber,
+                                    PageText = existingText,
+                                    PromptTokens = 0,
+                                    CompletionTokens = 0,
+                                    TotalTokens = 0,
+                                    WasSkipped = true
+                                };
+
+                                allPages.Add(skippedPage);
+
+                                // Publish skip event
+                                await _eventPublisher.PublishAsync(new PageExtractionSkipped
+                                {
+                                    CorrelationId = correlationId,
+                                    SessionId = sessionId,
+                                    ExtractorName = method.ToString(),
+                                    FilePath = pdfFile,
+                                    PageNumber = pageNumber,
+                                    ExistingTextFilePath = outputFilePath,
+                                    TextLength = existingText.Length
+                                }, cancellationToken);
+
+                                logger.LogDebug(
+                                    "Skipped page {PageNumber} of {TotalPages} for {PdfFile}, loaded from {OutputFile}",
+                                    pageNumber, totalPages, Path.GetFileName(pdfFile), Path.GetFileName(outputFilePath));
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogWarning(ex,
+                                    "Failed to read existing text file {FilePath}, will re-extract page {PageNumber}",
+                                    outputFilePath, pageNumber);
+                                // Continue to extraction for this page
+                            }
+                        }
+                    }
+                }
+
+                // Phase 2: Extract missing pages (if any)
+                var missingPageCount = totalPages - skippedPageNumbers.Count;
+
+                if (missingPageCount > 0)
+                {
+                    logger.LogInformation(
+                        "Extracting {MissingPages} pages (skipped {SkippedPages}) from {PdfFile}",
+                        missingPageCount, skippedPageNumbers.Count, Path.GetFileName(pdfFile));
+
+                    // Call extractor for the entire document
+                    // Note: Current extractor interface processes all pages; we'll extract all and filter
+                    var extractedPages = await extractor.ExtractAsync(
+                        pdfFile,
+                        _eventPublisher,
+                        correlationId,
+                        sessionId,
+                        cancellationToken);
+
+                    // Filter to only pages that weren't skipped
+                    foreach (var page in extractedPages)
+                    {
+                        if (!skippedPageNumbers.Contains(page.PageNumber))
+                        {
+                            // Note: WasSkipped defaults to false, so we can add the page directly
+                            allPages.Add(page);
+                        }
+                    }
+
+                    // Write newly extracted pages to disk
+                    var pagesToWrite = allPages.Where(p => !p.WasSkipped).ToList();
+                    if (pagesToWrite.Any())
+                    {
+                        await textWriter.WritePagesAsync(outputFolderPath, pdfFile, pagesToWrite, cancellationToken);
+                    }
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "Skipped all {TotalPages} pages for {PdfFile}, all text files exist",
+                        totalPages, Path.GetFileName(pdfFile));
+                }
+
+                // Phase 3: Build result (combine skipped + extracted pages)
+                var sortedPages = allPages.OrderBy(p => p.PageNumber).ToList();
                 var pageFiles = new Dictionary<int, string>();
-                await textWriter.WritePagesAsync(outputFolderPath, pdfFile, pages, cancellationToken);
 
-                foreach (var page in pages)
+                foreach (var page in sortedPages)
                 {
                     var fileName = $"{Path.GetFileNameWithoutExtension(pdfFile)}_page_{page.PageNumber}.txt";
                     pageFiles[page.PageNumber] = Path.Combine(outputFolderPath, fileName);
                 }
 
+                var extractedCount = sortedPages.Count(p => !p.WasSkipped);
+                var skippedCount = sortedPages.Count(p => p.WasSkipped);
+
                 allResults.Add(new ExtractionResult
                 {
                     PdfFilePath = pdfFile,
                     PageTextFiles = pageFiles,
-                    TotalPages = pages.Select(p => p.PageNumber).Distinct().Count(),
-                    Duration = DateTimeOffset.UtcNow - startTime,
+                    TotalPages = sortedPages.Count,
+                    SkippedPages = skippedCount,
+                    ExtractedPages = extractedCount,
+                    Duration = DateTimeOffset.UtcNow - documentStartTime,
                     Method = method,
-                    TotalPromptTokens = pages.Sum(p => p.PromptTokens),
-                    TotalCompletionTokens = pages.Sum(p => p.CompletionTokens),
-                    TotalTokens = pages.Sum(p => p.TotalTokens)
+                    TotalPromptTokens = sortedPages.Sum(p => p.PromptTokens),
+                    TotalCompletionTokens = sortedPages.Sum(p => p.CompletionTokens),
+                    TotalTokens = sortedPages.Sum(p => p.TotalTokens)
                 });
             }
             catch (OperationCanceledException)
@@ -225,6 +342,18 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
         // Return first result (or aggregate if needed)
         return allResults.FirstOrDefault() ?? throw new InvalidOperationException("No files processed.");
+    }
+
+    private int GetPdfPageCount(string pdfFilePath)
+    {
+        using var doc = PdfDocument.Open(pdfFilePath);
+        return doc.NumberOfPages;
+    }
+
+    private string BuildPageTextFilePath(string outputFolderPath, string pdfFilePath, int pageNumber)
+    {
+        var fileName = $"{Path.GetFileNameWithoutExtension(pdfFilePath)}_page_{pageNumber}.txt";
+        return Path.Combine(outputFolderPath, fileName);
     }
 
     private void ValidateParameters(string pdfFolderPath, string outputFolderPath)

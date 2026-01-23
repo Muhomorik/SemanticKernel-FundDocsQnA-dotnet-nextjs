@@ -25,4 +25,10 @@ public class OpenAIParameters
     /// Prompt sent to the vision model for text extraction.
     /// </summary>
     public string ExtractionPrompt { get; init; } = "Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary.";
+
+    /// <summary>
+    /// If true, skip extraction for pages whose text files already exist in the output folder.
+    /// Enables incremental/resume extraction. Default is false.
+    /// </summary>
+    public bool SkipIfExists { get; init; } = false;
 }
