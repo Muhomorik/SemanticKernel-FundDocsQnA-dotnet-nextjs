@@ -1,3 +1,5 @@
+using PdfTextExtractor.Core.Models;
+
 namespace PdfTextExtractor.Core.Infrastructure.LMStudio;
 
 /// <summary>
@@ -12,8 +14,8 @@ public interface ILMStudioVisionClient
     /// <param name="modelName">Vision model name (e.g., "llava-v1.5-7b").</param>
     /// <param name="lmStudioUrl">LM Studio base URL (default: http://localhost:1234).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Extracted text from the image.</returns>
-    Task<string> ExtractTextFromImageAsync(
+    /// <returns>Vision extraction result containing extracted text and token usage.</returns>
+    Task<VisionExtractionResult> ExtractTextFromImageAsync(
         string imagePath,
         string modelName,
         string lmStudioUrl,

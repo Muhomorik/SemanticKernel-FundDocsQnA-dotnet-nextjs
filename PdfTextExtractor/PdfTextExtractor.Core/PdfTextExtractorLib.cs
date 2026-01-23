@@ -195,7 +195,10 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
                     PageTextFiles = pageFiles,
                     TotalPages = pages.Select(p => p.PageNumber).Distinct().Count(),
                     Duration = DateTimeOffset.UtcNow - startTime,
-                    Method = method
+                    Method = method,
+                    TotalPromptTokens = pages.Sum(p => p.PromptTokens),
+                    TotalCompletionTokens = pages.Sum(p => p.CompletionTokens),
+                    TotalTokens = pages.Sum(p => p.TotalTokens)
                 });
             }
             catch (OperationCanceledException)

@@ -127,13 +127,13 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                     VisionModelName = _parameters.VisionModelName
                 }, cancellationToken);
 
-                var extractedText = await _visionClient.ExtractTextFromImageAsync(
+                var extractionResult = await _visionClient.ExtractTextFromImageAsync(
                     rasterizationResult.TempImagePath,
                     _parameters.VisionModelName,
                     _parameters.LMStudioUrl,
                     cancellationToken);
 
-                var cleanedText = CleanText(extractedText);
+                var cleanedText = CleanText(extractionResult.ExtractedText);
 
                 await eventPublisher.PublishAsync(new OcrProcessingCompleted
                 {
@@ -168,7 +168,10 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
                 {
                     SourceFile = filePath,
                     PageNumber = pageNumber,
-                    PageText = cleanedText
+                    PageText = cleanedText,
+                    PromptTokens = extractionResult.PromptTokens,
+                    CompletionTokens = extractionResult.CompletionTokens,
+                    TotalTokens = extractionResult.TotalTokens
                 };
                 pages.Add(documentPage);
 

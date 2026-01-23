@@ -11,6 +11,7 @@ using NUnit.Framework;
 using PdfTextExtractor.Core.Configuration;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
+using PdfTextExtractor.Core.Models;
 using PdfTextExtractor.Core.Tests.AutoFixture;
 using PdfTextExtractor.Core.Tests.TestHelpers;
 
@@ -112,6 +113,12 @@ public class LMStudioVisionClientTests
                         content = "Extracted text from image"
                     }
                 }
+            },
+            usage = new
+            {
+                prompt_tokens = 50,
+                completion_tokens = 25,
+                total_tokens = 75
             }
         });
 
@@ -133,7 +140,11 @@ public class LMStudioVisionClientTests
             DefaultLMStudioUrl);
 
         // Assert
-        Assert.That(result, Is.EqualTo("Extracted text from image"));
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.EqualTo("Extracted text from image"));
+        Assert.That(result.PromptTokens, Is.EqualTo(50));
+        Assert.That(result.CompletionTokens, Is.EqualTo(25));
+        Assert.That(result.TotalTokens, Is.EqualTo(75));
     }
 
     [Test]
@@ -154,6 +165,12 @@ public class LMStudioVisionClientTests
                         content = ""
                     }
                 }
+            },
+            usage = new
+            {
+                prompt_tokens = 50,
+                completion_tokens = 0,
+                total_tokens = 50
             }
         });
 
@@ -175,7 +192,58 @@ public class LMStudioVisionClientTests
             DefaultLMStudioUrl);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.Empty);
+        Assert.That(result.PromptTokens, Is.EqualTo(50));
+        Assert.That(result.CompletionTokens, Is.EqualTo(0));
+        Assert.That(result.TotalTokens, Is.EqualTo(50));
+    }
+
+    [Test]
+    public async Task ExtractTextFromImageAsync_NoTokenUsage_ReturnsZeroTokens()
+    {
+        // Arrange
+        var imagePath = GetTestTempFilePath();
+        await File.WriteAllBytesAsync(imagePath, new byte[] { 1, 2, 3 });
+
+        var responseContent = JsonSerializer.Serialize(new
+        {
+            choices = new[]
+            {
+                new
+                {
+                    message = new
+                    {
+                        content = "Extracted text"
+                    }
+                }
+            }
+            // No usage field
+        });
+
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent)
+            });
+
+        // Act
+        var result = await _sut.ExtractTextFromImageAsync(
+            imagePath,
+            DefaultVisionModel,
+            DefaultLMStudioUrl);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.EqualTo("Extracted text"));
+        Assert.That(result.PromptTokens, Is.EqualTo(0));
+        Assert.That(result.CompletionTokens, Is.EqualTo(0));
+        Assert.That(result.TotalTokens, Is.EqualTo(0));
     }
 
     [Test]
@@ -301,11 +369,11 @@ public class LMStudioVisionClientTests
 
             // Assert
             Assert.That(result, Is.Not.Null, "Result should not be null");
-            Assert.That(result, Is.Not.Empty, "Result should not be empty");
+            Assert.That(result.ExtractedText, Is.Not.Empty, "Result should not be empty");
 
             // Output the extracted text for manual verification
-            TestContext.WriteLine($"\n--- Extracted Text ({result.Length} characters) ---");
-            TestContext.WriteLine(result);
+            TestContext.WriteLine($"\n--- Extracted Text ({result.ExtractedText.Length} characters) ---");
+            TestContext.WriteLine(result.ExtractedText);
             TestContext.WriteLine("--- End of Extracted Text ---");
 
             realHttpClient.Dispose();
@@ -384,13 +452,13 @@ public class LMStudioVisionClientTests
 
             // Assert
             Assert.That(result, Is.Not.Null, "Result should not be null");
-            Assert.That(result, Is.Not.Empty, "Result should not be empty");
+            Assert.That(result.ExtractedText, Is.Not.Empty, "Result should not be empty");
 
             // Output the extracted text for manual verification
-            TestContext.WriteLine($"\n--- Extracted Text ({result.Length} characters) ---");
-            TestContext.WriteLine(result.Length > 500
-                ? result.Substring(0, 500) + "\n... (truncated)"
-                : result);
+            TestContext.WriteLine($"\n--- Extracted Text ({result.ExtractedText.Length} characters) ---");
+            TestContext.WriteLine(result.ExtractedText.Length > 500
+                ? result.ExtractedText.Substring(0, 500) + "\n... (truncated)"
+                : result.ExtractedText);
             TestContext.WriteLine("--- End of Extracted Text ---");
         }
         finally
@@ -453,11 +521,11 @@ public class LMStudioVisionClientTests
 
             // Assert
             Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.Not.Empty);
+            Assert.That(result.ExtractedText, Is.Not.Empty);
 
-            TestContext.WriteLine($"SUCCESS! Extracted text ({result.Length} chars):");
+            TestContext.WriteLine($"SUCCESS! Extracted text ({result.ExtractedText.Length} chars):");
             TestContext.WriteLine("---");
-            TestContext.WriteLine(result);
+            TestContext.WriteLine(result.ExtractedText);
             TestContext.WriteLine("---");
 
             httpClient.Dispose();

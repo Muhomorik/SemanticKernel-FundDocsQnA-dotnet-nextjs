@@ -7,6 +7,7 @@ using PdfTextExtractor.Core.Domain.Events;
 using PdfTextExtractor.Core.Infrastructure.Extractors;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
+using PdfTextExtractor.Core.Models;
 using PdfTextExtractor.Core.Tests.AutoFixture;
 using PdfTextExtractor.Core.Tests.TestHelpers;
 
@@ -72,7 +73,7 @@ public class LMStudioOcrExtractorTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Extracted text from page");
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = "Extracted text from page" });
 
         try
         {
@@ -132,7 +133,7 @@ public class LMStudioOcrExtractorTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Extracted text from page");
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = "Extracted text from page" });
 
         try
         {
@@ -188,7 +189,7 @@ public class LMStudioOcrExtractorTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = string.Empty });
 
         try
         {

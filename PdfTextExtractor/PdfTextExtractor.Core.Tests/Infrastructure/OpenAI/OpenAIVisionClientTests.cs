@@ -5,6 +5,7 @@ using Moq;
 using Moq.Protected;
 using NUnit.Framework;
 using PdfTextExtractor.Core.Infrastructure.OpenAI;
+using PdfTextExtractor.Core.Models;
 using PdfTextExtractor.Core.Tests.AutoFixture;
 using System.Net;
 using System.Text.Json;
@@ -135,7 +136,11 @@ public class OpenAIVisionClientTests
             DefaultDetailLevel);
 
         // Assert
-        Assert.That(result, Is.EqualTo("Extracted text from image"));
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.EqualTo("Extracted text from image"));
+        Assert.That(result.PromptTokens, Is.EqualTo(100));
+        Assert.That(result.CompletionTokens, Is.EqualTo(50));
+        Assert.That(result.TotalTokens, Is.EqualTo(150));
     }
 
     [Test]
@@ -243,7 +248,60 @@ public class OpenAIVisionClientTests
             DefaultDetailLevel);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.Empty);
+        Assert.That(result.PromptTokens, Is.EqualTo(100));
+        Assert.That(result.CompletionTokens, Is.EqualTo(0));
+        Assert.That(result.TotalTokens, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task ExtractTextFromImageAsync_NoTokenUsage_ReturnsZeroTokens()
+    {
+        // Arrange
+        var imagePath = GetTestTempFilePath();
+        await File.WriteAllBytesAsync(imagePath, new byte[] { 1, 2, 3 });
+
+        var responseContent = JsonSerializer.Serialize(new
+        {
+            choices = new[]
+            {
+                new
+                {
+                    message = new
+                    {
+                        content = "Extracted text"
+                    }
+                }
+            }
+            // No usage field
+        });
+
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseContent)
+            });
+
+        // Act
+        var result = await _sut.ExtractTextFromImageAsync(
+            imagePath,
+            DefaultApiKey,
+            DefaultVisionModel,
+            2000,
+            DefaultDetailLevel);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ExtractedText, Is.EqualTo("Extracted text"));
+        Assert.That(result.PromptTokens, Is.EqualTo(0));
+        Assert.That(result.CompletionTokens, Is.EqualTo(0));
+        Assert.That(result.TotalTokens, Is.EqualTo(0));
     }
 
     [Test]

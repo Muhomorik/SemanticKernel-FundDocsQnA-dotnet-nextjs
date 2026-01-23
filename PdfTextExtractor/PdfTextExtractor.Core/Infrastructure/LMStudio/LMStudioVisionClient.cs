@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using PdfTextExtractor.Core.Models;
 
 namespace PdfTextExtractor.Core.Infrastructure.LMStudio;
 
@@ -30,7 +31,7 @@ public class LMStudioVisionClient : ILMStudioVisionClient
         _extractionPrompt = extractionPrompt ?? throw new ArgumentNullException(nameof(extractionPrompt));
     }
 
-    public async Task<string> ExtractTextFromImageAsync(
+    public async Task<VisionExtractionResult> ExtractTextFromImageAsync(
         string imagePath,
         string modelName,
         string lmStudioUrl,
@@ -112,13 +113,48 @@ public class LMStudioVisionClient : ILMStudioVisionClient
                 .GetProperty("choices")[0]
                 .GetProperty("message")
                 .GetProperty("content")
-                .GetString();
+                .GetString() ?? string.Empty;
+
+            // Extract token usage if available (LM Studio may or may not provide this)
+            int promptTokens = 0;
+            int completionTokens = 0;
+            int totalTokens = 0;
+
+            if (jsonDoc.RootElement.TryGetProperty("usage", out var usageElement))
+            {
+                // Try to get each token count property individually (LM Studio format may vary)
+                if (usageElement.TryGetProperty("prompt_tokens", out var promptElement))
+                    promptTokens = promptElement.GetInt32();
+
+                if (usageElement.TryGetProperty("completion_tokens", out var completionElement))
+                    completionTokens = completionElement.GetInt32();
+
+                if (usageElement.TryGetProperty("total_tokens", out var totalElement))
+                    totalTokens = totalElement.GetInt32();
+
+                _logger.LogInformation(
+                    "LM Studio token usage - Image: {ImagePath}, Model: {ModelName}, " +
+                    "Prompt tokens: {PromptTokens}, Completion tokens: {CompletionTokens}, Total tokens: {TotalTokens}",
+                    imagePath, modelName, promptTokens, completionTokens, totalTokens);
+            }
+            else
+            {
+                _logger.LogDebug(
+                    "Token usage information not available in LM Studio response for {ImagePath}",
+                    imagePath);
+            }
 
             _logger.LogInformation(
                 "Successfully extracted {TextLength} characters from {ImagePath}",
-                extractedText?.Length ?? 0, imagePath);
+                extractedText.Length, imagePath);
 
-            return extractedText ?? string.Empty;
+            return new VisionExtractionResult
+            {
+                ExtractedText = extractedText,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                TotalTokens = totalTokens
+            };
         }
         catch (HttpRequestException ex)
         {

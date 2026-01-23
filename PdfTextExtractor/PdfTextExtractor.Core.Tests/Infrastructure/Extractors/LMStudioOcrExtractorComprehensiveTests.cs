@@ -96,7 +96,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(extractedText);
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = extractedText });
 
         // Act
         var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
@@ -514,7 +514,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = string.Empty });
 
         // Act
         await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
@@ -561,7 +561,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync("   \t\n\r   ");
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = "   \t\n\r   " });
 
         // Act
         await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
@@ -606,7 +606,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = string.Empty });
 
         // Act
         var result = await _sut.ExtractAsync(pdfPath, _eventPublisherMock.Object, correlationId, sessionId);
@@ -688,7 +688,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(_fixture.Create<string>());
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = _fixture.Create<string>() });
 
         // Act & Assert
         try
@@ -732,7 +732,7 @@ public class LMStudioOcrExtractorComprehensiveTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(extractedText ?? _fixture.Create<string>());
+            .ReturnsAsync(new VisionExtractionResult { ExtractedText = extractedText ?? _fixture.Create<string>() });
     }
 
     #endregion

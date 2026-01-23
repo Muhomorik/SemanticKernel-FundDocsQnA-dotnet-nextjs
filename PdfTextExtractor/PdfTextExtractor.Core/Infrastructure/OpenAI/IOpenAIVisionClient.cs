@@ -1,3 +1,5 @@
+using PdfTextExtractor.Core.Models;
+
 namespace PdfTextExtractor.Core.Infrastructure.OpenAI;
 
 /// <summary>
@@ -14,8 +16,8 @@ public interface IOpenAIVisionClient
     /// <param name="maxTokens">Maximum tokens for response.</param>
     /// <param name="detailLevel">Image detail level: "low", "high", or "auto" (default: "high").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Extracted text content.</returns>
-    Task<string> ExtractTextFromImageAsync(
+    /// <returns>Vision extraction result containing extracted text and token usage.</returns>
+    Task<VisionExtractionResult> ExtractTextFromImageAsync(
         string imagePath,
         string apiKey,
         string modelName,

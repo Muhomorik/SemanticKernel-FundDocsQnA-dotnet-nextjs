@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using PdfTextExtractor.Core.Models;
 
 namespace PdfTextExtractor.Core.Infrastructure.OpenAI;
 
@@ -27,7 +28,7 @@ public class OpenAIVisionClient : IOpenAIVisionClient
         _extractionPrompt = extractionPrompt ?? throw new ArgumentNullException(nameof(extractionPrompt));
     }
 
-    public async Task<string> ExtractTextFromImageAsync(
+    public async Task<VisionExtractionResult> ExtractTextFromImageAsync(
         string imagePath,
         string apiKey,
         string modelName,
@@ -131,14 +132,18 @@ public class OpenAIVisionClient : IOpenAIVisionClient
                 .GetProperty("choices")[0]
                 .GetProperty("message")
                 .GetProperty("content")
-                .GetString();
+                .GetString() ?? string.Empty;
 
-            // Extract and log token usage
+            // Extract token usage (defaults to 0 if not available)
+            int promptTokens = 0;
+            int completionTokens = 0;
+            int totalTokens = 0;
+
             if (jsonDoc.RootElement.TryGetProperty("usage", out var usageElement))
             {
-                var promptTokens = usageElement.GetProperty("prompt_tokens").GetInt32();
-                var completionTokens = usageElement.GetProperty("completion_tokens").GetInt32();
-                var totalTokens = usageElement.GetProperty("total_tokens").GetInt32();
+                promptTokens = usageElement.GetProperty("prompt_tokens").GetInt32();
+                completionTokens = usageElement.GetProperty("completion_tokens").GetInt32();
+                totalTokens = usageElement.GetProperty("total_tokens").GetInt32();
 
                 _logger.LogInformation(
                     "OpenAI Vision API token usage - Image: {ImagePath}, Model: {ModelName}, " +
@@ -154,9 +159,15 @@ public class OpenAIVisionClient : IOpenAIVisionClient
 
             _logger.LogInformation(
                 "Successfully extracted {TextLength} characters from {ImagePath} using OpenAI {ModelName}",
-                extractedText?.Length ?? 0, imagePath, modelName);
+                extractedText.Length, imagePath, modelName);
 
-            return extractedText ?? string.Empty;
+            return new VisionExtractionResult
+            {
+                ExtractedText = extractedText,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                TotalTokens = totalTokens
+            };
         }
         catch (HttpRequestException ex)
         {
