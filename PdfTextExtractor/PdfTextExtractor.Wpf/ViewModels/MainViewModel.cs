@@ -134,6 +134,18 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _outputFolderPath, value, nameof(OutputFolderPath));
     }
 
+    private bool _skipIfExists;
+
+    /// <summary>
+    /// If true, skip extraction for pages whose text files already exist in the output folder.
+    /// Enables incremental/resume extraction for interrupted or partial extractions.
+    /// </summary>
+    public bool SkipIfExists
+    {
+        get => _skipIfExists;
+        set => SetProperty(ref _skipIfExists, value, nameof(SkipIfExists));
+    }
+
     public TextExtractionMethod SelectedMethod
     {
         get => _selectedMethod;
@@ -583,7 +595,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     var pdfPigParams = new PdfPigParameters
                     {
                         PdfFolderPath = InputFolderPath,
-                        OutputFolderPath = OutputFolderPath
+                        OutputFolderPath = OutputFolderPath,
+                        SkipIfExists = SkipIfExists
                     };
                     await _extractorLib.ExtractWithPdfPigAsync(pdfPigParams, _cancellationTokenSource.Token);
                     break;
@@ -597,7 +610,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         VisionModelName = LMStudioConfig.VisionModelName,
                         RasterizationDpi = LMStudioConfig.Dpi,
                         MaxTokens = LMStudioConfig.MaxTokens,
-                        ExtractionPrompt = LMStudioConfig.ExtractionPrompt
+                        ExtractionPrompt = LMStudioConfig.ExtractionPrompt,
+                        SkipIfExists = SkipIfExists
                     };
                     await _extractorLib.ExtractWithLMStudioAsync(lmStudioParams, _cancellationTokenSource.Token);
                     break;
@@ -611,7 +625,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         VisionModelName = OpenAIConfig.OpenAIModelName,
                         RasterizationDpi = OpenAIConfig.OpenAIDpi,
                         MaxTokens = OpenAIConfig.MaxTokens,
-                        ExtractionPrompt = OpenAIConfig.ExtractionPrompt
+                        ExtractionPrompt = OpenAIConfig.ExtractionPrompt,
+                        SkipIfExists = SkipIfExists
                     };
                     await _extractorLib.ExtractWithOpenAIAsync(openAIParams, _cancellationTokenSource.Token);
                     break;
