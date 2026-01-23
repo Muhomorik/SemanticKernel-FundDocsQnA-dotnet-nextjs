@@ -15,6 +15,7 @@ public sealed class OpenAIConfigViewModel : ViewModelBase
     private int _openAIDpi;
     private int _chunkSize;
     private int _maxTokens;
+    private string _extractionPrompt;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpenAIConfigViewModel"/> class.
@@ -30,6 +31,7 @@ public sealed class OpenAIConfigViewModel : ViewModelBase
         _openAIDpi = 150;
         _chunkSize = 1000;
         _maxTokens = 2000;
+        _extractionPrompt = "Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary.";
 
         // Initialize commands
         SetOpenAIDpiCommand = new DelegateCommand<string>(OnSetOpenAIDpi);
@@ -79,6 +81,15 @@ public sealed class OpenAIConfigViewModel : ViewModelBase
     {
         get => _maxTokens;
         set => SetProperty(ref _maxTokens, value, nameof(MaxTokens));
+    }
+
+    /// <summary>
+    /// Gets or sets the prompt sent to the vision model for text extraction.
+    /// </summary>
+    public string ExtractionPrompt
+    {
+        get => _extractionPrompt;
+        set => SetProperty(ref _extractionPrompt, value, nameof(ExtractionPrompt));
     }
 
     /// <summary>

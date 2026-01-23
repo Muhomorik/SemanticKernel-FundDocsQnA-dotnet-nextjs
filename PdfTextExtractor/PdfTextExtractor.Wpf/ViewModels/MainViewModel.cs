@@ -596,7 +596,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         LMStudioUrl = LMStudioConfig.LMStudioUrl,
                         VisionModelName = LMStudioConfig.VisionModelName,
                         RasterizationDpi = LMStudioConfig.Dpi,
-                        MaxTokens = LMStudioConfig.MaxTokens
+                        MaxTokens = LMStudioConfig.MaxTokens,
+                        ExtractionPrompt = LMStudioConfig.ExtractionPrompt
                     };
                     await _extractorLib.ExtractWithLMStudioAsync(lmStudioParams, _cancellationTokenSource.Token);
                     break;
@@ -609,7 +610,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                         ApiKey = OpenAIConfig.OpenAIApiKey,
                         VisionModelName = OpenAIConfig.OpenAIModelName,
                         RasterizationDpi = OpenAIConfig.OpenAIDpi,
-                        MaxTokens = OpenAIConfig.MaxTokens
+                        MaxTokens = OpenAIConfig.MaxTokens,
+                        ExtractionPrompt = OpenAIConfig.ExtractionPrompt
                     };
                     await _extractorLib.ExtractWithOpenAIAsync(openAIParams, _cancellationTokenSource.Token);
                     break;

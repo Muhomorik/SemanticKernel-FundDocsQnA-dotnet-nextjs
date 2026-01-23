@@ -15,6 +15,7 @@ public sealed class LMStudioConfigViewModel : ViewModelBase
     private int _dpi;
     private int _chunkSize;
     private int _maxTokens;
+    private string _extractionPrompt;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LMStudioConfigViewModel"/> class.
@@ -30,6 +31,7 @@ public sealed class LMStudioConfigViewModel : ViewModelBase
         _dpi = 150;
         _chunkSize = 1000;
         _maxTokens = 200;
+        _extractionPrompt = "Extract all text from this image. Return only the text, no explanations.";
 
         // Initialize commands
         SetDpiCommand = new DelegateCommand<string>(OnSetDpi);
@@ -79,6 +81,15 @@ public sealed class LMStudioConfigViewModel : ViewModelBase
     {
         get => _maxTokens;
         set => SetProperty(ref _maxTokens, value, nameof(MaxTokens));
+    }
+
+    /// <summary>
+    /// Gets or sets the prompt sent to the vision model for text extraction.
+    /// </summary>
+    public string ExtractionPrompt
+    {
+        get => _extractionPrompt;
+        set => SetProperty(ref _extractionPrompt, value, nameof(ExtractionPrompt));
     }
 
     /// <summary>

@@ -178,6 +178,86 @@
                 Value="{Binding MaxTokens}" />
         </DockPanel>
 
+        <!-- Extraction Prompt -->
+        <TextBlock
+            Margin="0,10,0,5"
+            FontWeight="SemiBold"
+            Text="Extraction Prompt:" />
+
+        <TextBox
+            MinHeight="80"
+            MaxHeight="150"
+            Margin="0,0,0,5"
+            AcceptsReturn="True"
+            Text="{Binding ExtractionPrompt, UpdateSourceTrigger=PropertyChanged}"
+            TextWrapping="Wrap"
+            VerticalScrollBarVisibility="Auto"
+            ToolTip="The instruction sent to the vision model for text extraction" />
+
+        <!-- Prompt Examples (Collapsible) -->
+        <Expander
+            Margin="0,0,0,10"
+            Header="Prompt Examples &amp; Guidance"
+            IsExpanded="False">
+            <Border
+                Padding="10"
+                Background="{DynamicResource MahApps.Brushes.Gray10}"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Default Prompt:" />
+                    <TextBlock
+                        Margin="0,5,0,10"
+                        FontFamily="Consolas"
+                        FontSize="11"
+                        Text="Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary."
+                        TextWrapping="Wrap" />
+
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Example Custom Prompts:" />
+                    <TextBlock
+                        Margin="0,5,0,5"
+                        FontFamily="Consolas"
+                        FontSize="11"
+                        Text="• Extract text and preserve table formatting as markdown."
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,0,0,5"
+                        FontFamily="Consolas"
+                        FontSize="11"
+                        Text="• Extract only invoice numbers, dates, and amounts from this image."
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        FontFamily="Consolas"
+                        FontSize="11"
+                        Text="• OCR this page and output structured data as JSON."
+                        TextWrapping="Wrap" />
+
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Tips:" />
+                    <TextBlock
+                        Margin="0,5,0,0"
+                        FontSize="11"
+                        Text="• Be specific about desired output format"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,2,0,0"
+                        FontSize="11"
+                        Text="• Request 'no explanations' to avoid extra text"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,2,0,0"
+                        FontSize="11"
+                        Text="• Shorter prompts use fewer tokens (lower cost)"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Expander>
+
         <Border
             Margin="0,10"
             Padding="10"
