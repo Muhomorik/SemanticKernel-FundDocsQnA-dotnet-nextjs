@@ -13,12 +13,21 @@ public class LMStudioVisionClient : ILMStudioVisionClient
     private readonly ILogger<LMStudioVisionClient> _logger;
     private readonly HttpClient _httpClient;
     private readonly int _maxTokens;
+    private readonly string _extractionPrompt;
 
-    public LMStudioVisionClient(ILogger<LMStudioVisionClient> logger, HttpClient httpClient, int maxTokens = 2000)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LMStudioVisionClient"/> class.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="httpClient">The HTTP client.</param>
+    /// <param name="maxTokens">Maximum tokens for completion.</param>
+    /// <param name="extractionPrompt">The prompt to send to the vision model for text extraction.</param>
+    public LMStudioVisionClient(ILogger<LMStudioVisionClient> logger, HttpClient httpClient, int maxTokens, string extractionPrompt)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _maxTokens = maxTokens;
+        _extractionPrompt = extractionPrompt ?? throw new ArgumentNullException(nameof(extractionPrompt));
     }
 
     public async Task<string> ExtractTextFromImageAsync(
@@ -65,7 +74,7 @@ public class LMStudioVisionClient : ILMStudioVisionClient
                         role = "user",
                         content = new object[]
                         {
-                            new { type = "text", text = "Extract all text from this image. Return only the text, no explanations." },
+                            new { type = "text", text = _extractionPrompt },
                             new { type = "image_url", image_url = new { url = dataUri } }
                         }
                     }

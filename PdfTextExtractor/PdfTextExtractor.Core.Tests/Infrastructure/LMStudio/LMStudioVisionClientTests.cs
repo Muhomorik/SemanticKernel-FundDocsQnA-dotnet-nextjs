@@ -43,7 +43,7 @@ public class LMStudioVisionClientTests
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
         _loggerMock = _fixture.Freeze<Mock<ILogger<LMStudioVisionClient>>>();
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-        _sut = new LMStudioVisionClient(_loggerMock.Object, _httpClient);
+        _sut = new LMStudioVisionClient(_loggerMock.Object, _httpClient, 2000, "Extract all text from this image. Return only the text, no explanations.");
     }
 
     [TearDown]
@@ -179,6 +179,56 @@ public class LMStudioVisionClientTests
     }
 
     [Test]
+    public async Task ExtractTextFromImageAsync_CustomPrompt_SendsCustomPromptInRequest()
+    {
+        // Arrange
+        var customPrompt = "Custom extraction instruction for testing";
+        var customClient = new LMStudioVisionClient(_loggerMock.Object, _httpClient, 2000, customPrompt);
+
+        var imagePath = GetTestTempFilePath();
+        await File.WriteAllBytesAsync(imagePath, new byte[] { 1, 2, 3 });
+
+        string? capturedRequestBody = null;
+
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+            {
+                capturedRequestBody = req.Content?.ReadAsStringAsync().Result;
+            })
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    choices = new[]
+                    {
+                        new
+                        {
+                            message = new
+                            {
+                                content = "Extracted text"
+                            }
+                        }
+                    }
+                }))
+            });
+
+        // Act
+        await customClient.ExtractTextFromImageAsync(
+            imagePath,
+            DefaultVisionModel,
+            DefaultLMStudioUrl);
+
+        // Assert
+        Assert.That(capturedRequestBody, Is.Not.Null);
+        Assert.That(capturedRequestBody, Does.Contain(customPrompt));
+    }
+
+    [Test]
     public async Task ExtractTextFromImageAsync_HttpError_ThrowsHttpRequestException()
     {
         // Arrange
@@ -238,7 +288,7 @@ public class LMStudioVisionClientTests
 
             var loggerMock = new Mock<ILogger<LMStudioVisionClient>>();
             var realHttpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-            var client = new LMStudioVisionClient(loggerMock.Object, realHttpClient);
+            var client = new LMStudioVisionClient(loggerMock.Object, realHttpClient, 2000, "Extract all text from this image. Return only the text, no explanations.");
 
             // Act - Extract text using real LM Studio
             TestContext.WriteLine($"Sending image to LM Studio at {DefaultLMStudioUrl}...");
@@ -296,7 +346,7 @@ public class LMStudioVisionClientTests
 
         var loggerMock = new Mock<ILogger<LMStudioVisionClient>>();
         var realHttpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        var client = new LMStudioVisionClient(loggerMock.Object, realHttpClient);
+        var client = new LMStudioVisionClient(loggerMock.Object, realHttpClient, 2000, "Extract all text from this image. Return only the text, no explanations.");
 
         // First, rasterize page 1 of the test PDF to an image
         var rasterizer = new Mock<ILogger<PdfPageRasterizer>>();
@@ -388,7 +438,7 @@ public class LMStudioVisionClientTests
             // Create client with real HttpClient
             var logger = new Mock<ILogger<LMStudioVisionClient>>().Object;
             var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-            var client = new LMStudioVisionClient(logger, httpClient);
+            var client = new LMStudioVisionClient(logger, httpClient, 2000, "Extract all text from this image. Return only the text, no explanations.");
 
             TestContext.WriteLine($"Test image: {imagePath}");
             TestContext.WriteLine($"LM Studio URL: {DefaultLMStudioUrl}");

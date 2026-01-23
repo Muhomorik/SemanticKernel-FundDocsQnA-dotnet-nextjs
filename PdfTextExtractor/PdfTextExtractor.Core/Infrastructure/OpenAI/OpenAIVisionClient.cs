@@ -12,11 +12,19 @@ public class OpenAIVisionClient : IOpenAIVisionClient
     private const string OpenAIEndpoint = "https://api.openai.com/v1/chat/completions";
     private readonly ILogger<OpenAIVisionClient> _logger;
     private readonly HttpClient _httpClient;
+    private readonly string _extractionPrompt;
 
-    public OpenAIVisionClient(HttpClient httpClient, ILogger<OpenAIVisionClient> logger)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenAIVisionClient"/> class.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="extractionPrompt">The prompt to send to the vision model for text extraction.</param>
+    public OpenAIVisionClient(HttpClient httpClient, ILogger<OpenAIVisionClient> logger, string extractionPrompt)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _extractionPrompt = extractionPrompt ?? throw new ArgumentNullException(nameof(extractionPrompt));
     }
 
     public async Task<string> ExtractTextFromImageAsync(
@@ -64,7 +72,7 @@ public class OpenAIVisionClient : IOpenAIVisionClient
                         role = "user",
                         content = new object[]
                         {
-                            new { type = "text", text = "Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary." },
+                            new { type = "text", text = _extractionPrompt },
                             new
                             {
                                 type = "image_url",

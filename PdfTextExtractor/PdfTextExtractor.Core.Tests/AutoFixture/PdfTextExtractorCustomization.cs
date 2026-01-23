@@ -4,6 +4,7 @@ using PdfTextExtractor.Core.Domain.Events;
 using PdfTextExtractor.Core.Infrastructure.EventBus;
 using PdfTextExtractor.Core.Infrastructure.FileSystem;
 using PdfTextExtractor.Core.Infrastructure.LMStudio;
+using PdfTextExtractor.Core.Infrastructure.OpenAI;
 using PdfTextExtractor.Core.Infrastructure.Rasterization;
 using PdfTextExtractor.Core.Tests.AutoFixture.Builders;
 
@@ -34,6 +35,7 @@ public class PdfTextExtractorCustomization : ICustomization
         fixture.Customizations.Add(new DocumentPageBuilder());
         fixture.Customizations.Add(new PdfExtractionEventBuilder());
         fixture.Customizations.Add(new LMStudioParametersBuilder());
+        fixture.Customizations.Add(new OpenAIParametersBuilder());
 
         // Configure mock registrations for interfaces
         fixture.Register<IEventPublisher>(() =>
@@ -50,5 +52,8 @@ public class PdfTextExtractorCustomization : ICustomization
 
         fixture.Register<ILMStudioVisionClient>(() =>
             fixture.Freeze<Mock<ILMStudioVisionClient>>().Object);
+
+        fixture.Register<IOpenAIVisionClient>(() =>
+            fixture.Freeze<Mock<IOpenAIVisionClient>>().Object);
     }
 }

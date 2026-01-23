@@ -89,9 +89,9 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         var visionLogger = _container.Resolve<ILogger<LMStudioVisionClient>>();
         var extractorLogger = _container.Resolve<ILogger<LMStudioOcrExtractor>>();
 
-        // Manually construct vision client with maxTokens from parameters
+        // Manually construct vision client with maxTokens and extraction prompt from parameters
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        var visionClient = new LMStudioVisionClient(visionLogger, httpClient, parameters.MaxTokens);
+        var visionClient = new LMStudioVisionClient(visionLogger, httpClient, parameters.MaxTokens, parameters.ExtractionPrompt);
 
         // Manually construct extractor with parameters
         var extractor = new LMStudioOcrExtractor(
@@ -119,9 +119,9 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         var visionLogger = _container.Resolve<ILogger<OpenAIVisionClient>>();
         var extractorLogger = _container.Resolve<ILogger<OpenAIOcrExtractor>>();
 
-        // Manually construct vision client
+        // Manually construct vision client with extraction prompt from parameters
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        var visionClient = new OpenAIVisionClient(httpClient, visionLogger);
+        var visionClient = new OpenAIVisionClient(httpClient, visionLogger, parameters.ExtractionPrompt);
 
         // Manually construct extractor with parameters
         var extractor = new OpenAIOcrExtractor(

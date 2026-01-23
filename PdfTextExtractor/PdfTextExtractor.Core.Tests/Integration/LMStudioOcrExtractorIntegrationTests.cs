@@ -584,7 +584,7 @@ public class LMStudioOcrExtractorIntegrationTests
 
         var rasterizer = new PdfPageRasterizer(rasterizerLogger);
         var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        var visionClient = new LMStudioVisionClient(visionClientLogger, httpClient, parameters.MaxTokens);
+        var visionClient = new LMStudioVisionClient(visionClientLogger, httpClient, parameters.MaxTokens, parameters.ExtractionPrompt);
 
         return new LMStudioOcrExtractor(logger, rasterizer, visionClient, parameters);
     }
