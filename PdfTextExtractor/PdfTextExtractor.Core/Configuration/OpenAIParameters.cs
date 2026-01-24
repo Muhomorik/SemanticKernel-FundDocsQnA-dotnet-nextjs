@@ -24,7 +24,7 @@ public class OpenAIParameters
     /// <summary>
     /// Prompt sent to the vision model for text extraction.
     /// </summary>
-    public string ExtractionPrompt { get; init; } = "Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary.";
+    public string ExtractionPrompt { get; init; } = "Extract all text from this page, excluding headers and footers. Preserve line breaks and paragraph structure. Use markdown formatting (# for headings, ** for bold, etc.) but do not wrap the output in code blocks or add markdown tags. Output only the extracted text with no explanations or commentary.";
 
     /// <summary>
     /// If true, skip extraction for pages whose text files already exist in the output folder.
