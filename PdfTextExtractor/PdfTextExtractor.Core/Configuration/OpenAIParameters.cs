@@ -8,6 +8,46 @@ public class OpenAIParameters
     public required string PdfFolderPath { get; init; }
     public required string OutputFolderPath { get; init; }
     public required string ApiKey { get; init; }
+
+    /// <summary>
+    /// The OpenAI vision model to use for OCR text extraction.
+    /// Default is "gpt-4o".
+    /// </summary>
+    /// <remarks>
+    /// Supported vision models include:
+    /// <list type="bullet">
+    ///     <listheader>
+    ///         <term>Model</term>
+    ///         <description>Description</description>
+    ///     </listheader>
+    ///     <item>
+    ///         <term>gpt-4o</term>
+    ///         <description>Standard multimodal model (default)</description>
+    ///     </item>
+    ///     <item>
+    ///         <term>gpt-4o-mini</term>
+    ///         <description>Smaller, faster, cheaper version with good OCR performance</description>
+    ///     </item>
+    ///     <item>
+    ///         <term>gpt-4-turbo</term>
+    ///         <description>Specialized for visual tasks, OCR, and diagram interpretation</description>
+    ///     </item>
+    ///     <item>
+    ///         <term>gpt-4.1</term>
+    ///         <description>Latest model with excellent OCR and complex instruction-following</description>
+    ///     </item>
+    ///     <item>
+    ///         <term>gpt-4.5</term>
+    ///         <description>Newer GPT-4 series with balanced performance</description>
+    ///     </item>
+    ///     <item>
+    ///         <term>o1, o1-mini, o3-mini</term>
+    ///         <description>Reasoning models for complex documents</description>
+    ///     </item>
+    /// </list>
+    /// For cost optimization, try <c>gpt-4o-mini</c> first. For enhanced OCR accuracy, use <c>gpt-4.1</c> or <c>gpt-4-turbo</c>.
+    /// Model availability may vary by region and API tier.
+    /// </remarks>
     public string VisionModelName { get; init; } = "gpt-4o";
     public int RasterizationDpi { get; init; } = 150;
     public string DetailLevel { get; init; } = "high"; // "low", "high", or "auto"
