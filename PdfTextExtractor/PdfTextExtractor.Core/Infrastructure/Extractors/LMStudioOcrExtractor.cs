@@ -315,7 +315,15 @@ public class LMStudioOcrExtractor : IPdfTextExtractor
 
     private string CleanText(string text)
     {
-        // Remove excessive whitespace
-        return Regex.Replace(text, @"\s+", " ").Trim();
+        // Normalize line endings to \n
+        text = text.Replace("\r\n", "\n").Replace("\r", "\n");
+
+        // Remove excessive spaces and tabs within lines (but preserve line breaks)
+        text = Regex.Replace(text, @"[ \t]+", " ");
+
+        // Collapse multiple consecutive blank lines into at most 2 (preserve paragraph breaks)
+        text = Regex.Replace(text, @"\n{3,}", "\n\n");
+
+        return text.Trim();
     }
 }
