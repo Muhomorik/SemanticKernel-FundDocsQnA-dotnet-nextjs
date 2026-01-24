@@ -64,7 +64,7 @@ public class OpenAIParameters
     /// <summary>
     /// Prompt sent to the vision model for text extraction.
     /// </summary>
-    public string ExtractionPrompt { get; init; } = "Extract all text from this page, excluding headers and footers. Preserve line breaks and paragraph structure. Use markdown formatting (# for headings, ** for bold, etc.) but do not wrap the output in code blocks or add markdown tags. Output only the extracted text with no explanations or commentary.";
+    public string ExtractionPrompt { get; init; } = "Extract all text from this page, excluding headers and footers. Preserve line breaks and paragraph structure. Use markdown formatting:\n- Use # for headings and ** for bold\n- For tabular data, use markdown tables with | separators and proper alignment\n- Preserve table structure with columns and rows as they appear visually\nDo not wrap the output in code blocks or add markdown tags. Output only the extracted text with no explanations or commentary.";
 
     /// <summary>
     /// If true, skip extraction for pages whose text files already exist in the output folder.
