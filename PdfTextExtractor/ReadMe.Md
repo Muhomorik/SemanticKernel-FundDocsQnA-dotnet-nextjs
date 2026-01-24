@@ -1,6 +1,8 @@
 # 📄 PdfTextExtractor
 
-> Domain-Driven Design (DDD) library for extracting text from PDF documents with real-time event streaming using Rx.NET
+Project aims to help debugging and OCR text etc. fill it.
+## Tech stack
+
 
 ## 📋 Table of Contents
 
@@ -1043,56 +1045,10 @@ public partial class MainWindow : Window
 }
 ```
 
----
-
-## 🔮 Recent Enhancements & Future Roadmap
-
-### ✅ Phase 6: LM Studio OCR Implementation (Completed)
-
-- ✅ Implemented page rasterization (PDF → PNG with configurable DPI)
-- ✅ Integrated LM Studio vision API (`/v1/chat/completions`)
-- ✅ Extract text from vision model response with token limits
-- ✅ Published rasterization and OCR events (6 event types)
-- ✅ Temp file cleanup and session management
-
-### ✅ OpenAI Vision Implementation (Completed)
-
-- ✅ Implemented OpenAI Chat Completions API integration
-- ✅ Support for gpt-4o and gpt-4o-mini vision models
-- ✅ Configurable detail level (low/high/auto) for cost optimization
-- ✅ Base64 image encoding with data URIs
-- ✅ User-friendly error handling (401, 429, 500 errors)
-- ✅ Secure API key handling (no disk persistence)
-- ✅ WPF UI with dropdown method selector and conditional settings panels
-
-### 🚀 Phase 8: Advanced Features
-
-- **Batch processing optimization** with parallel page processing
-- **Retry logic** for API failures with exponential backoff
-- **Confidence scoring** for OCR results
-- **Event persistence** (SQLite/JSON) for debugging/auditing
-- **Event replay** for timeline reconstruction
-- **PDF preprocessing** (rotation correction, contrast enhancement)
-- **Multi-language support** for OCR prompts
-
----
-
 ## 📝 License
 
 This project is part of the SemanticKernel-FundDocsQnA solution.
 
 ---
 
-## 🤝 Contributing
-
-Follow DDD principles when adding new features:
-
-- **Domain layer**: Pure business logic, no external dependencies
-- **Infrastructure layer**: Technical implementations (extractors, file system, APIs)
-- **ApplicationCore layer**: Use cases, DTOs, orchestration
-- **Events**: Publish domain events at every significant operation
-- **Autofac**: Register all new services in `PdfTextExtractorModule`
-
----
-
-**Built with ❤️ using Domain-Driven Design and Rx.NET**
+Built with ❤️ using Domain-Driven Design and Rx.NET
