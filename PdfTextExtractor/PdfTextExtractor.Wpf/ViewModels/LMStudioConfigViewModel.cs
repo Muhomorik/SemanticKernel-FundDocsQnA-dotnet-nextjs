@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using NLog;
+using PdfTextExtractor.Core.Configuration;
 
 namespace PdfTextExtractor.Wpf.ViewModels;
 
@@ -25,13 +26,20 @@ public sealed class LMStudioConfigViewModel : ViewModelBase
     {
         _logger = LogManager.GetCurrentClassLogger();
 
-        // Initialize with default values
-        _lmStudioUrl = "http://localhost:1234";
-        _visionModelName = "qwen/qwen2.5-vl-7b";
-        _dpi = 150;
+        // Initialize with default values from LMStudioParameters
+        // Note: We create a temporary instance with minimal required properties to get defaults
+        var defaults = new LMStudioParameters
+        {
+            PdfFolderPath = "",
+            OutputFolderPath = ""
+        };
+
+        _lmStudioUrl = defaults.LMStudioUrl;
+        _visionModelName = defaults.VisionModelName;
+        _dpi = defaults.RasterizationDpi;
         _chunkSize = 1000;
-        _maxTokens = 200;
-        _extractionPrompt = "Extract all text from this image. Return only the text, no explanations.";
+        _maxTokens = defaults.MaxTokens;
+        _extractionPrompt = defaults.ExtractionPrompt;
 
         // Initialize commands
         SetDpiCommand = new DelegateCommand<string>(OnSetDpi);

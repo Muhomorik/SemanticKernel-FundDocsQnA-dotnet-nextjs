@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using NLog;
+using PdfTextExtractor.Core.Configuration;
 
 namespace PdfTextExtractor.Wpf.ViewModels;
 
@@ -25,13 +26,21 @@ public sealed class OpenAIConfigViewModel : ViewModelBase
     {
         _logger = LogManager.GetCurrentClassLogger();
 
-        // Initialize with default values
+        // Initialize with default values from OpenAIParameters
+        // Note: We create a temporary instance with minimal required properties to get defaults
+        var defaults = new OpenAIParameters
+        {
+            PdfFolderPath = "",
+            OutputFolderPath = "",
+            ApiKey = ""
+        };
+
         _openAIApiKey = "";
-        _openAIModelName = "gpt-4o";
-        _openAIDpi = 150;
+        _openAIModelName = defaults.VisionModelName;
+        _openAIDpi = defaults.RasterizationDpi;
         _chunkSize = 1000;
-        _maxTokens = 2000;
-        _extractionPrompt = "Extract all visible text from this image. Return only the text content, preserving formatting and structure. Do not add explanations or commentary.";
+        _maxTokens = defaults.MaxTokens;
+        _extractionPrompt = defaults.ExtractionPrompt;
 
         // Initialize commands
         SetOpenAIDpiCommand = new DelegateCommand<string>(OnSetOpenAIDpi);
