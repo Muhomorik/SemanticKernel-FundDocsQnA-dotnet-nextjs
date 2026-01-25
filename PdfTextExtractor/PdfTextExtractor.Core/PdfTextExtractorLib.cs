@@ -184,67 +184,61 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
                 var allPages = new List<DocumentPage>();
                 var skippedPageNumbers = new HashSet<int>();
 
-                // Phase 1: Pre-flight check - which pages already exist?
+                // Phase 1: Pre-flight check - does merged file exist?
                 if (skipIfExists)
                 {
-                    for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+                    var mergedPath = BuildMergedTextFilePath(outputFolderPath, pdfFile);
+
+                    if (fileSystem.FileExists(mergedPath))
                     {
-                        var outputFilePath = BuildPageTextFilePath(outputFolderPath, pdfFile, pageNumber);
-
-                        if (fileSystem.FileExists(outputFilePath))
+                        try
                         {
-                            try
-                            {
-                                var existingText = await fileSystem.ReadTextFileAsync(outputFilePath, cancellationToken);
+                            var existingText = await fileSystem.ReadTextFileAsync(mergedPath, cancellationToken);
 
-                                // Validate file is not empty
-                                if (string.IsNullOrWhiteSpace(existingText))
+                            // Validate file is not empty
+                            if (!string.IsNullOrWhiteSpace(existingText))
+                            {
+                                // Merged file exists and is valid - skip entire document
+                                logger.LogInformation(
+                                    "Skipped all {TotalPages} pages for {PdfFile}, merged file exists at {MergedFile}",
+                                    totalPages, Path.GetFileName(pdfFile), Path.GetFileName(mergedPath));
+
+                                // Mark all pages as skipped
+                                for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++)
                                 {
-                                    logger.LogWarning(
-                                        "Existing text file is empty or whitespace-only, will re-extract: {FilePath}",
-                                        outputFilePath);
-                                    continue; // Don't skip, will extract
+                                    skippedPageNumbers.Add(pageNumber);
                                 }
 
-                                // File is valid, load it
-                                skippedPageNumbers.Add(pageNumber);
-
-                                var skippedPage = new DocumentPage
+                                // Add result for skipped document
+                                allResults.Add(new ExtractionResult
                                 {
-                                    SourceFile = pdfFile,
-                                    PageNumber = pageNumber,
-                                    PageText = existingText,
-                                    PromptTokens = 0,
-                                    CompletionTokens = 0,
-                                    TotalTokens = 0,
-                                    WasSkipped = true
-                                };
+                                    PdfFilePath = pdfFile,
+                                    PageTextFiles = mergedPath,
+                                    TotalPages = totalPages,
+                                    SkippedPages = totalPages,
+                                    ExtractedPages = 0,
+                                    Duration = DateTimeOffset.UtcNow - documentStartTime,
+                                    Method = method,
+                                    TotalPromptTokens = 0,
+                                    TotalCompletionTokens = 0,
+                                    TotalTokens = 0
+                                });
 
-                                allPages.Add(skippedPage);
-
-                                // Publish skip event
-                                await _eventPublisher.PublishAsync(new PageExtractionSkipped
-                                {
-                                    CorrelationId = correlationId,
-                                    SessionId = sessionId,
-                                    ExtractorName = method.ToString(),
-                                    FilePath = pdfFile,
-                                    PageNumber = pageNumber,
-                                    ExistingTextFilePath = outputFilePath,
-                                    TextLength = existingText.Length
-                                }, cancellationToken);
-
-                                logger.LogDebug(
-                                    "Skipped page {PageNumber} of {TotalPages} for {PdfFile}, loaded from {OutputFile}",
-                                    pageNumber, totalPages, Path.GetFileName(pdfFile), Path.GetFileName(outputFilePath));
+                                // Continue to next PDF file
+                                continue;
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                logger.LogWarning(ex,
-                                    "Failed to read existing text file {FilePath}, will re-extract page {PageNumber}",
-                                    outputFilePath, pageNumber);
-                                // Continue to extraction for this page
+                                logger.LogWarning(
+                                    "Existing merged file is empty or whitespace-only, will re-extract: {FilePath}",
+                                    mergedPath);
                             }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex,
+                                "Failed to read existing merged file {FilePath}, will re-extract",
+                                mergedPath);
                         }
                     }
                 }
@@ -277,11 +271,14 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
                         }
                     }
 
-                    // Write newly extracted pages to disk
+                    // Write merged document with all extracted pages
                     var pagesToWrite = allPages.Where(p => !p.WasSkipped).ToList();
                     if (pagesToWrite.Any())
                     {
-                        await textWriter.WritePagesAsync(outputFolderPath, pdfFile, pagesToWrite, cancellationToken);
+                        await textWriter.WriteMergedDocumentAsync(outputFolderPath, pdfFile, allPages, cancellationToken);
+
+                        // Delete legacy individual page files if they exist
+                        DeleteLegacyPageFiles(outputFolderPath, pdfFile, totalPages, fileSystem, logger);
                     }
                 }
                 else
@@ -293,13 +290,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
 
                 // Phase 3: Build result (combine skipped + extracted pages)
                 var sortedPages = allPages.OrderBy(p => p.PageNumber).ToList();
-                var pageFiles = new Dictionary<int, string>();
-
-                foreach (var page in sortedPages)
-                {
-                    var fileName = $"{Path.GetFileNameWithoutExtension(pdfFile)}_page_{page.PageNumber}.txt";
-                    pageFiles[page.PageNumber] = Path.Combine(outputFolderPath, fileName);
-                }
+                var mergedFilePath = BuildMergedTextFilePath(outputFolderPath, pdfFile);
 
                 var extractedCount = sortedPages.Count(p => !p.WasSkipped);
                 var skippedCount = sortedPages.Count(p => p.WasSkipped);
@@ -307,7 +298,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
                 allResults.Add(new ExtractionResult
                 {
                     PdfFilePath = pdfFile,
-                    PageTextFiles = pageFiles,
+                    PageTextFiles = mergedFilePath,
                     TotalPages = sortedPages.Count,
                     SkippedPages = skippedCount,
                     ExtractedPages = extractedCount,
@@ -335,7 +326,7 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
             CorrelationId = Guid.NewGuid(),
             SessionId = sessionId,
             ExtractorName = method.ToString(),
-            OutputFilePaths = allResults.SelectMany(r => r.PageTextFiles.Values).ToArray(),
+            OutputFilePaths = allResults.Select(r => r.PageTextFiles).ToArray(),
             TotalFilesProcessed = allResults.Count,
             TotalDuration = DateTimeOffset.UtcNow - startTime
         }, cancellationToken);
@@ -350,10 +341,35 @@ public class PdfTextExtractorLib : IPdfTextExtractorLib, IDisposable
         return doc.NumberOfPages;
     }
 
-    private string BuildPageTextFilePath(string outputFolderPath, string pdfFilePath, int pageNumber)
+    private string BuildMergedTextFilePath(string outputFolderPath, string pdfFilePath)
     {
-        var fileName = $"{Path.GetFileNameWithoutExtension(pdfFilePath)}_page_{pageNumber}.txt";
+        var fileName = $"{Path.GetFileNameWithoutExtension(pdfFilePath)}.txt";
         return Path.Combine(outputFolderPath, fileName);
+    }
+
+    private void DeleteLegacyPageFiles(string outputFolderPath, string pdfFile, int totalPages, IFileSystemService fileSystem, ILogger<PdfTextExtractorLib> logger)
+    {
+        var pdfFileName = Path.GetFileNameWithoutExtension(pdfFile);
+
+        for (int pageNum = 1; pageNum <= totalPages; pageNum++)
+        {
+            var legacyPath = Path.Combine(outputFolderPath,
+                $"{pdfFileName}_page_{pageNum}.txt");
+
+            if (fileSystem.FileExists(legacyPath))
+            {
+                try
+                {
+                    File.Delete(legacyPath);
+                    logger.LogDebug("Deleted legacy page file: {Path}", legacyPath);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to delete legacy page file: {Path}", legacyPath);
+                    // Don't throw - cleanup is best-effort
+                }
+            }
+        }
     }
 
     private void ValidateParameters(string pdfFolderPath, string outputFolderPath)

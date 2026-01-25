@@ -8,7 +8,13 @@ namespace PdfTextExtractor.Core.Models;
 public class ExtractionResult
 {
     public required string PdfFilePath { get; init; }
-    public required Dictionary<int, string> PageTextFiles { get; init; }
+
+    /// <summary>
+    /// Path to the merged text file containing all pages concatenated together.
+    /// Pages are concatenated directly to preserve table layouts that may span multiple pages.
+    /// </summary>
+    public required string PageTextFiles { get; init; }
+
     public int TotalPages { get; init; }
 
     /// <summary>

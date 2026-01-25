@@ -58,8 +58,8 @@ var result = await lib.ExtractWithPdfPigAsync(new PdfPigParameters
     ChunkSize = 1000
 });
 
-Console.WriteLine($"Output: {result.TextFilePath}");
-Console.WriteLine($"Pages: {result.TotalPages}, Chunks: {result.TotalChunks}");
+Console.WriteLine($"Output: {result.PageTextFiles}");
+Console.WriteLine($"Pages: {result.TotalPages} (Extracted: {result.ExtractedPages}, Skipped: {result.SkippedPages})");
 ```
 
 ### Using LM Studio (Local OCR)
@@ -192,11 +192,21 @@ public class OpenAIParameters
 public class ExtractionResult
 {
     public required string PdfFilePath { get; init; }
-    public required string TextFilePath { get; init; }
+
+    /// <summary>
+    /// Path to the merged text file containing all pages.
+    /// Pages are concatenated directly to preserve table layouts that may span multiple pages.
+    /// </summary>
+    public required string PageTextFiles { get; init; }
+
     public int TotalPages { get; init; }
-    public int TotalChunks { get; init; }
+    public int SkippedPages { get; init; }
+    public int ExtractedPages { get; init; }
     public TimeSpan Duration { get; init; }
     public TextExtractionMethod Method { get; init; }
+    public int TotalPromptTokens { get; init; }  // OCR methods only
+    public int TotalCompletionTokens { get; init; }  // OCR methods only
+    public int TotalTokens { get; init; }  // OCR methods only
 }
 ```
 
