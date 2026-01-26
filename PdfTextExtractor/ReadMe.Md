@@ -37,6 +37,20 @@ Features Domain-Driven Design, Rx.NET event streams, and WPF GUI.
 | **LM Studio** | OCR (local) | Free | Medium | Requires GPU, qwen2.5-vl-7b model |
 | **OpenAI** | OCR (cloud) | $0.003/page | Fast | Requires API key, gpt-4o model |
 
+## Example Documents
+
+The [docs](docs) folder contains sample files demonstrating the extraction pipeline:
+
+| File | Type | Description |
+| ---- | ---- | ----------- |
+| [pdf_example.pdf](docs/pdf_example.pdf) | PDF | Original source document (3 pages) |
+| [pdf_example_page_001.png](docs/pdf_example_page_001.png) | PNG | Rasterized page 1 (2480x3507 px) |
+| [pdf_example_page_002.png](docs/pdf_example_page_002.png) | PNG | Rasterized page 2 (2480x3507 px) |
+| [pdf_example_page_003.png](docs/pdf_example_page_003.png) | PNG | Rasterized page 3 (2480x3507 px) |
+| [pdf_example.txt](docs/pdf_example.txt) | TXT | OCR-extracted text output |
+
+These files illustrate the complete extraction workflow from PDF input to text output, including the intermediate rasterization step used by OCR methods.
+
 ## Quick Start
 
 ### Using PdfPig (Native Text Extraction)
