@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 
 using Preprocessor.Models;
+using Preprocessor.Services;
 
 using UglyToad.PdfPig;
 
@@ -12,14 +13,14 @@ namespace Preprocessor.Extractors;
 public class PdfPigExtractor : IPdfExtractor
 {
     private readonly ILogger<PdfPigExtractor> _logger;
-    private readonly int _chunkSize;
+    private readonly ITextChunker _textChunker;
 
     public string MethodName => "pdfpig";
 
-    public PdfPigExtractor(ILogger<PdfPigExtractor> logger, int chunkSize = 1000)
+    public PdfPigExtractor(ILogger<PdfPigExtractor> logger, ITextChunker textChunker)
     {
-        _logger = logger;
-        _chunkSize = chunkSize;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _textChunker = textChunker ?? throw new ArgumentNullException(nameof(textChunker));
     }
 
     /// <inheritdoc/>
@@ -55,7 +56,7 @@ public class PdfPigExtractor : IPdfExtractor
             pageText = CleanText(pageText);
 
             // Split into chunks
-            var pageChunks = SplitIntoChunks(pageText, _chunkSize);
+            var pageChunks = _textChunker.Chunk(pageText).ToList();
 
             for (var i = 0; i < pageChunks.Count; i++)
             {
@@ -91,63 +92,5 @@ public class PdfPigExtractor : IPdfExtractor
         text = text.Trim();
 
         return text;
-    }
-
-    /// <summary>
-    /// Splits text into smaller chunks suitable for embedding generation and vector search.
-    /// Attempts to split on sentence boundaries to maintain semantic coherence.
-    /// </summary>
-    /// <param name="text">The text to split into chunks.</param>
-    /// <param name="chunkSize">Maximum size of each chunk in characters.</param>
-    /// <returns>List of text chunks, each preserving sentence boundaries where possible.</returns>
-    /// <remarks>
-    /// Chunking is essential for RAG systems because:
-    /// - Embedding models have token/character limits
-    /// - Smaller chunks provide better retrieval granularity
-    /// - Vector search accuracy improves with focused, coherent text segments
-    ///
-    /// The method combines multiple sentences into chunks (not one-sentence-per-chunk) because:
-    /// - Single sentences (20-100 chars) lack context for quality embeddings
-    /// - Embedding models work best with paragraph-level context (100-1000 chars)
-    /// - Related information across consecutive sentences stays together
-    /// - Fewer, richer chunks enable faster vector search
-    ///
-    /// For fund documents Q&A, when someone asks "What are the management fees for SEB Asienfond?",
-    /// the system can retrieve just the chunk containing the cost breakdown rather than irrelevant
-    /// text about investment objectives or risk disclosures.
-    /// </remarks>
-    private static List<string> SplitIntoChunks(string text, int chunkSize)
-    {
-        var chunks = new List<string>();
-
-        if (string.IsNullOrEmpty(text))
-        {
-            return chunks;
-        }
-
-        // Try to split on sentence boundaries
-        var sentences = text.Split(new[] { ". ", "! ", "? " }, StringSplitOptions.RemoveEmptyEntries);
-
-        var currentChunk = string.Empty;
-
-        foreach (var sentence in sentences)
-        {
-            var sentenceWithPeriod = sentence.TrimEnd('.', '!', '?') + ". ";
-
-            if (currentChunk.Length + sentenceWithPeriod.Length > chunkSize && !string.IsNullOrEmpty(currentChunk))
-            {
-                chunks.Add(currentChunk.Trim());
-                currentChunk = string.Empty;
-            }
-
-            currentChunk += sentenceWithPeriod;
-        }
-
-        if (!string.IsNullOrWhiteSpace(currentChunk))
-        {
-            chunks.Add(currentChunk.Trim());
-        }
-
-        return chunks;
     }
 }
