@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 
 using Preprocessor.Extractors;
+using Preprocessor.Services;
 
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
@@ -28,7 +29,7 @@ public class PdfPigExtractorPlaygroundTests
     public void Setup()
     {
         _loggerMock = new Mock<ILogger<PdfPigExtractor>>();
-        _extractor = new PdfPigExtractor(_loggerMock.Object);
+        _extractor = new PdfPigExtractor(_loggerMock.Object, new SentenceBoundaryChunker(maxChunkSize: 1000));
 
         var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
         _testPdfPath = Path.Combine(testDataDir, TestPdfFileName);

@@ -1,8 +1,12 @@
+using AutoFixture;
+using AutoFixture.AutoMoq;
+
 using Microsoft.Extensions.Logging;
 
 using Moq;
 
 using Preprocessor.Extractors;
+using Preprocessor.Services;
 
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
@@ -19,15 +23,23 @@ public class PdfPigExtractorTests
 {
     private const string TestPdfFileName = "SEB Asienfond ex Japan D utd.pdf";
 
+    private IFixture _fixture = null!;
     private Mock<ILogger<PdfPigExtractor>> _loggerMock = null!;
+    private Mock<ITextChunker> _textChunkerMock = null!;
     private PdfPigExtractor _extractor = null!;
     private string _testPdfPath = null!;
 
     [SetUp]
     public void Setup()
     {
-        _loggerMock = new Mock<ILogger<PdfPigExtractor>>();
-        _extractor = new PdfPigExtractor(_loggerMock.Object);
+        _fixture = new Fixture().Customize(new AutoMoqCustomization());
+
+        _loggerMock = _fixture.Freeze<Mock<ILogger<PdfPigExtractor>>>();
+        _textChunkerMock = _fixture.Freeze<Mock<ITextChunker>>();
+
+        // For integration tests, we use real SentenceBoundaryChunker
+        // For unit tests with mocks, we'll create extractor manually
+        _extractor = new PdfPigExtractor(_loggerMock.Object, new SentenceBoundaryChunker(maxChunkSize: 1000));
 
         var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
         _testPdfPath = Path.Combine(testDataDir, TestPdfFileName);
@@ -87,10 +99,42 @@ public class PdfPigExtractorTests
     }
 
     [Test]
-    public void Constructor_WithCustomChunkSize_ShouldUseCustomSize()
+    public async Task ExtractAsync_WithValidPdf_CallsTextChunker()
     {
-        var customExtractor = new PdfPigExtractor(_loggerMock.Object, 500);
+        // Arrange
+        var mockChunks = new[] { "chunk1", "chunk2", "chunk3" };
+        _textChunkerMock
+            .Setup(x => x.Chunk(It.IsAny<string>()))
+            .Returns(mockChunks);
 
-        Assert.That(customExtractor.MethodName, Is.EqualTo("pdfpig"));
+        var extractorWithMock = new PdfPigExtractor(_loggerMock.Object, _textChunkerMock.Object);
+
+        // Act
+        var result = await extractorWithMock.ExtractAsync(_testPdfPath);
+        var chunks = result.ToList();
+
+        // Assert
+        Assert.That(chunks, Is.Not.Empty);
+        _textChunkerMock.Verify(x => x.Chunk(It.IsAny<string>()), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void Constructor_WithNullLogger_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var textChunker = new SentenceBoundaryChunker();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new PdfPigExtractor(null!, textChunker));
+    }
+
+    [Test]
+    public void Constructor_WithNullTextChunker_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var logger = _loggerMock.Object;
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new PdfPigExtractor(logger, null!));
     }
 }

@@ -313,3 +313,70 @@ Token usage can be integrated with Azure Application Insights for centralized mo
 ```bash
 dotnet test
 ```
+
+## Architecture
+
+### Core Services
+
+The Preprocessor uses a modular, dependency-injection-based architecture with clearly separated concerns:
+
+#### Text Extraction and Chunking
+
+**ITextChunker** - Splits text into smaller chunks suitable for embedding generation:
+
+- **Implementation:** `SentenceBoundaryChunker` - Sentence-boundary-aware chunking (default: 1000 characters)
+- **Strategy:** Combines multiple sentences into chunks (not one-sentence-per-chunk)
+- **Rationale:** Paragraph-level context (100-1000 chars) produces better embeddings than single sentences (20-100 chars)
+- **Future Extensibility:** Interface supports multiple chunking strategies (fixed-size, token-based, semantic, etc.)
+
+**IPdfExtractor** - Extracts text from PDF documents:
+
+- **Implementation:** `PdfPigExtractor` - Uses PdfPig library for robust PDF text extraction
+- **Chunking:** Delegates to `ITextChunker` for configurable text splitting strategies
+- **Process:** Extract text per page → Clean text → Chunk text → Return `DocumentChunk` objects
+
+**IChunkSanitizer** - Cleans extracted chunks by removing noise patterns:
+
+- **Implementation:** `ChunkSanitizer` - Removes known noise patterns (e.g., "1 2 3 4 5 6 7")
+- **Integration:** Applied after extraction, before embedding generation
+
+**IEmbeddingService** - Generates embeddings from text:
+
+- **Implementation:** `OllamaEmbeddingService` - Unified interface for Ollama/LM Studio/OpenAI
+- **Providers:** Supports multiple embedding providers via configuration
+- **Token Tracking:** Logs token usage for cost monitoring (OpenAI) and diagnostics
+
+### Dependency Injection
+
+Services are registered in `Program.cs` using Microsoft.Extensions.DependencyInjection:
+
+```csharp
+services.AddSingleton<ITextChunker>(sp => new SentenceBoundaryChunker(maxChunkSize: 1000));
+services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
+services.AddSingleton<IChunkSanitizer, ChunkSanitizer>();
+services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
+```
+
+### Data Flow
+
+```text
+PDF File
+    ↓
+IPdfExtractor.ExtractAsync()
+├─ PdfPigExtractor
+│  ├─ Read PDF (PdfPig library)
+│  ├─ Extract text per page
+│  ├─ Clean text (normalize whitespace)
+│  └─ ITextChunker.Chunk() [sentence-boundary-aware]
+└─ Return IEnumerable<DocumentChunk>
+    ↓
+IChunkSanitizer.Sanitize()
+├─ Remove noise patterns
+└─ Return cleaned chunks
+    ↓
+IEmbeddingService.GenerateEmbeddingAsync()
+├─ Call provider API (OpenAI/Ollama/LM Studio)
+└─ Return float[] embedding
+    ↓
+Save results (JSON or Cosmos DB)
+```

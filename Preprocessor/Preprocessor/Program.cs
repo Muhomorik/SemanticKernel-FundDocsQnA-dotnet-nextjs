@@ -256,6 +256,9 @@ static IServiceCollection BuildServiceCollection(BaseEmbeddingOptions opts, stri
     // Register PDF extractor
     services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
 
+    // Register text chunker with default chunk size
+    services.AddSingleton<ITextChunker>(sp => new SentenceBoundaryChunker(maxChunkSize: 1000));
+
     // Register services
     services.AddSingleton<IChunkSanitizer, ChunkSanitizer>();
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();

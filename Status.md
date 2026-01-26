@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-17 (PdfTextExtractor.Core Library with Unit Tests Complete)
+Last Updated: 2026-01-26 (Preprocessor Text Chunking Abstraction Complete)
 
 **Tech Stack:**
 
@@ -49,6 +49,7 @@ Last Updated: 2026-01-17 (PdfTextExtractor.Core Library with Unit Tests Complete
 | ----------- | -------- | ------- |
 | Console Application | ✅ | .NET 9 with CommandLineParser |
 | PDF Text Extraction | ✅ | PdfPig with word-based smart chunking |
+| Text Chunking Abstraction | ✅ | **NEW 2026-01-26**: ITextChunker interface with SentenceBoundaryChunker implementation (1000 char default), DI-based, AutoFixture + AutoMoq tests (10 tests), enables future strategies (fixed-size, token-based, semantic) |
 | Embedding Generation | ✅ | Supports Ollama, LM Studio, OpenAI |
 | JSON Export | ✅ | Structured format (id, text, embedding, source, page) |
 | Append Mode | ✅ | Incremental processing of new PDFs |
@@ -56,8 +57,8 @@ Last Updated: 2026-01-17 (PdfTextExtractor.Core Library with Unit Tests Complete
 | Provider Abstraction | ✅ | Ollama/LM Studio/OpenAI with secure API key management |
 | Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
 | Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
-| Unit Tests | ✅ | NUnit tests for services and extraction |
-| Documentation | ✅ | README with usage examples |
+| Unit Tests | ✅ | NUnit + AutoFixture + AutoMoq tests for services and extraction (56 tests passing) |
+| Documentation | ✅ | README with usage examples and architecture documentation |
 
 ### Planned Features
 
