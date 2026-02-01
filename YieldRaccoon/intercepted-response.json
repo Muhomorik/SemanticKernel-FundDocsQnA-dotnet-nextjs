@@ -1,0 +1,5676 @@
+{
+	"fundListViews": [
+		{
+			"isin": "SE0013358181",
+			"name": "AuAg Silver Bullet A",
+			"rating": 2,
+			"risk": 6,
+			"developmentOneDay": -1.97757,
+			"developmentOneWeek": 6.695919999999999,
+			"developmentOneMonth": 28.286050000000004,
+			"developmentThreeMonths": 75.91482,
+			"developmentOneYear": 225.16400000000002,
+			"developmentThisYear": 29.829109999999998,
+			"developmentThreeYears": 295.859538,
+			"developmentFiveYears": 291.728725,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 1.08,
+			"standardDeviation": 41.13,
+			"capital": 4902824523.0,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 12.97,
+			"primaryBenchmark": "Nasdaq PHLX Gold/Silver Sector TR",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 27.52,
+			"environmentalScore": 5.22,
+			"socialScore": 5.3,
+			"governanceScore": 2.43,
+			"managementFee": 1.4,
+			"totalFee": 1.46,
+			"transactionFee": 0.06,
+			"ongoingFee": 1.4,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 51513,
+			"orderbookId": "1015114",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "2019-11-04",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "AIFM Capital AB",
+			"sustainabilityLevel": "WORSE",
+			"sustainabilityRating": 2,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 4,
+			"governanceRating": 5,
+			"prospectusLink": "/_api/fund-reference/reference/1015114/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 3935,
+			"nrSellOrders": 895,
+			"managedType": "ACTIVE",
+			"nav": 510.54,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 2
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 2
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "AT_LEAST_FIVE_YEARS"
+		},
+		{
+			"isin": "FI4000188982",
+			"name": "Evli Silver and Gold B",
+			"rating": 4,
+			"risk": 6,
+			"developmentOneDay": -0.65239,
+			"developmentOneWeek": 5.547303,
+			"developmentOneMonth": 19.501042,
+			"developmentThreeMonths": 56.139752,
+			"developmentOneYear": 189.952555,
+			"developmentThisYear": 21.892274,
+			"developmentThreeYears": 254.04299400000003,
+			"developmentFiveYears": 319.114864,
+			"developmentTenYears": 1431.703264,
+			"lowCarbon": null,
+			"sharpeRatio": 1.24,
+			"standardDeviation": 33.99,
+			"capital": 1741406284.46,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 14.04,
+			"primaryBenchmark": null,
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 26.09,
+			"environmentalScore": 10.64,
+			"socialScore": 7.71,
+			"governanceScore": 2.97,
+			"managementFee": 1.0,
+			"totalFee": 1.07,
+			"transactionFee": 0.07,
+			"ongoingFee": 1.0,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 41866,
+			"orderbookId": "2094166",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "2016-01-25",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Evli",
+			"sustainabilityLevel": "WORSE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [
+				"Kärnkraft"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 1.03
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 1,
+			"socialRating": 3,
+			"governanceRating": 4,
+			"prospectusLink": "/_api/fund-reference/reference/2094166/prospectus",
+			"currencyCode": "EUR",
+			"svanen": false,
+			"nrBuyOrders": 3391,
+			"nrSellOrders": 370,
+			"managedType": "ACTIVE",
+			"nav": 14734.656142,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": [
+				"Ingen fattigdom",
+				"Ingen hunger",
+				"Hälsa och välbefinnande",
+				"God utbildning för alla",
+				"Jämställdhet",
+				"Rent vatten och sanitet för alla",
+				"Hållbar energi för alla",
+				"Anständiga arbetsvillkor och ekonomisk tillväxt",
+				"Hållbar industri, innovationer och infrastruktur",
+				"Minskad ojämlikhet",
+				"Hållbara städer och samhällen",
+				"Hållbar konsumtion och produktion",
+				"Bekämpa klimatförändringarna",
+				"Hav och marina resurser",
+				"Ekosystem och biologisk mångfald",
+				"Fredliga och inkluderande samhällen",
+				"Genomförande och globalt partnerskap"
+			],
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "AT_LEAST_FIVE_YEARS"
+		},
+		{
+			"isin": "LU0496367417",
+			"name": "Franklin Gold & Prec Mtls A(acc)USD",
+			"rating": 3,
+			"risk": 6,
+			"developmentOneDay": 2.256721,
+			"developmentOneWeek": 9.919219,
+			"developmentOneMonth": 20.299918,
+			"developmentThreeMonths": 62.692227,
+			"developmentOneYear": 175.389057,
+			"developmentThisYear": 25.078130000000006,
+			"developmentThreeYears": 243.59237400000004,
+			"developmentFiveYears": 272.109945,
+			"developmentTenYears": 781.285017,
+			"lowCarbon": null,
+			"sharpeRatio": 1.25,
+			"standardDeviation": 30.95,
+			"capital": 15026249195.67,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 12.61,
+			"primaryBenchmark": "FTSE Gold Mines TR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": null,
+			"environmentalScore": null,
+			"socialScore": null,
+			"governanceScore": null,
+			"managementFee": 1.5,
+			"totalFee": 1.92,
+			"transactionFee": 0.06,
+			"ongoingFee": 1.86,
+			"otherFee": 0.0,
+			"minimumBuy": 1000.0,
+			"minimumBuyMonthlySaving": 1000.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 10076,
+			"orderbookId": "236069",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "2010-04-30",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Franklin Templeton",
+			"sustainabilityLevel": null,
+			"sustainabilityRating": null,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": null,
+			"socialRating": null,
+			"governanceRating": null,
+			"prospectusLink": "/_api/fund-reference/reference/236069/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 463,
+			"nrSellOrders": 75,
+			"managedType": "ACTIVE",
+			"nav": 221.96602,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "IE00BYVJR809",
+			"name": "Jupiter Gold & Silver L USD Acc",
+			"rating": 3,
+			"risk": 6,
+			"developmentOneDay": 1.6488900000000002,
+			"developmentOneWeek": 6.845861,
+			"developmentOneMonth": 23.058812,
+			"developmentThreeMonths": 68.82027,
+			"developmentOneYear": 175.373072,
+			"developmentThisYear": 24.335117,
+			"developmentThreeYears": 241.197542,
+			"developmentFiveYears": 277.348225,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 1.19,
+			"standardDeviation": 32.28,
+			"capital": 28343390476.26,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 12.48,
+			"primaryBenchmark": null,
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": null,
+			"environmentalScore": null,
+			"socialScore": null,
+			"governanceScore": null,
+			"managementFee": 1.5,
+			"totalFee": 1.8000000000000003,
+			"transactionFee": 0.05,
+			"ongoingFee": 1.7500000000000003,
+			"otherFee": 0.0,
+			"minimumBuy": 500.0,
+			"minimumBuyMonthlySaving": 500.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 6543,
+			"orderbookId": "2012155",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "2016-03-08",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Jupiter Asset Management (Europe) Limited",
+			"sustainabilityLevel": null,
+			"sustainabilityRating": null,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": null,
+			"socialRating": null,
+			"governanceRating": null,
+			"prospectusLink": "/_api/fund-reference/reference/2012155/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 385,
+			"nrSellOrders": 64,
+			"managedType": "ACTIVE",
+			"nav": 560.019293,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU0055631609",
+			"name": "BGF World Gold A2 USD",
+			"rating": 3,
+			"risk": 5,
+			"developmentOneDay": 5.739097,
+			"developmentOneWeek": 5.583814,
+			"developmentOneMonth": 19.892694,
+			"developmentThreeMonths": 54.957717,
+			"developmentOneYear": 142.887969,
+			"developmentThisYear": 21.564298,
+			"developmentThreeYears": 203.177253,
+			"developmentFiveYears": 229.333278,
+			"developmentTenYears": 576.15691,
+			"lowCarbon": null,
+			"sharpeRatio": 1.2,
+			"standardDeviation": 29.439999999999999,
+			"capital": 99369303046.1,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 9.13,
+			"primaryBenchmark": "FTSE Gold Mines PR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 23.47,
+			"environmentalScore": 10.28,
+			"socialScore": 8.0,
+			"governanceScore": 3.71,
+			"managementFee": 1.7500000000000003,
+			"totalFee": 2.54,
+			"transactionFee": 0.45999999999999999,
+			"ongoingFee": 2.08,
+			"otherFee": 0.0,
+			"minimumBuy": 1000.0,
+			"minimumBuyMonthlySaving": 1000.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 8876,
+			"orderbookId": "492",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "1994-12-30",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "BlackRock",
+			"sustainabilityLevel": "WORSE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [
+				"Utvinning av oljesand"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 2.95
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 2.95,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 1,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/492/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 381,
+			"nrSellOrders": 83,
+			"managedType": "ACTIVE",
+			"nav": 1125.944105,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU1989766289",
+			"name": "CPR Invest Global Gold Mines A USD Acc",
+			"rating": 3,
+			"risk": 6,
+			"developmentOneDay": 0.46973600000000007,
+			"developmentOneWeek": 2.882156,
+			"developmentOneMonth": 16.703537,
+			"developmentThreeMonths": 49.530373,
+			"developmentOneYear": 138.055588,
+			"developmentThisYear": 20.923123,
+			"developmentThreeYears": 196.444801,
+			"developmentFiveYears": 251.04808400000003,
+			"developmentTenYears": 602.665231,
+			"lowCarbon": null,
+			"sharpeRatio": 1.15,
+			"standardDeviation": 30.36,
+			"capital": 30668744009.85,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 10.07,
+			"primaryBenchmark": "NYSE Arca Gold Miners TR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 24.82,
+			"environmentalScore": 10.27,
+			"socialScore": 8.48,
+			"governanceScore": 3.78,
+			"managementFee": 1.7000000000000002,
+			"totalFee": 2.24,
+			"transactionFee": 0.18,
+			"ongoingFee": 2.06,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 5999,
+			"orderbookId": "1149494",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ädelmetaller",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ädelmetaller",
+			"indexFund": false,
+			"startDate": "2020-10-16",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Amundi",
+			"sustainabilityLevel": "WORSE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, ädelmetallgruvor",
+			"productInvolvements": [
+				"Utvinning av oljesand"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 4.59
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 4.59,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 1,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1149494/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 351,
+			"nrSellOrders": 47,
+			"managedType": "ACTIVE",
+			"nav": 2424.950653,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 2
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU1822851538",
+			"name": "Finserve Global Security Fund I SEK R",
+			"rating": 5,
+			"risk": 4,
+			"developmentOneDay": 0.01827,
+			"developmentOneWeek": -2.29307,
+			"developmentOneMonth": 13.274949999999999,
+			"developmentThreeMonths": 4.9283,
+			"developmentOneYear": 55.380030000000008,
+			"developmentThisYear": 14.478869999999999,
+			"developmentThreeYears": 147.342268,
+			"developmentFiveYears": 225.170704,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 1.37,
+			"standardDeviation": 17.17,
+			"capital": 8400919456.8,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 20.18,
+			"primaryBenchmark": null,
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 28.24,
+			"environmentalScore": 6.64,
+			"socialScore": 9.12,
+			"governanceScore": 3.7,
+			"managementFee": 1.6,
+			"totalFee": 2.01,
+			"transactionFee": 0.07,
+			"ongoingFee": 1.94,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 59781,
+			"orderbookId": "1096906",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Industrimaterial",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Industrimaterial",
+			"indexFund": false,
+			"startDate": "2019-02-21",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Finserve",
+			"sustainabilityLevel": "WORSE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, industri",
+			"productInvolvements": [
+				"Djurförsök",
+				"Handeldvapen",
+				"Kontroversiella vapen",
+				"Militärindustri"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 5.12
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 22.35
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 26.77
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 75.48
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 2,
+			"socialRating": 2,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1096906/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 1525,
+			"nrSellOrders": 249,
+			"managedType": "ACTIVE",
+			"nav": 328.52,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 5
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 5
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 5
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU1941809938",
+			"name": "East Capital Balkans A1 SEK",
+			"rating": 4,
+			"risk": 4,
+			"developmentOneDay": 2.15877,
+			"developmentOneWeek": 4.99447,
+			"developmentOneMonth": 9.55296,
+			"developmentThreeMonths": 14.9953,
+			"developmentOneYear": 29.496469999999996,
+			"developmentThisYear": 9.5377,
+			"developmentThreeYears": 121.557739,
+			"developmentFiveYears": 219.376686,
+			"developmentTenYears": 314.026054,
+			"lowCarbon": null,
+			"sharpeRatio": 1.69,
+			"standardDeviation": 14.17,
+			"capital": 854499769.16,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 7.32,
+			"primaryBenchmark": null,
+			"recommendedHoldingPeriod": "Minst 10 år",
+			"esgScore": 20.52,
+			"environmentalScore": 3.23,
+			"socialScore": 5.43,
+			"governanceScore": 5.13,
+			"managementFee": 1.9,
+			"totalFee": 3.08,
+			"transactionFee": 0.73,
+			"ongoingFee": 2.35,
+			"otherFee": 0.0,
+			"minimumBuy": 200.0,
+			"minimumBuyMonthlySaving": 200.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 5725,
+			"orderbookId": "1370204",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Östeuropa ex Ryssland",
+					"fundTagCategory": "OTHER_REGION"
+				}
+			],
+			"category": "Östeuropa ex Ryssland",
+			"indexFund": false,
+			"startDate": "2022-03-31",
+			"collateralValue": 60.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "East Capital",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 5,
+			"sustainabilityRatingCategoryName": "Europe Emerging Markets Equity",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 4,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1370204/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 176,
+			"nrSellOrders": 9,
+			"managedType": "ACTIVE",
+			"nav": 51.1322,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 5
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": [],
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "TEN_YEAR"
+		},
+		{
+			"isin": "LU2437452928",
+			"name": "East Capital New Europe A1 SEK",
+			"rating": 3,
+			"risk": 4,
+			"developmentOneDay": 1.36637,
+			"developmentOneWeek": 4.66063,
+			"developmentOneMonth": 8.03441,
+			"developmentThreeMonths": 14.61538,
+			"developmentOneYear": 30.97451,
+			"developmentThisYear": 7.59302,
+			"developmentThreeYears": 119.325185,
+			"developmentFiveYears": 151.389975,
+			"developmentTenYears": 238.962898,
+			"lowCarbon": null,
+			"sharpeRatio": 2.0,
+			"standardDeviation": 11.88,
+			"capital": 1507454201.99,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 7.4,
+			"primaryBenchmark": "MSCI EFM CEEC Ex RUS NR USD",
+			"recommendedHoldingPeriod": "Minst 10 år",
+			"esgScore": 21.57,
+			"environmentalScore": 3.15,
+			"socialScore": 6.47,
+			"governanceScore": 6.0,
+			"managementFee": 1.7500000000000003,
+			"totalFee": 3.08,
+			"transactionFee": 0.86,
+			"ongoingFee": 2.22,
+			"otherFee": 0.0,
+			"minimumBuy": 200.0,
+			"minimumBuyMonthlySaving": 200.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 7964,
+			"orderbookId": "1370205",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Östeuropa ex Ryssland",
+					"fundTagCategory": "OTHER_REGION"
+				}
+			],
+			"category": "Östeuropa ex Ryssland",
+			"indexFund": false,
+			"startDate": "2022-03-31",
+			"collateralValue": 60.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "East Capital",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Europe Emerging Markets Equity",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1370205/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 221,
+			"nrSellOrders": 14,
+			"managedType": "ACTIVE",
+			"nav": 161.7192,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 2
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": [],
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "TEN_YEAR"
+		},
+		{
+			"isin": "LU2085662703",
+			"name": "DNB Fund Disruptive Opps A SEK Acc",
+			"rating": 3,
+			"risk": 5,
+			"developmentOneDay": 1.24272,
+			"developmentOneWeek": -0.17492,
+			"developmentOneMonth": 5.0693,
+			"developmentThreeMonths": -5.13949,
+			"developmentOneYear": 24.10615,
+			"developmentThisYear": 7.197570000000001,
+			"developmentThreeYears": 115.098924,
+			"developmentFiveYears": 65.956678,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 0.93,
+			"standardDeviation": 29.909999999999998,
+			"capital": 3158588375.61,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 5.96,
+			"primaryBenchmark": "MSCI World NR EUR",
+			"recommendedHoldingPeriod": "Minst 7 år",
+			"esgScore": 21.81,
+			"environmentalScore": 3.44,
+			"socialScore": 7.34,
+			"governanceScore": 3.72,
+			"managementFee": 1.5,
+			"totalFee": 2.62,
+			"transactionFee": 0.4099999999999999,
+			"ongoingFee": 1.56,
+			"otherFee": 0.65,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 2944,
+			"orderbookId": "1051349",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Global",
+					"fundTagCategory": "COMMON_REGION"
+				},
+				{
+					"title": "Flexibel storlek bolag",
+					"fundTagCategory": "ALIGNMENT"
+				}
+			],
+			"category": "Global, Flexibel",
+			"indexFund": false,
+			"startDate": "2019-12-18",
+			"collateralValue": 80.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "DNB",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 1,
+			"sustainabilityRatingCategoryName": "Aktier, globalt stora bolag",
+			"productInvolvements": [
+				"Kontroversiella vapen",
+				"Kolkraft",
+				"Kärnkraft",
+				"Militärindustri",
+				"Djurförsök"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.59
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.85
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 3.14
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 3.74
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 8.95
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.85,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1051349/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 53,
+			"nrSellOrders": 21,
+			"managedType": "ACTIVE",
+			"nav": 252.5369,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 5
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 2
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": [],
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "SEVEN_YEAR"
+		},
+		{
+			"isin": "LU0106817157",
+			"name": "Schroder ISF Emerging Europe A Acc EUR",
+			"rating": null,
+			"risk": 6,
+			"developmentOneDay": 1.121999,
+			"developmentOneWeek": 4.921916,
+			"developmentOneMonth": 10.322499,
+			"developmentThreeMonths": 13.40621,
+			"developmentOneYear": 26.024211999999996,
+			"developmentThisYear": 9.292885,
+			"developmentThreeYears": 112.572497,
+			"developmentFiveYears": 3.233647,
+			"developmentTenYears": 101.17085999999999,
+			"lowCarbon": null,
+			"sharpeRatio": 1.6,
+			"standardDeviation": 13.95,
+			"capital": 16335651.47,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 7.55,
+			"primaryBenchmark": "MSCI EFM Europe + CIS (E+C) NR EUR",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 20.14,
+			"environmentalScore": 2.55,
+			"socialScore": 6.97,
+			"governanceScore": 5.42,
+			"managementFee": 1.5,
+			"totalFee": 2.39,
+			"transactionFee": 0.54,
+			"ongoingFee": 1.8500000000000004,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 3155,
+			"orderbookId": "1166961",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Övriga aktiefonder",
+					"fundTagCategory": "MISC"
+				}
+			],
+			"category": "Övriga aktiefonder",
+			"indexFund": false,
+			"startDate": "2000-01-28",
+			"collateralValue": 60.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Schroder",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 5,
+			"sustainabilityRatingCategoryName": "Europe Emerging Markets Equity",
+			"productInvolvements": [
+				"Militärindustri",
+				"Handeldvapen",
+				"Djurförsök"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 1.32
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 1.32
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 4.49
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 4,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1166961/prospectus",
+			"currencyCode": "EUR",
+			"svanen": false,
+			"nrBuyOrders": 88,
+			"nrSellOrders": 6,
+			"managedType": "ACTIVE",
+			"nav": 348.112477,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "SE0011527829",
+			"name": "MetaSpace Fund A",
+			"rating": 3,
+			"risk": 5,
+			"developmentOneDay": 1.6588800000000002,
+			"developmentOneWeek": 0.79988,
+			"developmentOneMonth": 5.41526,
+			"developmentThreeMonths": 5.73114,
+			"developmentOneYear": 24.05996,
+			"developmentThisYear": 6.93527,
+			"developmentThreeYears": 102.372636,
+			"developmentFiveYears": 83.154824,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 0.99,
+			"standardDeviation": 29.31,
+			"capital": 263527242.0,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 6.19,
+			"primaryBenchmark": "Dow Jones Global Index SEK",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 19.13,
+			"environmentalScore": 4.4,
+			"socialScore": 4.67,
+			"governanceScore": 3.17,
+			"managementFee": 1.5,
+			"totalFee": 1.59,
+			"transactionFee": 0.01,
+			"ongoingFee": 1.5,
+			"otherFee": 0.08,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 4774,
+			"orderbookId": "953014",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "2018-09-14",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "AIFM Capital AB",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 2,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Militärindustri"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 7.66
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 4,
+			"governanceRating": 4,
+			"prospectusLink": "/_api/fund-reference/reference/953014/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 169,
+			"nrSellOrders": 22,
+			"managedType": "ACTIVE",
+			"nav": 335.21,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "AT_LEAST_FIVE_YEARS"
+		},
+		{
+			"isin": "LU0444971666",
+			"name": "CT (Lux) Global Tech AU USD",
+			"rating": 4,
+			"risk": 5,
+			"developmentOneDay": 1.034761,
+			"developmentOneWeek": 0.43606,
+			"developmentOneMonth": 4.841633,
+			"developmentThreeMonths": 2.033106,
+			"developmentOneYear": 18.24538,
+			"developmentThisYear": 5.751481,
+			"developmentThreeYears": 102.13100299999999,
+			"developmentFiveYears": 150.852329,
+			"developmentTenYears": 782.687293,
+			"lowCarbon": null,
+			"sharpeRatio": 1.08,
+			"standardDeviation": 22.94,
+			"capital": 13534726249.54,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 4.58,
+			"primaryBenchmark": "MSCI World/IT 10/40 NR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 17.55,
+			"environmentalScore": 3.75,
+			"socialScore": 6.19,
+			"governanceScore": 3.52,
+			"managementFee": 1.6500000000000002,
+			"totalFee": 2.15,
+			"transactionFee": 0.2,
+			"ongoingFee": 1.95,
+			"otherFee": 0.0,
+			"minimumBuy": 1000.0,
+			"minimumBuyMonthlySaving": 1000.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 1643,
+			"orderbookId": "289977",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "2010-03-12",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Threadneedle",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Militärindustri",
+				"Djurförsök"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.24
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.3
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 4,
+			"governanceRating": 4,
+			"prospectusLink": "/_api/fund-reference/reference/289977/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 19,
+			"nrSellOrders": 6,
+			"managedType": "ACTIVE",
+			"nav": 1753.099589,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "SE0006881389",
+			"name": "Finserve Chelverton Global Tech Fund A",
+			"rating": 4,
+			"risk": 5,
+			"developmentOneDay": 0.93361,
+			"developmentOneWeek": 2.20457,
+			"developmentOneMonth": 2.91065,
+			"developmentThreeMonths": -2.67737,
+			"developmentOneYear": 11.17229,
+			"developmentThisYear": 2.63493,
+			"developmentThreeYears": 101.98961399999999,
+			"developmentFiveYears": 103.134423,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 1.11,
+			"standardDeviation": 23.72,
+			"capital": 1027495252.0,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 2.49,
+			"primaryBenchmark": "Morningstar DM TME NR USD",
+			"recommendedHoldingPeriod": "Minst 3 år",
+			"esgScore": 15.19,
+			"environmentalScore": 4.72,
+			"socialScore": 6.45,
+			"governanceScore": 4.02,
+			"managementFee": 1.5,
+			"totalFee": 1.54,
+			"transactionFee": 0.03,
+			"ongoingFee": 1.5,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 3419,
+			"orderbookId": "1161889",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "2015-04-01",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Finserve",
+			"sustainabilityLevel": "BETTER",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Kontroversiella vapen",
+				"Kolkraft",
+				"Kärnkraft",
+				"Djurförsök",
+				"Militärindustri"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.02
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.02
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.04
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.22
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 2.27
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.02,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1161889/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 76,
+			"nrSellOrders": 34,
+			"managedType": "ACTIVE",
+			"nav": 400.88269,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "THREE_YEAR"
+		},
+		{
+			"isin": "LU0078277505",
+			"name": "Templeton Eastern Europe A(acc)EUR",
+			"rating": null,
+			"risk": 5,
+			"developmentOneDay": 1.162283,
+			"developmentOneWeek": 3.774863,
+			"developmentOneMonth": 7.574158000000001,
+			"developmentThreeMonths": 11.308134,
+			"developmentOneYear": 22.261034,
+			"developmentThisYear": 7.65357,
+			"developmentThreeYears": 100.517996,
+			"developmentFiveYears": -6.057385,
+			"developmentTenYears": 46.800834,
+			"lowCarbon": null,
+			"sharpeRatio": 1.53,
+			"standardDeviation": 12.920000000000002,
+			"capital": 1795934743.88,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 8.15,
+			"primaryBenchmark": "MSCI EM Europe NR EUR",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 20.35,
+			"environmentalScore": 2.77,
+			"socialScore": 7.65,
+			"governanceScore": 5.97,
+			"managementFee": 2.1,
+			"totalFee": 2.58,
+			"transactionFee": 0.06,
+			"ongoingFee": 2.52,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 230,
+			"orderbookId": "2585",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Övriga aktiefonder",
+					"fundTagCategory": "MISC"
+				}
+			],
+			"category": "Övriga aktiefonder",
+			"indexFund": false,
+			"startDate": "1997-11-10",
+			"collateralValue": 60.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Franklin Templeton",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Europe Emerging Markets Equity",
+			"productInvolvements": [
+				"Alkohol",
+				"Djurförsök",
+				"Spel och kasino"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.61
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 2.36
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 3.57
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 4,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/2585/prospectus",
+			"currencyCode": "EUR",
+			"svanen": false,
+			"nrBuyOrders": 6,
+			"nrSellOrders": 1,
+			"managedType": "ACTIVE",
+			"nav": 223.556434,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "SE0000538944",
+			"name": "Swedbank Robur Technology A",
+			"rating": 4,
+			"risk": 5,
+			"developmentOneDay": 0.62071,
+			"developmentOneWeek": 0.8313000000000002,
+			"developmentOneMonth": 0.68468,
+			"developmentThreeMonths": -5.76726,
+			"developmentOneYear": -1.7953399999999998,
+			"developmentThisYear": 0.52088,
+			"developmentThreeYears": 94.975241,
+			"developmentFiveYears": 130.058625,
+			"developmentTenYears": 740.074251,
+			"lowCarbon": null,
+			"sharpeRatio": 1.06,
+			"standardDeviation": 23.68,
+			"capital": 182775650812.0,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 2.75,
+			"primaryBenchmark": "MSCI World/IT Services NR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 15.61,
+			"environmentalScore": 4.54,
+			"socialScore": 6.51,
+			"governanceScore": 4.1,
+			"managementFee": 1.25,
+			"totalFee": 1.38,
+			"transactionFee": 0.13,
+			"ongoingFee": 1.25,
+			"otherFee": 0.0,
+			"minimumBuy": 50.0,
+			"minimumBuyMonthlySaving": 50.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 204445,
+			"orderbookId": "363",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "1983-09-01",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Swedbank Robur",
+			"sustainabilityLevel": "BETTER",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Militärindustri"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 5.81
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/363/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 4680,
+			"nrSellOrders": 1017,
+			"managedType": "ACTIVE",
+			"nav": 1377.89,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU0262307720",
+			"name": "Jupiter Financial Innovt L USD Acc",
+			"rating": 3,
+			"risk": 5,
+			"developmentOneDay": 0.80912,
+			"developmentOneWeek": 3.14993,
+			"developmentOneMonth": 3.8603980000000006,
+			"developmentThreeMonths": 8.425527,
+			"developmentOneYear": 22.581523,
+			"developmentThisYear": 2.673927,
+			"developmentThreeYears": 93.534782,
+			"developmentFiveYears": 65.990818,
+			"developmentTenYears": 227.766325,
+			"lowCarbon": null,
+			"sharpeRatio": 1.24,
+			"standardDeviation": 17.52,
+			"capital": 815631183.65,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 3.92,
+			"primaryBenchmark": "MSCI ACWI/Financials GR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 15.11,
+			"environmentalScore": 0.79,
+			"socialScore": 7.94,
+			"governanceScore": 5.35,
+			"managementFee": 1.5,
+			"totalFee": 2.26,
+			"transactionFee": 0.53,
+			"ongoingFee": 1.73,
+			"otherFee": 0.0,
+			"minimumBuy": 500.0,
+			"minimumBuyMonthlySaving": 500.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 236,
+			"orderbookId": "119590",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Finans",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Finans",
+			"indexFund": false,
+			"startDate": "2007-07-10",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Jupiter",
+			"sustainabilityLevel": "BETTER",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Aktier, finans",
+			"productInvolvements": [],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 5,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/119590/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 8,
+			"nrSellOrders": 2,
+			"managedType": "ACTIVE",
+			"nav": 239.850797,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 2
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 3
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 6",
+				"value": "ARTICLE_TYPE_SIX"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "NO0010827819",
+			"name": "DNB Teknologi S",
+			"rating": 4,
+			"risk": 4,
+			"developmentOneDay": -0.1543,
+			"developmentOneWeek": 1.88677,
+			"developmentOneMonth": -1.932,
+			"developmentThreeMonths": -5.65164,
+			"developmentOneYear": 10.58489,
+			"developmentThisYear": -2.54178,
+			"developmentThreeYears": 92.024423,
+			"developmentFiveYears": 141.383218,
+			"developmentTenYears": 618.558591,
+			"lowCarbon": null,
+			"sharpeRatio": 1.52,
+			"standardDeviation": 15.990000000000002,
+			"capital": 92088058712.48,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 2.45,
+			"primaryBenchmark": "MSCI World Com Serv & Info Tech",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 15.07,
+			"environmentalScore": 3.53,
+			"socialScore": 7.55,
+			"governanceScore": 3.77,
+			"managementFee": 1.2,
+			"totalFee": 1.43,
+			"transactionFee": 0.22999999999999999,
+			"ongoingFee": 1.2,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": false,
+			"nrOfOwners": 32587,
+			"orderbookId": "1509086",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "2022-12-09",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "DNB",
+			"sustainabilityLevel": "BETTER",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Djurförsök"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 1.69
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1509086/prospectus",
+			"currencyCode": "SEK",
+			"svanen": false,
+			"nrBuyOrders": 861,
+			"nrSellOrders": 251,
+			"managedType": "ACTIVE",
+			"nav": 207.08598,
+			"navDate": "2026-01-27T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 5
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU2473541154",
+			"name": "Invesco Metaverse & AI A Acc USD",
+			"rating": 4,
+			"risk": 4,
+			"developmentOneDay": 1.154068,
+			"developmentOneWeek": 2.383712,
+			"developmentOneMonth": 3.9117409999999999,
+			"developmentThreeMonths": -1.104798,
+			"developmentOneYear": 5.448561,
+			"developmentThisYear": 1.754082,
+			"developmentThreeYears": 91.497277,
+			"developmentFiveYears": null,
+			"developmentTenYears": null,
+			"lowCarbon": null,
+			"sharpeRatio": 1.23,
+			"standardDeviation": 19.27,
+			"capital": 4799434061.91,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 3.24,
+			"primaryBenchmark": "MSCI ACWI NR USD",
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 16.93,
+			"environmentalScore": 4.95,
+			"socialScore": 7.48,
+			"governanceScore": 4.51,
+			"managementFee": 1.5,
+			"totalFee": 1.95,
+			"transactionFee": 0.05,
+			"ongoingFee": 1.9,
+			"otherFee": 0.0,
+			"minimumBuy": 200.0,
+			"minimumBuyMonthlySaving": 200.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 419,
+			"orderbookId": "1748728",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Branschfond",
+					"fundTagCategory": "MISC"
+				},
+				{
+					"title": "Ny teknik",
+					"fundTagCategory": "INDUSTRY"
+				}
+			],
+			"category": "Branschfond, Ny teknik",
+			"indexFund": false,
+			"startDate": "2022-08-08",
+			"collateralValue": 70.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Invesco",
+			"sustainabilityLevel": "AVERAGE",
+			"sustainabilityRating": 3,
+			"sustainabilityRatingCategoryName": "Aktier, teknologi",
+			"productInvolvements": [
+				"Spel och kasino",
+				"Alkohol",
+				"Djurförsök",
+				"Militärindustri"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 0.84
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 1.01
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 1.72
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 1.73
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/1748728/prospectus",
+			"currencyCode": "USD",
+			"svanen": false,
+			"nrBuyOrders": 8,
+			"nrSellOrders": 4,
+			"managedType": "ACTIVE",
+			"nav": 192.394161,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		},
+		{
+			"isin": "LU0261948904",
+			"name": "Fidelity Iberia A-Acc-EUR",
+			"rating": 4,
+			"risk": 4,
+			"developmentOneDay": -0.682776,
+			"developmentOneWeek": 0.460736,
+			"developmentOneMonth": 2.101726,
+			"developmentThreeMonths": 4.527802,
+			"developmentOneYear": 28.937255,
+			"developmentThisYear": 0.625266,
+			"developmentThreeYears": 91.37336,
+			"developmentFiveYears": 119.245777,
+			"developmentTenYears": 180.029531,
+			"lowCarbon": null,
+			"sharpeRatio": 1.83,
+			"standardDeviation": 12.04,
+			"capital": 3484695789.49,
+			"fossilFuelInvolvement": null,
+			"carbonRiskScore": 4.97,
+			"primaryBenchmark": null,
+			"recommendedHoldingPeriod": "Minst 5 år",
+			"esgScore": 15.66,
+			"environmentalScore": 3.61,
+			"socialScore": 7.58,
+			"governanceScore": 4.04,
+			"managementFee": 1.5,
+			"totalFee": 2.19,
+			"transactionFee": 0.26,
+			"ongoingFee": 1.9299999999999998,
+			"otherFee": 0.0,
+			"minimumBuy": 100.0,
+			"minimumBuyMonthlySaving": 100.0,
+			"hasCurrencyExchangeFee": true,
+			"nrOfOwners": 1319,
+			"orderbookId": "76993",
+			"tagList": [
+				{
+					"title": "Aktiefond",
+					"fundTagCategory": "TYPE"
+				},
+				{
+					"title": "Spanien",
+					"fundTagCategory": "OTHER_REGION"
+				}
+			],
+			"category": "Spanien",
+			"indexFund": false,
+			"startDate": "2006-09-25",
+			"collateralValue": 80.0,
+			"superloanOrderbook": true,
+			"fundType": "EQUITY_FUND",
+			"companyName": "Fidelity",
+			"sustainabilityLevel": "BETTER",
+			"sustainabilityRating": 4,
+			"sustainabilityRatingCategoryName": "Aktier, Europa stora bolag",
+			"productInvolvements": [
+				"Spel och kasino",
+				"Militärindustri",
+				"Djurförsök",
+				"Kärnkraft"
+			],
+			"productInvolvementViews": [
+				{
+					"product": "tobacco",
+					"productDescription": "Tobak",
+					"value": 0.0
+				},
+				{
+					"product": "adultEntertainment",
+					"productDescription": "Pornografi",
+					"value": 0.0
+				},
+				{
+					"product": "convtroversialWeapons",
+					"productDescription": "Kontroversiella vapen",
+					"value": 0.0
+				},
+				{
+					"product": "furAndSpecialityLeather",
+					"productDescription": "Päls- och läderindustri",
+					"value": 0.0
+				},
+				{
+					"product": "gmo",
+					"productDescription": "Genmodifierade organismer",
+					"value": 0.0
+				},
+				{
+					"product": "palmOil",
+					"productDescription": "Palmolja",
+					"value": 0.0
+				},
+				{
+					"product": "pesticides",
+					"productDescription": "Bekämpningsmedel",
+					"value": 0.0
+				},
+				{
+					"product": "smallArms",
+					"productDescription": "Handeldvapen",
+					"value": 0.0
+				},
+				{
+					"product": "thermalCoal",
+					"productDescription": "Kolkraft",
+					"value": 0.0
+				},
+				{
+					"product": "alcohol",
+					"productDescription": "Alkohol",
+					"value": 0.0
+				},
+				{
+					"product": "gambling",
+					"productDescription": "Spel och kasino",
+					"value": 1.77
+				},
+				{
+					"product": "militaryContracting",
+					"productDescription": "Militärindustri",
+					"value": 2.39
+				},
+				{
+					"product": "animalTesting",
+					"productDescription": "Djurförsök",
+					"value": 7.16
+				},
+				{
+					"product": "nuclear",
+					"productDescription": "Kärnkraft",
+					"value": 9.46
+				},
+				{
+					"product": "oilSandsExtractionInvolvement",
+					"productDescription": "Utvinning av oljesand",
+					"value": 0.0
+				},
+				{
+					"product": "arcticOilAndGasExplorationInvolvement",
+					"productDescription": "Arktisk olja och gasproduktion",
+					"value": 0.0
+				}
+			],
+			"carbonSolutionsInvolvement": null,
+			"aumCoveredCarbon": null,
+			"thermalCoalInvolvement": 0.0,
+			"oilSandsExtractionInvolvement": 0.0,
+			"arcticOilAndGasExplorationInvolvement": 0.0,
+			"environmentalRating": 3,
+			"socialRating": 3,
+			"governanceRating": 3,
+			"prospectusLink": "/_api/fund-reference/reference/76993/prospectus",
+			"currencyCode": "EUR",
+			"svanen": false,
+			"nrBuyOrders": 57,
+			"nrSellOrders": 23,
+			"managedType": "ACTIVE",
+			"nav": 371.184051,
+			"navDate": "2026-01-28T00:00:00",
+			"fundRatingViews": [
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "THREE_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "FIVE_YEARS",
+					"fundRating": 3
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "TEN_YEARS",
+					"fundRating": 4
+				},
+				{
+					"date": "2025-12-31T00:00:00",
+					"fundRatingType": "ALL_TIME",
+					"fundRating": 4
+				}
+			],
+			"sustainableDevelopmentGoalsAlignments": null,
+			"euArticleType": {
+				"name": "Artikel 8",
+				"value": "ARTICLE_TYPE_EIGHT"
+			},
+			"hasCashDividends": false,
+			"buyable": true,
+			"recommendedHoldingPeriodValue": "FIVE_YEAR"
+		}
+	],
+	"totalNoFunds": 1462,
+	"filterCounts": {
+		"fundTypeCounts": [
+			{
+				"title": "Aktiefond",
+				"count": 1041,
+				"type": "fundType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Alternativa",
+				"count": 39,
+				"type": "fundType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Blandfond",
+				"count": 116,
+				"type": "fundType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Räntefond",
+				"count": 256,
+				"type": "fundType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Övrigt",
+				"count": 10,
+				"type": "fundType",
+				"active": false,
+				"group": 0
+			}
+		],
+		"commonRegionCounts": [
+			{
+				"title": "Asien ex Japan",
+				"count": 40,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Australien & Nya Zeeland",
+				"count": 1,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Europa",
+				"count": 94,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Global",
+				"count": 216,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Indien",
+				"count": 23,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Japan",
+				"count": 32,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Kina",
+				"count": 37,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Latinamerika",
+				"count": 6,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Sverige",
+				"count": 111,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tillväxtmarknader",
+				"count": 89,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "USA",
+				"count": 71,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Östeuropa",
+				"count": 1,
+				"type": "commonRegion",
+				"active": false,
+				"group": 0
+			}
+		],
+		"otherRegionCounts": [
+			{
+				"title": "Afrika och Mellanöstern",
+				"count": 4,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "ASEAN",
+				"count": 5,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Asien",
+				"count": 6,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Asien & Australien ex Japan",
+				"count": 7,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Asien & Australien ex Japan & Kina",
+				"count": 2,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Brasilien",
+				"count": 3,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Euroland",
+				"count": 11,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Europa ex Storbr",
+				"count": 3,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Finland",
+				"count": 4,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Global & Sverige",
+				"count": 11,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Hongkong",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Indonesien",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Italien",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Kina & närliggande",
+				"count": 8,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Korea",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Norden",
+				"count": 54,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Norge",
+				"count": 10,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Schweiz",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Spanien",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Storbritannien",
+				"count": 3,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Taiwan",
+				"count": 2,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tyskland",
+				"count": 2,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Vietnam",
+				"count": 1,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Östeuropa ex Ryssland",
+				"count": 4,
+				"type": "otherRegion",
+				"active": false,
+				"group": 0
+			}
+		],
+		"industryCounts": [
+			{
+				"title": "Bioteknik",
+				"count": 5,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Energi",
+				"count": 3,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Fastighetsbolag",
+				"count": 26,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Finans",
+				"count": 5,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Industrimaterial",
+				"count": 6,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Infrastruktur",
+				"count": 11,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Jordbruk",
+				"count": 2,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Kommunikation",
+				"count": 2,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Konsument",
+				"count": 9,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Läkemedel",
+				"count": 20,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Miljö",
+				"count": 25,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ny energi",
+				"count": 12,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ny teknik",
+				"count": 38,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Råvaror",
+				"count": 9,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Vattenresurser",
+				"count": 4,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ädelmetaller",
+				"count": 7,
+				"type": "industry",
+				"active": false,
+				"group": 0
+			}
+		],
+		"alignmentCounts": [
+			{
+				"title": "A-aktier",
+				"count": 8,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Flexibel storlek bolag",
+				"count": 98,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Hög utdelning",
+				"count": 23,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Medelstora bolag",
+				"count": 7,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Mix bolag",
+				"count": 217,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Små-/medelstora bolag",
+				"count": 108,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Småbolag",
+				"count": 27,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tillväxtbolag",
+				"count": 69,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Värdebolag",
+				"count": 20,
+				"type": "alignment",
+				"active": false,
+				"group": 0
+			}
+		],
+		"interestTypeCounts": [
+			{
+				"title": "Dollar",
+				"count": 18,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Euro",
+				"count": 44,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Företag",
+				"count": 59,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Globala",
+				"count": 24,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Högrisk",
+				"count": 50,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Korta",
+				"count": 20,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Lokal valuta",
+				"count": 6,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Medellånga",
+				"count": 7,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Obligationer",
+				"count": 244,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Reala",
+				"count": 4,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "SEK",
+				"count": 198,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Statliga",
+				"count": 3,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Valutasäkrad",
+				"count": 3,
+				"type": "interestType",
+				"active": false,
+				"group": 0
+			}
+		],
+		"companyCounts": [
+			{
+				"title": "Aberdeen",
+				"count": 17,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "AIFM Capital AB",
+				"count": 14,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Aktie-Ansvar",
+				"count": 6,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Alcur Fonder",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "ALFAKRAFT Fonder AB",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Alfakraft Luxembourg S.A",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Alfred Berg",
+				"count": 12,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Allianz",
+				"count": 34,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "AMF",
+				"count": 14,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Amundi",
+				"count": 23,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Artea Asset Management",
+				"count": 3,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Asia Growth",
+				"count": 3,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Atlant",
+				"count": 9,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Avanza",
+				"count": 23,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Baring",
+				"count": 7,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "BlackRock",
+				"count": 42,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "BMO",
+				"count": 5,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "BNP Paribas",
+				"count": 23,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Brock Milton Capital AB",
+				"count": 4,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "C Worldwide",
+				"count": 11,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Caprifol",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Captor Fund Management AB",
+				"count": 7,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Carmignac Gestion Luxembourg S.A.",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Carnegie Fonder",
+				"count": 23,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Case",
+				"count": 8,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "CB",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Centaur Fondförvaltning AB",
+				"count": 3,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Cicero",
+				"count": 18,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Cliens",
+				"count": 9,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Coeli",
+				"count": 7,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Danske Invest",
+				"count": 32,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "DNB",
+				"count": 30,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "East Capital",
+				"count": 16,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Elementa",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Evli",
+				"count": 28,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Excalibur",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "FCG",
+				"count": 5,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "FE Fonder AB",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Fidelity",
+				"count": 77,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Finserve",
+				"count": 10,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Fondita",
+				"count": 10,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Franklin Templeton",
+				"count": 36,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "GAM",
+				"count": 14,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Handelsbanken",
+				"count": 59,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Healthinvest",
+				"count": 3,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Holberg",
+				"count": 5,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "HSBC",
+				"count": 20,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "ICP Asset Management AS",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "IKC",
+				"count": 6,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Indecap",
+				"count": 10,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Invesco",
+				"count": 46,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Investerum AB",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "IPConcept (Luxemburg) SA",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "ISEC Services AB",
+				"count": 9,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Janus Henderson",
+				"count": 20,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "JP Morgan",
+				"count": 41,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Jupiter",
+				"count": 8,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Jupiter Asset Management (Europe) Limited",
+				"count": 7,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Kavaljer",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Lancelot",
+				"count": 4,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Lannebo Kapitalförvaltning",
+				"count": 40,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Lynx",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Länsförsäkringar",
+				"count": 34,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "M&G Luxembourg S.A.",
+				"count": 10,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Mirae",
+				"count": 5,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Morgan Stanley",
+				"count": 36,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Nordea",
+				"count": 50,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Norron",
+				"count": 5,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Nowo Fund Management AB",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Odin",
+				"count": 10,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Origo",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Pareto Asset Management",
+				"count": 12,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Pictet",
+				"count": 18,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Prior&Nilsson",
+				"count": 9,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Quartile Fonder",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "REQ AS",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Rhenman & Partners",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Robeco Institutional Asset Management BV",
+				"count": 18,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "RPM",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ruth Asset Management",
+				"count": 13,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Schroder",
+				"count": 34,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "SEB",
+				"count": 69,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Sensor",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Simplicity",
+				"count": 15,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Skandia Fonder",
+				"count": 20,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Spiltan Fonder",
+				"count": 8,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Storebrand",
+				"count": 14,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Storebrand Fonder",
+				"count": 39,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Strand",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Swedbank Robur",
+				"count": 60,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tellus",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Threadneedle",
+				"count": 20,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "TIN Fonder",
+				"count": 2,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tundra",
+				"count": 1,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "UBS",
+				"count": 39,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "United Bankers",
+				"count": 7,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Wahlstedt & Partners AB",
+				"count": 4,
+				"type": "company",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ålandsbanken",
+				"count": 13,
+				"type": "company",
+				"active": false,
+				"group": 0
+			}
+		],
+		"recommendedHoldingPeriodCounts": [
+			{
+				"title": "Mindre än 1 år",
+				"count": 7,
+				"type": "recommendedHoldingPeriod",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "1-2 år",
+				"count": 72,
+				"type": "recommendedHoldingPeriod",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "3-4 år",
+				"count": 384,
+				"type": "recommendedHoldingPeriod",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "5 år eller mer",
+				"count": 999,
+				"type": "recommendedHoldingPeriod",
+				"active": false,
+				"group": 0
+			}
+		],
+		"miscCounts": [
+			{
+				"title": "-",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Aggressiv",
+				"count": 15,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Aktier",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Asien & Australien",
+				"count": 3,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Balanserad",
+				"count": 49,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Branschfond",
+				"count": 186,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Bull/Bear",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "EUR",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Förlagsbevis",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Försiktig",
+				"count": 21,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2016-2020",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2021-2025",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2026-2030",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2031-2035",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2036-2040",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2041-2045",
+				"count": 3,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Generation 2046+",
+				"count": 5,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Global makro",
+				"count": 5,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Hedgefond",
+				"count": 24,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Inhemska",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Konvertibler - global",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Marknadsneutral",
+				"count": 5,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Modellbaserad terminshandel",
+				"count": 3,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Multi-strategi",
+				"count": 7,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "NOK",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Nya",
+				"count": 6,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Private Equity Notert",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ränte",
+				"count": 2,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Råvaror - Blandade",
+				"count": 5,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Säkrad",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Säkrade",
+				"count": 8,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Tillväxtmarknader ex Kina",
+				"count": 4,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "USD",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Volatilitet",
+				"count": 1,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Övriga",
+				"count": 101,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Övriga aktiefonder",
+				"count": 26,
+				"type": "misc",
+				"active": false,
+				"group": 0
+			}
+		],
+		"ratingCounts": [
+			{
+				"title": "5",
+				"count": 80,
+				"type": "rating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "4",
+				"count": 281,
+				"type": "rating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "3",
+				"count": 486,
+				"type": "rating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "2",
+				"count": 256,
+				"type": "rating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "1",
+				"count": 83,
+				"type": "rating",
+				"active": false,
+				"group": 0
+			}
+		],
+		"sustainabilityRatingCounts": [
+			{
+				"title": "5",
+				"count": 181,
+				"type": "sustainabilityRating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "4",
+				"count": 393,
+				"type": "sustainabilityRating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "3",
+				"count": 393,
+				"type": "sustainabilityRating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "2",
+				"count": 230,
+				"type": "sustainabilityRating",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "1",
+				"count": 117,
+				"type": "sustainabilityRating",
+				"active": false,
+				"group": 0
+			}
+		],
+		"productInvolvementsCounts": [
+			{
+				"title": "Alkohol",
+				"count": 379,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 3
+			},
+			{
+				"title": "Arktisk olja och gasproduktion",
+				"count": 236,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Bekämpningsmedel",
+				"count": 273,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Djurförsök",
+				"count": 1251,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Genmodifierade organismer",
+				"count": 184,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Handeldvapen",
+				"count": 368,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Kolkraft",
+				"count": 269,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Kontroversiella vapen",
+				"count": 231,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Kärnkraft",
+				"count": 614,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Militärindustri",
+				"count": 594,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Palmolja",
+				"count": 243,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Spel och kasino",
+				"count": 300,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 3
+			},
+			{
+				"title": "Tobak",
+				"count": 119,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 3
+			},
+			{
+				"title": "Utvinning av oljesand",
+				"count": 215,
+				"type": "productInvolvements",
+				"active": false,
+				"group": 0
+			}
+		],
+		"riskCounts": [
+			{
+				"title": "6",
+				"count": 22,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "5",
+				"count": 226,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "4",
+				"count": 811,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "3",
+				"count": 177,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "2",
+				"count": 208,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "1",
+				"count": 18,
+				"type": "risk",
+				"active": false,
+				"group": 0
+			}
+		],
+		"sustainableDevelopmentGoalsAlignmentCounts": [
+			{
+				"title": "Anständiga arbetsvillkor och ekonomisk tillväxt",
+				"count": 121,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Bekämpa klimatförändringarna",
+				"count": 165,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Ekosystem och biologisk mångfald",
+				"count": 103,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Fredliga och inkluderande samhällen",
+				"count": 109,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Genomförande och globalt partnerskap",
+				"count": 48,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 3
+			},
+			{
+				"title": "God utbildning för alla",
+				"count": 75,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Hav och marina resurser",
+				"count": 100,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Hälsa och välbefinnande",
+				"count": 163,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Hållbar energi för alla",
+				"count": 151,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Hållbar industri, innovationer och infrastruktur",
+				"count": 146,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Hållbar konsumtion och produktion",
+				"count": 168,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Hållbara städer och samhällen",
+				"count": 153,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Ingen fattigdom",
+				"count": 86,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Ingen hunger",
+				"count": 85,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Jämställdhet",
+				"count": 52,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 1
+			},
+			{
+				"title": "Minskad ojämlikhet",
+				"count": 44,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 2
+			},
+			{
+				"title": "Rent vatten och sanitet för alla",
+				"count": 135,
+				"type": "sustainableDevelopmentGoalsAlignment",
+				"active": false,
+				"group": 0
+			}
+		],
+		"euArticleTypeCounts": [
+			{
+				"title": "Artikel 6",
+				"count": 157,
+				"type": "euArticleType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Artikel 8",
+				"count": 1140,
+				"type": "euArticleType",
+				"active": false,
+				"group": 0
+			},
+			{
+				"title": "Artikel 9",
+				"count": 130,
+				"type": "euArticleType",
+				"active": false,
+				"group": 0
+			}
+		]
+	},
+	"filteredFundsMetaData": {
+		"averageRisk": 4,
+		"averageTotalFee": 1.65,
+		"averageEsgScore": 19.09,
+		"numberOfFundsRisk": 1462,
+		"numberOfFundsTotalFee": 1462,
+		"numberOfFundsEsgScore": 1306,
+		"numberOfFunds": 1462
+	}
+}

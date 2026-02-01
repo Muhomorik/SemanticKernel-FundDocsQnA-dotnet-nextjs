@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YieldRaccoon.Domain\YieldRaccoon.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reactive Extensions for IObservable -->
+    <PackageReference Include="System.Reactive" Version="6.0.0" />
+
+    <!-- Logging -->
+    <PackageReference Include="NLog" Version="5.3.4" />
+  </ItemGroup>
+
+</Project>

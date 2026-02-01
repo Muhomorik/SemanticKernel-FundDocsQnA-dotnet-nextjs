@@ -1,0 +1,96 @@
+<mah:MetroWindow
+    x:Class="YieldRaccoon.Wpf.Views.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
+    Title="Settings"
+    Width="550"
+    Height="280"
+    MinWidth="450"
+    MinHeight="250"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    TitleCharacterCasing="Normal"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel, IsDesignTimeCreatable=True}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Database Location Section -->
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,10"
+            FontSize="16"
+            FontWeight="SemiBold"
+            Text="Database Location" />
+
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                mah:TextBoxHelper.Watermark="Database file path..."
+                Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
+
+            <Button
+                Grid.Column="1"
+                Width="80"
+                Command="{Binding BrowseCommand}"
+                Content="Browse..." />
+        </Grid>
+
+        <!-- Info text -->
+        <TextBlock
+            Grid.Row="2"
+            Margin="0,0,0,10"
+            FontSize="11"
+            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+            TextWrapping="Wrap">
+            <Run Text="Settings file:" />
+            <Run Text="{Binding SettingsFilePath, Mode=OneWay}" />
+        </TextBlock>
+
+        <!-- Restart warning -->
+        <TextBlock
+            Grid.Row="3"
+            Margin="0,10,0,0"
+            VerticalAlignment="Top"
+            FontWeight="SemiBold"
+            Foreground="{DynamicResource MahApps.Brushes.Accent}"
+            Text="{Binding RestartRequiredMessage}"
+            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <!-- Buttons -->
+        <StackPanel
+            Grid.Row="4"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="80"
+                Margin="0,0,10,0"
+                Command="{Binding SaveCommand}"
+                Content="Save"
+                IsDefault="True" />
+            <Button
+                Width="80"
+                Command="{Binding CancelCommand}"
+                Content="Cancel"
+                IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</mah:MetroWindow>
