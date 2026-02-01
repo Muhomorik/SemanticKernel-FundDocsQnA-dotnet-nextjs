@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+
 using Preprocessor.Services;
 using Preprocessor.Tests.TestHelpers;
+
 using System.Text.Json;
 
 namespace Preprocessor.Tests.Services;
@@ -20,14 +22,14 @@ namespace Preprocessor.Tests.Services;
 /// <para><b>How to run:</b></para>
 /// <code>
 /// cd Preprocessor/Preprocessor.Tests
-/// dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-..."
+/// dotnet user-secrets set "OpenAIApiKey" "sk-..."
 /// dotnet test --filter "FullyQualifiedName~SemanticChunkerAIEvaluatedTests" --logger "console;verbosity=detailed"
 /// </code>
 /// </summary>
 [TestFixture]
 [TestOf(typeof(SemanticChunker))]
 [Category("Integration")]
-[Explicit("Requires OpenAI API key in user secrets (BackendOptions:OpenAIApiKey)")]
+[Explicit("Requires OpenAI API key in user secrets (OpenAIApiKey)")]
 public class SemanticChunkerAIEvaluatedTests
 {
     private const string EvaluationModel = "gpt-4o-mini";
@@ -44,7 +46,7 @@ public class SemanticChunkerAIEvaluatedTests
             .AddUserSecrets<SemanticChunkerAIEvaluatedTests>()
             .Build();
 
-        _apiKey = configuration["BackendOptions:OpenAIApiKey"] ?? string.Empty;
+        _apiKey = configuration["OpenAIApiKey"] ?? string.Empty;
 
         var keyLoaded = !string.IsNullOrWhiteSpace(_apiKey);
         TestContext.Out.WriteLine($"API key loaded from user secrets: {keyLoaded}");
@@ -53,7 +55,7 @@ public class SemanticChunkerAIEvaluatedTests
         {
             Assert.Ignore(
                 "OpenAI API key not found in user secrets.\n" +
-                "Set it using: dotnet user-secrets set \"BackendOptions:OpenAIApiKey\" \"sk-...\"");
+                "Set it using: dotnet user-secrets set \"OpenAIApiKey\" \"sk-...\"");
         }
 
         _kernel = Kernel.CreateBuilder()
@@ -64,10 +66,7 @@ public class SemanticChunkerAIEvaluatedTests
     }
 
     [SetUp]
-    public void SetUp()
-    {
-        _sut = new SemanticChunker(maxChunkSize: 800, overlapPercentage: 0.15);
-    }
+    public void SetUp() => _sut = new SemanticChunker(800, 0.15);
 
     #region Page 1 Tests - Fund Header & Risk Indicator
 
@@ -185,21 +184,21 @@ public class SemanticChunkerAIEvaluatedTests
         const string jsonFormat = """{"coherence":N,"completeness":N,"usefulness":N,"issues":["..."]}""";
 
         var prompt = $"""
-            Evaluate these text chunks for a RAG system about investment funds.
+                      Evaluate these text chunks for a RAG system about investment funds.
 
-            Chunks:
-            ---
-            {chunksText}
-            ---
-            {questionContext}
+                      Chunks:
+                      ---
+                      {chunksText}
+                      ---
+                      {questionContext}
 
-            Score 1-10:
-            1. Coherence: Is each chunk about one topic? No mixed unrelated content?
-            2. Completeness: Are sentences complete? No cut-off text?
-            3. Usefulness: Would these chunks help answer questions about the fund?
+                      Score 1-10:
+                      1. Coherence: Is each chunk about one topic? No mixed unrelated content?
+                      2. Completeness: Are sentences complete? No cut-off text?
+                      3. Usefulness: Would these chunks help answer questions about the fund?
 
-            Respond ONLY with JSON (no markdown): {jsonFormat}
-            """;
+                      Respond ONLY with JSON (no markdown): {jsonFormat}
+                      """;
 
         TestContext.Out.WriteLine("--- EVALUATION PROMPT ---");
         TestContext.Out.WriteLine(prompt);
