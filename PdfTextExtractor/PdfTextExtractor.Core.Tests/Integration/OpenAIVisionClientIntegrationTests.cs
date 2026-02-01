@@ -18,22 +18,23 @@ namespace PdfTextExtractor.Core.Tests.Integration;
 /// Do NOT run tests unless user says "run tests", "go", or similar explicit command.
 /// </para>
 ///
-/// <para><b>GOAL:</b> ALL 3 PAGES must be extracted correctly as proper markdown.</para>
+/// <para><b>GOAL:</b> Extract text optimized for RAG (Retrieval-Augmented Generation).</para>
 ///
 /// <para><b>AI AGENT WORKFLOW (only when user explicitly requests):</b></para>
 /// <list type="number">
-///   <item>Run ALL 3 tests: ExtractPage1, ExtractPage2, ExtractPage3</item>
+///   <item>Run tests: ExtractPage1, ExtractPage2, ExtractPage3_Table1, ExtractPage3_Table2</item>
 ///   <item>Review the extracted text in the test output for EACH page</item>
-///   <item>Check that tables are formatted as proper markdown tables with | delimiters</item>
+///   <item>Check that ALL tables are LINEARIZED to natural language (NOT markdown tables)</item>
 ///   <item>If ANY page has incorrect formatting, edit ONLY the <see cref="ExtractionPrompt"/> constant</item>
-///   <item>Repeat until ALL 3 pages produce correct markdown output</item>
+///   <item>Repeat until pages produce correct output</item>
 /// </list>
 ///
 /// <para><b>SUCCESS CRITERIA - All must pass:</b></para>
 /// <list type="bullet">
 ///   <item>Page 1: Text extracted with proper structure, headings preserved</item>
-///   <item>Page 2: Investment scenarios TABLE rendered as markdown table</item>
-///   <item>Page 3: Cost breakdown TABLES (multiple) rendered as markdown tables</item>
+///   <item>Page 2: Performance scenarios LINEARIZED to natural language</item>
+///   <item>Page 3 Table 1: Cost summary LINEARIZED to natural language</item>
+///   <item>Page 3 Table 2: Cost breakdown LINEARIZED to natural language</item>
 /// </list>
 ///
 /// <para><b>IMPORTANT CONSTRAINTS:</b></para>
@@ -43,11 +44,11 @@ namespace PdfTextExtractor.Core.Tests.Integration;
 ///   <item>The API key is loaded from user secrets and must NEVER be logged</item>
 /// </list>
 ///
-/// <para><b>Expected markdown table format:</b></para>
+/// <para><b>Expected linearized format for complex tables (performance scenarios):</b></para>
 /// <code>
-/// | Header 1 | Header 2 | Header 3 |
-/// |----------|----------|----------|
-/// | Data 1   | Data 2   | Data 3   |
+/// Stressscenario:
+/// - Efter 1 år: 2 698 USD (genomsnittlig avkastning -73,0% per år)
+/// - Efter 5 år: 3 610 USD (genomsnittlig avkastning -18,4% per år)
 /// </code>
 ///
 /// <para><b>How to run these tests:</b></para>
@@ -73,18 +74,37 @@ public class OpenAIVisionClientIntegrationTests
     // EXTRACTION PROMPT - MODIFY THIS TO IMPROVE EXTRACTION
     // This is the ONLY constant that should be changed during iteration
     // ============================================================
-    private const string ExtractionPrompt = @"Extract ALL text verbatim from this document image. Do NOT describe or summarize - output the exact text as it appears.
+    private const string ExtractionPrompt = @"Extract ALL text from this document image. Output is optimized for RAG (semantic search).
 
 CRITICAL RULES:
 1. Extract text EXACTLY as written - every word, number, and symbol
-2. Format ALL tables as markdown tables using | delimiters:
-   | Header 1 | Header 2 | Header 3 |
-   |----------|----------|----------|
-   | Data 1   | Data 2   | Data 3   |
-3. Preserve exact numbers, percentages, and currency values (e.g., 2 698 USD, -73,0%, 1,52%)
-4. Exclude only page headers/footers (logos, page numbers, dates)
-5. Use ## for section headings
-6. Preserve paragraph structure with blank lines between sections";
+2. Preserve exact numbers, percentages, and currency values (e.g., 2 698 USD, -73,0%, 1,52%)
+3. Exclude only page headers/footers (logos, page numbers, dates)
+4. Use ## for section headings
+5. Preserve paragraph structure with blank lines between sections
+
+TABLE LINEARIZATION (CRITICAL for RAG):
+- Do NOT use markdown tables with | delimiters
+- LINEARIZE ALL tables into natural language sentences
+- For tables with time periods (1 år, 5 år), include the time period in EACH bullet point
+
+PERFORMANCE SCENARIO TABLE FORMAT (MUST follow exactly):
+When you see a table with scenarios (Stress, Negativt, Neutralt, Positivt) and columns for time periods:
+- Add 'scenario' suffix to each scenario name
+- Each bullet MUST include the time period label
+- Put the percentage in parentheses with full context
+
+Example output format:
+Stressscenario:
+- Efter 1 år: 2 698 USD (genomsnittlig avkastning -73,0% per år)
+- Efter 5 år: 3 610 USD (genomsnittlig avkastning -18,4% per år)
+
+Negativt scenario:
+- Efter 1 år: 6 693 USD (genomsnittlig avkastning -33,1% per år)
+- Efter 5 år: 7 054 USD (genomsnittlig avkastning -6,7% per år)
+
+COST TABLE FORMAT:
+For cost breakdown tables, use heading followed by bullet points with description and amount.";
 
     private string _apiKey = null!;
     private HttpClient _httpClient = null!;
@@ -168,24 +188,29 @@ CRITICAL RULES:
     ///
     /// <para><b>Page Content:</b></para>
     /// <list type="bullet">
-    ///   <item>Investment scenarios TABLE with performance projections</item>
-    ///   <item>Rows: Stress, Negativt, Neutralt, Positivt scenarios</item>
-    ///   <item>Columns: Time periods (1 år, 5 år) with USD values</item>
+    ///   <item>Investment scenarios with performance projections</item>
+    ///   <item>Scenarios: Stress, Negativt, Neutralt, Positivt</item>
+    ///   <item>Time periods: 1 år, 5 år with USD values and percentages</item>
     ///   <item>Cost information and fee explanations</item>
     /// </list>
     ///
-    /// <para><b>AI Agent Success Criteria - CRITICAL TABLE:</b></para>
+    /// <para><b>AI Agent Success Criteria - LINEARIZATION:</b></para>
     /// <list type="bullet">
-    ///   <item>Scenarios table MUST be rendered as markdown table with | delimiters</item>
+    ///   <item>Performance scenarios MUST be LINEARIZED to natural language (NOT markdown tables)</item>
+    ///   <item>Each scenario as a heading followed by bullet points for time periods</item>
     ///   <item>All numerical values (USD amounts, percentages) preserved exactly</item>
-    ///   <item>Table headers and separator row (|---|---|) present</item>
+    ///   <item>Format optimized for RAG semantic search</item>
     /// </list>
     ///
-    /// <para><b>Expected table format:</b></para>
+    /// <para><b>Expected linearized format:</b></para>
     /// <code>
-    /// | Scenario | Om du löser in efter 1 år | Om du löser in efter 5 år |
-    /// |----------|---------------------------|---------------------------|
-    /// | Stress   | 2 698 USD                 | 3 610 USD                 |
+    /// Stressscenario:
+    /// - Efter 1 år: 2 698 USD (genomsnittlig avkastning -73,0% per år)
+    /// - Efter 5 år: 3 610 USD (genomsnittlig avkastning -18,4% per år)
+    ///
+    /// Negativt scenario:
+    /// - Efter 1 år: 6 693 USD (genomsnittlig avkastning -33,1% per år)
+    /// - Efter 5 år: 7 054 USD (genomsnittlig avkastning -6,7% per år)
     /// </code>
     /// </summary>
     [Test]
@@ -204,32 +229,84 @@ CRITICAL RULES:
     }
 
     /// <summary>
-    /// Extracts text from page 3 of the sample PDF and logs the result.
+    /// Extracts text from page 3 of the sample PDF - validates Table 1 (Cost Summary).
     ///
-    /// <para><b>Page Content:</b></para>
+    /// <para><b>Table 1 Content - Cost Summary:</b></para>
     /// <list type="bullet">
-    ///   <item>Cost summary table (Totala kostnader, Årliga kostnadseffekter)</item>
-    ///   <item>Detailed cost breakdown table with categories:</item>
-    ///   <item>- Engångskostnader (one-time costs): Teckningskostnader, Inlösenkostnader</item>
-    ///   <item>- Löpande kostnader (ongoing costs): percentages and USD values</item>
-    ///   <item>- Transaktionskostnader, Extra kostnader</item>
-    ///   <item>Contact information and legal disclaimers</item>
+    ///   <item>Totala kostnader: 205 USD (1 år), 1 004 USD (5 år)</item>
+    ///   <item>Årliga kostnadseffekter: 2,1% for both periods</item>
     /// </list>
     ///
-    /// <para><b>AI Agent Success Criteria - MULTIPLE TABLES:</b></para>
+    /// <para><b>AI Agent Success Criteria - LINEARIZATION:</b></para>
     /// <list type="bullet">
-    ///   <item>ALL tables MUST be rendered as markdown tables with | delimiters</item>
-    ///   <item>Cost percentages (e.g., 2.1%, 1.52%, 0.64%) preserved exactly</item>
-    ///   <item>USD values preserved exactly</item>
-    ///   <item>Each table has proper headers and separator rows</item>
+    ///   <item>LINEARIZE this table to natural language (NOT markdown tables)</item>
+    ///   <item>Cost percentages (2,1%) preserved exactly</item>
+    ///   <item>USD values (205 USD, 1 004 USD) preserved exactly</item>
     /// </list>
+    ///
+    /// <para><b>Expected linearized format:</b></para>
+    /// <code>
+    /// Totala kostnader:
+    /// - Om du löser in efter 1 år: 205 USD
+    /// - Om du löser in efter 5 år: 1 004 USD
+    ///
+    /// Årliga kostnadseffekter: 2,1%
+    /// </code>
     /// </summary>
     [Test]
-    public async Task ExtractPage3_WithExtractionPrompt_LogsExtractedText()
+    public async Task ExtractPage3_Table1_CostSummary_LogsExtractedText()
     {
         // Arrange
         var imagePath = TestPdfFiles.SamplePdfPage3Image;
-        VerifyImageExists(imagePath, "Page 3");
+        VerifyImageExists(imagePath, "Page 3 - Table 1");
+
+        // Act
+        var result = await ExtractAndLogAsync(imagePath, pageNumber: 3);
+
+        // Assert
+        Assert.That(result.ExtractedText, Is.Not.Null.And.Not.Empty,
+            "Extraction should return text content");
+    }
+
+    /// <summary>
+    /// Extracts text from page 3 of the sample PDF - validates Table 2 (Cost Breakdown).
+    ///
+    /// <para><b>Table 2 Content - Detailed Cost Breakdown:</b></para>
+    /// <list type="bullet">
+    ///   <item>Engångskostnader (one-time): Teckningskostnader (0 USD), Inlösenkostnader (0 USD)</item>
+    ///   <item>Löpande kostnader (ongoing): Förvaltningsavgifter (1,52%, 152 USD), Transaktionskostnader (0,54%, 54 USD)</item>
+    ///   <item>Extra kostnader: Resultatrelaterade avgifter (0 USD)</item>
+    /// </list>
+    ///
+    /// <para><b>AI Agent Success Criteria - LINEARIZATION:</b></para>
+    /// <list type="bullet">
+    ///   <item>LINEARIZE this table - it has long descriptions in cells</item>
+    ///   <item>Each cost category as a heading with description and value</item>
+    ///   <item>Cost percentages (1,52%, 0,54%) preserved exactly</item>
+    ///   <item>USD values (152 USD, 54 USD, 0 USD) preserved exactly</item>
+    /// </list>
+    ///
+    /// <para><b>Expected linearized format:</b></para>
+    /// <code>
+    /// Engångskostnader vid teckning eller inlösen:
+    ///
+    /// Teckningskostnader:
+    /// Vi tar inte ut någon teckningsavgift, men personen som säljer produkten till dig kan komma att göra det.
+    /// Kostnad: 0 USD
+    ///
+    /// Löpande kostnader som tas ut varje år:
+    ///
+    /// Förvaltningsavgifter och andra administrations- eller driftskostnader:
+    /// 1,52% av värdet på din investering per år. Detta är en uppskattning baserad på faktiska kostnader under det senaste året.
+    /// Kostnad: 152 USD
+    /// </code>
+    /// </summary>
+    [Test]
+    public async Task ExtractPage3_Table2_CostBreakdown_LogsExtractedText()
+    {
+        // Arrange
+        var imagePath = TestPdfFiles.SamplePdfPage3Image;
+        VerifyImageExists(imagePath, "Page 3 - Table 2");
 
         // Act
         var result = await ExtractAndLogAsync(imagePath, pageNumber: 3);
