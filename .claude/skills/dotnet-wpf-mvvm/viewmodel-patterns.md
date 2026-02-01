@@ -257,32 +257,32 @@ public string FullName => $"{FirstName} {LastName}";
 
 ### Observable Collections
 
-Use `ObservableCollection<T>` for bindable collections:
+Use `ObservableCollection<T>` for bindable collections.
+
+**IMPORTANT:** Objects in `ObservableCollection<T>` MUST inherit `BindableBase` (or implement INPC).
 
 ```csharp
-public ObservableCollection<ItemViewModel> Items { get; }
-
-public MyViewModel(ILogger logger, IScheduler uiScheduler)
+// ❌ BAD: Plain class - property changes won't update UI
+public class FundItem
 {
-    _logger = logger;
-    _uiScheduler = uiScheduler;
-
-    Items = new ObservableCollection<ItemViewModel>();
+    public string Name { get; set; }
 }
 
-private void OnLoaded()
+// ✅ GOOD: BindableBase for INPC support
+public class FundItemViewModel : BindableBase
 {
-    // Load items
-    var items = _dataService.GetItems();
-
-    foreach (var item in items)
+    private string _name;
+    public string Name
     {
-        Items.Add(new ItemViewModel(item));
+        get => _name;
+        set => SetProperty(ref _name, value);
     }
 }
+
+public ObservableCollection<FundItemViewModel> Items { get; }
 ```
 
-`ObservableCollection<T>` automatically notifies the View when items are added, removed, or replaced.
+`ObservableCollection<T>` only notifies when items are added/removed, NOT when item properties change.
 
 ## Command Patterns
 

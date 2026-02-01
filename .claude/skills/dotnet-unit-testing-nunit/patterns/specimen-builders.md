@@ -5,6 +5,7 @@ Use `ISpecimenBuilder` when AutoFixture can't create complex domain objects auto
 ## When to Use
 
 Create custom builders when:
+
 - Domain objects use factory methods instead of public constructors
 - Objects require specific validation or business rules
 - Properties need realistic values (e.g., 1536-element embedding arrays)
@@ -160,12 +161,14 @@ Or use a centralized customization (see [autofixture-customization.md](autofixtu
 ## Best Practices
 
 **✅ Do:**
+
 - Return `new NoSpecimen()` for types you don't handle
 - Use `ISpecimenContext` to create nested dependencies
 - Generate realistic test data (not just default values)
 - Document why the builder is needed
 
 **❌ Don't:**
+
 - Hardcode test data (use random or generated values)
 - Create builders for simple POCOs (AutoFixture handles these)
 - Throw exceptions from builders

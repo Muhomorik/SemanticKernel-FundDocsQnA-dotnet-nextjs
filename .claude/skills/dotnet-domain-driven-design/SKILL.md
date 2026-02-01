@@ -1,6 +1,6 @@
 ---
-name: applying-ddd-dotnet
-description: Applies Domain Driven Design patterns and best practices in C# and .NET projects only. Use when working with .csproj files, C# code, .NET solutions, ASP.NET Core, WPF, or Blazor applications. Use when implementing layered architectures, domain models, entities, aggregates, value objects, repositories, domain events, or DDD tactical patterns in C#. Covers layer separation (Presentation, Application, Domain, Infrastructure), entity design with strongly-typed IDs, aggregate updates using tell-don't-ask principle, reactive patterns with Rx.NET, NLog logging conventions, IDisposable management, intent signal patterns, XML documentation standards, and async/await best practices. DO NOT use for JavaScript, TypeScript, Next.js, React, or Node.js projects.
+name: dotnet-domain-driven-design
+description: Applies Domain-Driven Design patterns in C# and .NET projects. Use when implementing domain models, creating aggregates and entities, implementing repository pattern, adding value objects, creating domain events, or setting up layered architecture (Domain/Application/Infrastructure layers) in .NET solutions. Supports ASP.NET Core, WPF, Blazor, and console applications with .csproj files. DO NOT use for web frameworks (JavaScript, TypeScript, Next.js, React, Node.js).
 allowed-tools: Read, Edit, Write, Grep, Glob
 ---
 
@@ -120,15 +120,34 @@ public async Task ProcessAsync(CancellationToken cancellationToken)
 - UI code: Omit `ConfigureAwait` (default `true`) to resume on UI thread
 - Document the choice in code comments when non-obvious
 
+## Database Operations
+
+**All database/repository operations MUST be async.** No synchronous DB calls.
+
+```csharp
+// ❌ BAD
+public Order GetById(OrderId id) => _context.Orders.Find(id);
+
+// ✅ GOOD
+public async Task<Order?> GetByIdAsync(OrderId id, CancellationToken ct = default)
+    => await _context.Orders.FindAsync(new object[] { id }, ct);
+```
+
 ## Supporting Documentation
 
 For detailed guidance on specific DDD patterns, see:
 
 - **[layer-separation.md](layer-separation.md)** - Comprehensive layer boundaries, prohibited patterns, and layer interaction rules
 - **[entity-design.md](entity-design.md)** - Strongly-typed IDs, aggregate updates, tell-don't-ask principle, antipatterns
-- **[reactive-patterns.md](reactive-patterns.md)** - Rx.NET, domain events, IDisposable management, CompositeDisposable usage
-- **[logging-conventions.md](logging-conventions.md)** - NLog best practices, exception logging, deferred formatting, DI conventions
-- **[documentation-standards.md](documentation-standards.md)** - XML documentation for interfaces, DebuggerDisplay attributes, threading docs
+
+## Related Skills
+
+Cross-cutting concerns are in separate skills for better auto-loading:
+
+- **`dotnet-nlog-logging`** - NLog.ILogger conventions
+- **`dotnet-extensions-logging`** - `ILogger<T>` conventions
+- **`dotnet-reactive-patterns`** - Rx.NET, CompositeDisposable, event publishing
+- **`dotnet-documentation`** - XML docs, DebuggerDisplay attributes
 
 ## Common Patterns
 
@@ -163,63 +182,6 @@ order.AddItem(productId, quantity, itemPrice, customer.CreditLimit);
 // Aggregate enforces invariants internally
 ```
 
-### NLog Logging
-
-```csharp
-using NLog;
-
-public class MyService
-{
-    private readonly ILogger _logger;
-
-    // Logger is FIRST constructor parameter
-    public MyService(ILogger logger, IDependency dependency)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    public void DoWork(OrderId orderId)
-    {
-        // ✅ Deferred formatting
-        _logger.Trace("Processing order={0}", orderId);
-
-        try
-        {
-            // work
-        }
-        catch (Exception ex)
-        {
-            // ✅ Log exception directly (no custom message)
-            _logger.Error(ex);
-            throw;
-        }
-    }
-}
-```
-
-### IDisposable with Rx Subscriptions
-
-```csharp
-public class MyViewModel : IDisposable
-{
-    private readonly CompositeDisposable _disposables = new();
-
-    public MyViewModel(IEventStream events)
-    {
-        // Add subscriptions to CompositeDisposable
-        events.OrderCreated
-            .ObserveOn(_uiScheduler)
-            .Subscribe(OnOrderCreated)
-            .DisposeWith(_disposables);
-    }
-
-    public void Dispose()
-    {
-        _disposables.Dispose();
-    }
-}
-```
-
 ## Validation Checklist
 
 When reviewing DDD implementation, check:
@@ -231,14 +193,11 @@ When reviewing DDD implementation, check:
 - [ ] Entities use strongly-typed IDs (not primitive Guid/int)
 - [ ] Updates use "tell, don't ask" pattern (call aggregate methods)
 - [ ] Domain events published by Application services, not entities
-- [ ] Rx subscriptions managed via CompositeDisposable
-- [ ] NLog used (not Microsoft.Extensions.Logging.ILogger)
-- [ ] Logger is first constructor parameter
-- [ ] Exception logging uses `_logger.Error(ex);` (no custom message)
-- [ ] Log messages use deferred formatting (not string interpolation)
+- [ ] All database operations are async
 - [ ] Async methods use `CancellationToken` for cleanup
 - [ ] No blocking on tasks (`.Result`, `.Wait()`)
-- [ ] DTOs/entities have `[DebuggerDisplay]` attribute
+
+See also: `dotnet-nlog-logging`, `dotnet-reactive-patterns`, `dotnet-documentation` skills
 
 ## When to Use This Skill
 

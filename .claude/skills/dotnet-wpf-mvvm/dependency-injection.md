@@ -163,6 +163,8 @@ public class PresentationModule : Module
 
 ## ILogger Registration (Type-Aware)
 
+> **Note:** For NLog conventions (deferred formatting, exception logging, log levels), see `dotnet-nlog-logging` skill.
+
 ### Automatic Logger Injection
 
 Inject logger with component's type name automatically:

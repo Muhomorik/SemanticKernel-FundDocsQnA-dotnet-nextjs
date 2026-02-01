@@ -1,7 +1,7 @@
 ---
-name: testing-dotnet-nunit
+name: dotnet-unit-testing-nunit
 description: Writes unit tests for .NET projects using NUnit, AutoFixture, and AutoMoq. Use when writing tests for C# code, .NET projects with .csproj files, or when user mentions NUnit, AutoFixture, unit testing. DO NOT use for JavaScript, TypeScript, Next.js, React, or Node.js projects.
-allowed-tools: Read, Write, Edit, Bash
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # .NET Unit Testing with NUnit + AutoFixture
@@ -66,6 +66,7 @@ dotnet add package Moq --version 4.*
 ## Core Principles
 
 **✅ Always Do:**
+
 - Resolve SUT from fixture: `_fixture.Create<T>()`
 - Use Freeze for shared dependencies: `_fixture.Freeze<Mock<T>>()`
 - Follow AAA pattern (Arrange, Act, Assert)
@@ -76,6 +77,7 @@ dotnet add package Moq --version 4.*
 - Isolated tests (no shared state)
 
 **❌ Never Do:**
+
 - Manual construction: `new MyService()` - Always use fixture
 - Testing exceptions with `Assert.Throws` (no validation failure tests)
 - Testing framework code (.NET/NuGet package behavior)
@@ -331,6 +333,7 @@ For complex scenarios, use custom AutoFixture builders:
 When you need to create complex domain objects with validation or specific constructor patterns, create an `ISpecimenBuilder`. See [patterns/specimen-builders.md](patterns/specimen-builders.md) for complete examples.
 
 Use when:
+
 - Domain objects have factory methods instead of constructors
 - Objects require specific initialization logic
 - Properties need realistic test data
@@ -340,6 +343,7 @@ Use when:
 When you need to reuse AutoFixture configuration across multiple test classes, create an `ICustomization`. See [patterns/autofixture-customization.md](patterns/autofixture-customization.md) for complete examples.
 
 Use when:
+
 - Multiple test classes need the same builders
 - You want to centralize test configuration
 - Setting default values for options/configuration objects
@@ -360,9 +364,117 @@ dotnet test --logger "console;verbosity=detailed"
 dotnet test /p:CollectCoverage=true
 ```
 
+## Naming Conventions
+
+Consistent naming makes tests discoverable with Glob and Grep patterns.
+
+### Test Project Names
+
+```text
+ProjectName.Tests           ✅ Recommended (e.g., Backend.Tests)
+ProjectName.UnitTests       ✅ Alternative
+ProjectName.Test            ❌ Avoid (singular)
+ProjectNameTests            ❌ Avoid (no dot separator)
+```
+
+**Glob pattern:** `**/*.Tests.csproj` or `**/*Tests.csproj`
+
+### Test File Names
+
+```text
+ClassNameTests.cs           ✅ Recommended (e.g., MyServiceTests.cs)
+ClassNameTest.cs            ❌ Avoid (singular)
+TestClassName.cs            ❌ Avoid (Test prefix)
+ClassName.Tests.cs          ❌ Avoid (dot in filename)
+```
+
+**Glob pattern:** `**/*Tests.cs`
+**Grep pattern:** `.*Tests\.cs$`
+
+### Test Class Names
+
+Must match the file name:
+
+```csharp
+// File: MyServiceTests.cs
+[TestFixture]
+public class MyServiceTests  // ✅ Matches file name
+{
+    // Tests here
+}
+```
+
+**Glob pattern:** `**/*Tests.cs`
+**Grep pattern:** `public class \w+Tests`
+
+### Test Method Names
+
+Format: `MethodName_Scenario_ExpectedBehavior`
+
+```csharp
+✅ ProcessData_ValidInput_ReturnsSuccess
+✅ SaveAsync_NullEntity_ThrowsArgumentNullException
+✅ GetAll_EmptyDatabase_ReturnsEmptyList
+✅ Calculate_DivideByZero_ReturnsZero
+
+❌ Test1                              // Not descriptive
+❌ TestProcessData                    // No scenario
+❌ ProcessDataReturnsSuccess          // Missing underscores
+❌ processData_validInput_success     // Wrong casing
+```
+
+**Grep pattern:** `public .*Task \w+_\w+_\w+\(` (finds async tests)
+**Grep pattern:** `public void \w+_\w+_\w+\(` (finds sync tests)
+
+### Namespace Conventions
+
+```csharp
+// Production code
+namespace MyApp.Domain.Services;
+
+// Corresponding tests
+namespace MyApp.Domain.Services;  // ✅ Same namespace (finds internal members)
+
+// Alternative
+namespace MyApp.Tests.Domain.Services;  // ✅ Mirrors structure with .Tests
+```
+
+### Finding Tests with Tools
+
+**Find all test files:**
+
+```bash
+Glob: **/*Tests.cs
+```
+
+**Find specific test class:**
+
+```bash
+Grep: "public class MyServiceTests"
+```
+
+**Find all test methods for a specific method:**
+
+```bash
+Grep: "ProcessData_.*_.*\("  --include="**/*Tests.cs"
+```
+
+**Find tests in specific namespace:**
+
+```bash
+Grep: "namespace.*Services.*Tests"
+```
+
+**Count total test methods:**
+
+```bash
+Grep: "\[Test\]" --count
+```
+
 ## Validation Checklist
 
 **Before committing tests, verify:**
+
 - ✅ All objects resolved from fixture (no `new` keyword for SUT)
 - ✅ Mocks created with Freeze pattern
 - ✅ Test names follow `MethodName_Scenario_ExpectedBehavior`
@@ -371,3 +483,12 @@ dotnet test /p:CollectCoverage=true
 - ✅ No hardcoded test data (use fixture.Create instead)
 - ✅ No shared state between tests
 - ✅ Tests run fast (no I/O, no real network calls)
+
+## Related Skills
+
+For production code conventions, see:
+
+- **`dotnet-nlog-logging`** - NLog.ILogger conventions
+- **`dotnet-extensions-logging`** - `ILogger<T>` conventions
+- **`dotnet-reactive-patterns`** - Rx.NET patterns for reactive code
+- **`dotnet-documentation`** - XML docs and DebuggerDisplay attributes

@@ -12,6 +12,19 @@ Complete reference for WPF UI patterns including MahApps.Metro integration, XAML
 - Attached Behaviors
 - Common XAML Patterns
 
+## Fluent UI System Icons
+
+Use Windows built-in Segoe Fluent Icons font for icons (no NuGet packages needed):
+
+```xml
+<TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="16" />
+<TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="16" />  <!-- Delete -->
+<TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="16" />  <!-- Add -->
+<TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="16" />  <!-- Settings -->
+```
+
+Use `microsoft_docs_search` MCP tool to find icon codes (search "Segoe Fluent Icons").
+
 ## MahApps.Metro Integration
 
 ### Complete Setup Guide
@@ -91,6 +104,7 @@ namespace MyApp
 MahApps.Metro provides multiple themes:
 
 **Light themes:**
+
 - `Light.Blue.xaml`
 - `Light.Red.xaml`
 - `Light.Green.xaml`
@@ -98,6 +112,7 @@ MahApps.Metro provides multiple themes:
 - `Light.Orange.xaml`
 
 **Dark themes:**
+
 - `Dark.Blue.xaml`
 - `Dark.Red.xaml`
 - `Dark.Green.xaml`
@@ -166,6 +181,7 @@ Enable IntelliSense and design-time preview:
 ```
 
 Key attributes:
+
 - `mc:Ignorable="d"` - Ignore design-time attributes at runtime
 - `d:DataContext` - Design-time only DataContext
 - `IsDesignTimeCreatable=True` - Calls parameterless constructor
@@ -296,6 +312,7 @@ Source ↔ Target (bidirectional):
 ```
 
 `UpdateSourceTrigger` options:
+
 - `PropertyChanged` - Update immediately on every keystroke
 - `LostFocus` - Update when control loses focus (default for TextBox)
 - `Explicit` - Update only when UpdateSource() is called
