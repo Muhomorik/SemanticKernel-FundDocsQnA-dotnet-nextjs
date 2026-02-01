@@ -21,25 +21,4 @@ public class TextFileWriter : ITextFileWriter
             await WriteTextFileAsync(filePath, page.PageText, cancellationToken);
         }
     }
-
-    public async Task<string> WriteMergedDocumentAsync(
-        string outputFolderPath,
-        string pdfFileName,
-        IEnumerable<DocumentPage> pages,
-        CancellationToken cancellationToken = default)
-    {
-        // Sort pages by page number and concatenate all text directly
-        var mergedContent = string.Concat(pages
-            .OrderBy(p => p.PageNumber)
-            .Select(p => p.PageText));
-
-        // Build file path: {pdfFileName}.txt
-        var fileName = $"{Path.GetFileNameWithoutExtension(pdfFileName)}.txt";
-        var filePath = Path.Combine(outputFolderPath, fileName);
-
-        // Write merged content to file
-        await WriteTextFileAsync(filePath, mergedContent, cancellationToken);
-
-        return filePath;
-    }
 }
