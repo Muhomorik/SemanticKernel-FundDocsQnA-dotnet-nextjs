@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PdfTextExtractor.Core.Configuration;
 
 namespace PdfTextExtractor.Core.Models;
@@ -10,10 +11,21 @@ public class ExtractionResult
     public required string PdfFilePath { get; init; }
 
     /// <summary>
-    /// Path to the merged text file containing all pages concatenated together.
-    /// Pages are concatenated directly to preserve table layouts that may span multiple pages.
+    /// Dictionary mapping page numbers to their individual text file paths.
+    /// File naming pattern: {PdfFileNameWithoutExtension}_page_{PageNumber}.txt
     /// </summary>
-    public required string PageTextFiles { get; init; }
+    /// <remarks>
+    /// <para>Page numbers are 1-indexed (first page is 1, not 0).</para>
+    /// <para>
+    /// Example: For PDF "invoice.pdf" with 3 pages, the dictionary contains:
+    /// <list type="bullet">
+    /// <item><description>Key: 1, Value: "C:\output\invoice_page_1.txt"</description></item>
+    /// <item><description>Key: 2, Value: "C:\output\invoice_page_2.txt"</description></item>
+    /// <item><description>Key: 3, Value: "C:\output\invoice_page_3.txt"</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    public required IReadOnlyDictionary<int, string> PageTextFiles { get; init; }
 
     public int TotalPages { get; init; }
 

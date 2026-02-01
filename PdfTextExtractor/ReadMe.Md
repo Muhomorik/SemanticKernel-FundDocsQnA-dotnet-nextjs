@@ -72,8 +72,12 @@ var result = await lib.ExtractWithPdfPigAsync(new PdfPigParameters
     ChunkSize = 1000
 });
 
-Console.WriteLine($"Output: {result.PageTextFiles}");
-Console.WriteLine($"Pages: {result.TotalPages} (Extracted: {result.ExtractedPages}, Skipped: {result.SkippedPages})");
+Console.WriteLine($"Extracted {result.PageTextFiles.Count} pages:");
+foreach (var (pageNumber, filePath) in result.PageTextFiles.OrderBy(kvp => kvp.Key))
+{
+    Console.WriteLine($"  Page {pageNumber}: {Path.GetFileName(filePath)}");
+}
+Console.WriteLine($"Total: {result.TotalPages} (Extracted: {result.ExtractedPages}, Skipped: {result.SkippedPages})");
 ```
 
 ### Using LM Studio (Local OCR)
