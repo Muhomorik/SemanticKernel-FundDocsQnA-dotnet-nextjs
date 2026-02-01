@@ -92,6 +92,7 @@ Standard test class setup with Freeze pattern:
 
 ```csharp
 [TestFixture]
+[TestOf(typeof(QuestionAnsweringService))]
 public class QuestionAnsweringServiceTests
 {
     private IFixture _fixture;
@@ -114,6 +115,55 @@ public class QuestionAnsweringServiceTests
         // Resolve SUT from fixture (never use 'new')
         _sut = _fixture.Create<QuestionAnsweringService>();
     }
+}
+```
+
+## TestOf Attribute
+
+Use `[TestOf]` to explicitly link tests to the code they're testing. This enables tooling to track test coverage and navigate between tests and production code.
+
+### Class-Level Usage
+
+Link an entire test class to its subject under test:
+
+```csharp
+[TestFixture]
+[TestOf(typeof(QuestionAnsweringService))]
+public class QuestionAnsweringServiceTests
+{
+    // All tests in this class test QuestionAnsweringService
+}
+```
+
+### Method-Level Usage
+
+Link individual test methods to specific methods:
+
+```csharp
+[Test]
+[TestOf(nameof(MyService.ProcessData))]
+public void ProcessData_ValidInput_ReturnsSuccess()
+{
+    // Tests the ProcessData method specifically
+}
+```
+
+### Combined Usage
+
+Use both for precise test-to-code mapping:
+
+```csharp
+[TestFixture]
+[TestOf(typeof(OrderService))]
+public class OrderServiceTests
+{
+    [Test]
+    [TestOf(nameof(OrderService.SubmitOrder))]
+    public void SubmitOrder_ValidOrder_ReturnsConfirmation() { }
+
+    [Test]
+    [TestOf(nameof(OrderService.CancelOrder))]
+    public void CancelOrder_ExistingOrder_ReturnsSuccess() { }
 }
 ```
 
@@ -483,6 +533,7 @@ Grep: "\[Test\]" --count
 - ✅ No hardcoded test data (use fixture.Create instead)
 - ✅ No shared state between tests
 - ✅ Tests run fast (no I/O, no real network calls)
+- ✅ `[TestOf(typeof(...))]` on test class links to SUT
 
 ## Related Skills
 
