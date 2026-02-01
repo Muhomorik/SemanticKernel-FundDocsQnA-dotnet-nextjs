@@ -1,28 +1,17 @@
-using AutoFixture;
-using AutoFixture.AutoMoq;
-
 using Preprocessor.Services;
+using Preprocessor.Tests.TestHelpers;
 
 namespace Preprocessor.Tests.Services;
 
 [TestFixture]
 public class SemanticChunkerTests
 {
-    private const string TestPdfFileName = "pdf_example.txt";
-
-    private IFixture _fixture;
     private SemanticChunker _sut;
-    private string _testPdfPath;
 
     [SetUp]
     public void SetUp()
     {
-        _fixture = new Fixture().Customize(new AutoMoqCustomization());
         _sut = new SemanticChunker(maxChunkSize: 800, overlapPercentage: 0.15);
-
-        // Set up path to test PDF
-        var testDataDir = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
-        _testPdfPath = Path.Combine(testDataDir, TestPdfFileName);
     }
 
     [Test]
@@ -245,8 +234,8 @@ public class SemanticChunkerTests
     public void Chunk_RealWorldPdfDocument_CreatesSemanticChunks()
     {
         // Arrange
-        Assert.That(File.Exists(_testPdfPath), Is.True, $"Test file not found: {_testPdfPath}");
-        var pdfText = File.ReadAllText(_testPdfPath);
+        Assert.That(TestFiles.Exists(TestFiles.PdfExampleText), Is.True, $"Test file not found: {TestFiles.PdfExampleText}");
+        var pdfText = File.ReadAllText(TestFiles.PdfExampleText);
         var sut = new SemanticChunker(maxChunkSize: 1000, overlapPercentage: 0.15);
 
         // Act
@@ -274,8 +263,8 @@ public class SemanticChunkerTests
     public void Chunk_RealWorldPdfDocument_HasOverlapBetweenChunks()
     {
         // Arrange
-        Assert.That(File.Exists(_testPdfPath), Is.True, $"Test file not found: {_testPdfPath}");
-        var pdfText = File.ReadAllText(_testPdfPath);
+        Assert.That(TestFiles.Exists(TestFiles.PdfExampleText), Is.True, $"Test file not found: {TestFiles.PdfExampleText}");
+        var pdfText = File.ReadAllText(TestFiles.PdfExampleText);
         var sut = new SemanticChunker(maxChunkSize: 800, overlapPercentage: 0.2);
 
         // Act
@@ -311,8 +300,8 @@ public class SemanticChunkerTests
     public void Chunk_RealWorldPdfDocument_PreservesKeyInformation()
     {
         // Arrange
-        Assert.That(File.Exists(_testPdfPath), Is.True, $"Test file not found: {_testPdfPath}");
-        var pdfText = File.ReadAllText(_testPdfPath);
+        Assert.That(TestFiles.Exists(TestFiles.PdfExampleText), Is.True, $"Test file not found: {TestFiles.PdfExampleText}");
+        var pdfText = File.ReadAllText(TestFiles.PdfExampleText);
         var sut = new SemanticChunker(maxChunkSize: 800, overlapPercentage: 0.15);
 
         // Act

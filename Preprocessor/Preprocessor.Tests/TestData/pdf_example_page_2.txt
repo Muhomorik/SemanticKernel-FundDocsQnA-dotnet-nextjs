@@ -2,7 +2,7 @@ därför på växelkursen mellan de två valutorna. Denna risk beaktas inte i in
 
 Denna produkt innehåller inget skydd mot marknadsrisk vilket innebär att du kan förlora en del av eller hela din investering.
 
-**Resultatscenarier**
+## Resultatscenarier
 
 I siffrorna ingår alla kostnader för själva produkten, men eventuellt inte alla kostnader som du betalar till din rådgivare eller distributör. I siffrorna tas ingen hänsyn till din personliga beskattningssituation, som också kan påverka hur mycket du får tillbaka.
 
@@ -10,7 +10,7 @@ Vad du får från denna produkt beror på framtida marknadsresultat. Den framtid
 
 De negativa, neutrala och positiva scenarierna visar det sämsta, genomsnittliga och bästa resultatet för produkten eller ett lämpligt jämförelseindex under de senaste 10 åren. Marknaderna kan utvecklas helt annorlunda i framtiden.
 
-Stresscenariot visar vad du kan få tillbaka under extrema marknadsförhållanden.
+Stresscenario visar vad du kan få tillbaka under extrema marknadsförhållanden.
 
 Negativt: Detta scenario inträffade för en investering i produkten eller ett lämpligt jämförelseindex mellan 31 oktober 2017 och 31 oktober 2022.
 
@@ -18,44 +18,44 @@ Neutralt: Detta scenario inträffade för en investering i produkten eller ett l
 
 Positivt: Detta scenario inträffade för en investering i produkten eller ett lämpligt jämförelseindex mellan 29 februari 2016 och 26 februari 2021.
 
-**Rekommenderad innehavstid**
+Rekommenderad innehavstid 5 år
 
-| 5 år |
-|---|
+Exempel på investering 10000 USD
 
-**Exempel på investering**
+Om du löser in efter 1 år Om du löser in efter 5 år (rekommenderad innehavstid)
 
-| 10000 USD |
-|---|
+## Scenarier
 
-| | Om du löser in efter 1 år | Om du löser in efter 5 år (rekommenderad innehavstid) |
-|---|---|---|
+Minimum Det finns ingen garanterad minsta avkastning. Du kan förlora hela eller delar av din investering.
 
-| **Scenarier** | | |
-| Minimum | Det finns ingen garanterad minsta avkastning. Du kan förlora hela eller delar av din investering. | |
+Stress Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 2 698 USD (-73,0% per år)
+- Efter 5 år: 3 610 USD (-18,4% per år)
 
-| Stress | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 2 698 USD<br>-73,0% | 3 610 USD<br>-18,4% |
+Negativt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 6 693 USD (-33,1% per år)
+- Efter 5 år: 7 054 USD (-6,7% per år)
 
-| Negativt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 6 693 USD<br>-33,1% | 7 054 USD<br>-6,7% |
+Neutralt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 10 415 USD (4,2% per år)
+- Efter 5 år: 10 590 USD (1,2% per år)
 
-| Neutralt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 10 415 USD<br>4,2% | 10 590 USD<br>1,2% |
+Positivt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 14 886 USD (48,9% per år)
+- Efter 5 år: 17 667 USD (12,1% per år)
 
-| Positivt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 14 886 USD<br>48,9% | 17 667 USD<br>12,1% |
-
-**Vad händer om SEB Funds AB inte kan göra några utbetalningar?**
+## Vad händer om SEB Funds AB inte kan göra några utbetalningar?
 
 Fondens tillgångar får enligt lag inte förvaras av fondbolaget. I stället måste varje fond ha ett särskilt förvaringsinstitut som tar hand om förvaringen av fondens tillgångar. I det fall fondbolaget skulle gå i konkurs tas förvaltningen av fonden över av förvaringsinstitutet. Det finns ingen annan kompensations- eller garantiordning för investerare i fonden.
 
-**Vilka är kostnaderna?**
+## Vilka är kostnaderna?
 
 Den person som ger dig råd om eller säljer produkten kan ta ut andra kostnader. Om så är fallet ska personen i fråga informera dig om dessa kostnader och om hur de påverkar din investering. Om fonden ingår som en del i en annan produkt, t.ex. fondförsäkring, kan det tillkomma andra kostnader för den produkten.
 
-**Kostnader över tid**
+## Kostnader över tid
 
-Tabellerna visar de belopp som tas från din investering för att täcka olika typer av kostnader. Beloppens storlek beror på hur mycket du investerar, hur länge du innehar produkten och hur din produkt presterar. Beloppen som visas här är baserade på ett exempel på investeringsbelopp och olika möjliga investeringsperioder. 
+Tabellerna visar de belopp som tas från din investering för att täcka olika typer av kostnader. Beloppens storlek beror på hur mycket du investerar, hur länge du innehar produkten och hur din produkt presterar. Beloppen som visas här är baserade på ett exempel på investeringsbelopp och olika möjliga investeringsperioder.
 
 Vi har antagit följande:
-
 - Det första året får du tillbaka det belopp som du investerat (0% årlig avkastning). För produktens rekommenderade innehavsperiod har vi antagit att produkten presterar i enlighet med vad som visas i det neutrala scenariot.
-
 - 10 000 USD investeras.

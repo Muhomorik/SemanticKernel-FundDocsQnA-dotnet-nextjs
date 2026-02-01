@@ -1,13 +1,13 @@
-Faktablad
+## Faktablad
 
 Syfte
 
-Detta faktablad ger dig baskatfa om denna investeringsprodukt. Det är inte reklammaterial. Informationen krävs enligt lag för att hjälpa dig att förstå produktens egenskaper, risker, kostnader, möjliga vinster och förluster och för att hjälpa dig att jämföra den med andra produkter.
+Detta faktablad ger dig basfakta om denna investeringsprodukt. Det är inte reklammaterial. Informationen krävs enligt lag för att hjälpa dig att förstå produktens egenskaper, risker, kostnader, möjliga vinster och förluster och för att hjälpa dig att jämföra den med andra produkter.
 
-Produkt
+## Produkt
 
-**SEB Asienfond ex Japan 
-Andelsklass D Utdelande (USD)**
+SEB Asienfond ex Japan
+Andelsklass D Utdelande (USD)
 
 SEB Funds AB är ett dotterbolag till Skandinaviska Enskilda Banken AB (publ)
 
@@ -21,58 +21,58 @@ Finansinspektionen är ansvarig för tillsynen av fondbolaget SEB Funds AB, vad 
 
 Faktabladet utfärdades 14 mars 2025
 
-Vad innebär produkten?
+## Vad innebär produkten?
 
-**Typ** 
+Typ
 Produkten är en värdepappersfond.
 
-**Löptid** 
+Löptid
 Fonden har ingen förfallodag. Fondbolaget har rätt att stänga fonden. Mer information finns i fondens informationsbroschyr.
 
-**Mål** 
+Mål
 Fondens målsättning Fonden har som mål att öka värdet av din investering över tid och att överträffa sitt jämförelseindex.
 
 Placeringsinriktning Fonden är aktivt förvaltad och investerar främst i aktier på den asiatiska marknaden exklusive Japan. Fonden får investera upp till 10% av sitt värde på den inhemska kinesiska marknaden.
 
-Investeringsbesluten baseras på systematisk analys av stora mängder data (kvantitativ analys) med fokus på bolagens kvalitet och värdering, trender i marknadens inställning till dem, och hur de hanterar sina hållbarhetsrisker och -möjligheter. Fondens investeringar kan ge en högre risk än marknaden, vilket uppnås med hjälp av finansiell hävstång. Riskmedvetenhet och riskspridning är viktiga inslag i portföljkonstruktionen. Avkastningen bestäms av hur mycket fondens innehav ökar eller minskar i värde under en innehavsperiod.
+Investeringsbesluten baseras på systematisk analys av stora mängder data (kvantitativ analys) med fokus på bolags kvalitet och värdering, trender i marknadens inställning till dem, och hur de hanterar sina hållbarhetsrisker och -möjligheter. Fondens investeringar kan ge en högre risk än marknaden, vilket uppnås med hjälp av finansiell hävstång. Riskmedvetenhet och riskspridning är viktiga inslag i portföljkonstruktionen. Avkastningen bestäms av hur mycket fondens innehav ökar eller minskar i värde under din innehavsperiod.
 
 Fonden främjar hållbara egenskaper och klassificeras därför som Artikel 8 enligt EU-förordningen om hållbarhetsrelaterade upplysningar (SFDR). Fonden följer fondbolagets hållbarhetspolicy som finns på www.seb.se/fondbolaget.
 
 Jämförelseindex MSCI All Country (AC) Asia ex Japan Net Return Index
-
 Majoriteten av fondens innehav kan vara komponenter av, men har inte samma vikt som innehaven i fondens jämförelseindex. Fondens investeringsstrategi syftar inte till att begränsa omfattningen av hur mycket fondens innehav avviker från sitt jämförelseindex.
 
 Handelsinformation Normalt kan du köpa och sälja andelar i fonden varje svensk bankdag.
 
 Utdelning Andelsklassen lämnar utdelning.
 
-**Målgrupp** 
+Målgrupp
 Denna fond kan vara lämplig för dig som planerar att behålla din investering i minst 5 år och som är införstådd med att de pengar som investeras i fonden både kan öka och minska i värde. Det är därmed inte säkert att du får tillbaka hela det investerade kapitalet. För att investera i fonden krävs inte att du har särskild förkunskap eller erfarenhet av värdepappersfonder/specialfonder eller finansiella marknader.
 
-**Praktisk information** 
+Praktisk information
 Förvaringsinstitut Skandinaviska Enskilda Banken AB (publ)
 
 Årsberättelse, halvårsredogörelse, informationsbroschyr, senaste andelsvärde och övrig praktisk information finns på svenska, kostnadsfritt, på www.seb.se/fondbolaget.
 
-Vilka är riskerna och vad kan jag få för avkastning?
+## Vilka är riskerna och vad kan jag få för avkastning?
 
-**Riskindikator**
+Riskindikator
 
-| 1 | 2 | 3 | 4 | 5 | 6 | 7 |
-|---|---|---|---|---|---|---|
-| Lågre risk | | | | Högre risk | | |
+1 2 3 4 5 6 7
+
+Lägre risk Högre risk
 
 Riskindikatorn utgår från att du behåller produkten i 5 år.
 
-Den sammanfattade riskindikatorn ger en vägledning om risknivån för denna produkt jämfört med andra produkter. Den visar hur troligt det är att produkten kommer att sjunka i värde i samband med marknadsutvecklingen.
+Den sammanfattade riskindikatorn ger en vägledning om risknivån för denna produkt jämfört med andra produkter. Den visar hur troligt det är att produkten kommer att sjunka i värde på grund av marknadsutvecklingen.
 
-Vi har klassificerat produkten som 4 av 7, vilket är en medelriskklass. Det betyder att fonden har medelrisk för upp- och nedgångar i andelsvärdet. Indikatorn speglar framfört allt uppgångar och nedgångar i det tillgångsslag fonden placerat i.
+Vi har klassificerat produkten som 4 av 7, vilket är en medelriskklass. Det betyder att fonden har medelrisk för upp- och nedgångar i andelsvärdet. Indikatorn speglar framför allt uppgångar och nedgångar i det tillgångsslag fonden placerar i.
 
-Var uppmärksam på valutarisken om du investerar i en andelsklass vars valuta skiljer sig från den officiella valutan i det land där andelsklassen marknadsförs. Du kommer då att få betalningar i en annan valuta. Den slutliga avkastningen beror pådärför på växelkursen mellan de två valutorna. Denna risk beaktas inte i indikatorn ovan.
+Var uppmärksam på valuta risk om du investerar i en andelsklass vars valuta skiljer sig från den officiella valutan i det land där andelsklassen marknadsförs. Du kommer då att få betalningar i en annan valuta. Den slutliga avkastningen beror
+därför på växelkursen mellan de två valutorna. Denna risk beaktas inte i indikatorn ovan.
 
 Denna produkt innehåller inget skydd mot marknadsrisk vilket innebär att du kan förlora en del av eller hela din investering.
 
-**Resultatscenarier**
+## Resultatscenarier
 
 I siffrorna ingår alla kostnader för själva produkten, men eventuellt inte alla kostnader som du betalar till din rådgivare eller distributör. I siffrorna tas ingen hänsyn till din personliga beskattningssituation, som också kan påverka hur mycket du får tillbaka.
 
@@ -88,58 +88,81 @@ Neutralt: Detta scenario inträffade för en investering i produkten eller ett l
 
 Positivt: Detta scenario inträffade för en investering i produkten eller ett lämpligt jämförelseindex mellan 29 februari 2016 och 26 februari 2021.
 
-| Rekommenderad innehavstid | 5 år |
-|----------------------------|---------------|
-| Exempel på investering | 10000 USD |
+Rekommenderad innehavstid 5 år
 
-| Scenarier | Om du löser in efter 1 år | Om du löser in efter 5 år (rekommenderad innehavstid) |
-|----------------------------------------------------------|----------------------------|-------------------------------------------------------|
-| Minimum | Det finns ingen garanterad minsta avkastning. Du kan förlora hela eller delar av din investering. | |
-| Stress | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 2 698 USD<br>-73,0% | 3 610 USD<br>-18,4% |
-| Negativt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 6 693 USD<br>-33,1% | 7 054 USD<br>-6,7% |
-| Neutralt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 10 415 USD<br>4,2% | 10 590 USD<br>1,2% |
-| Positivt | Vad du kan få tillbaka efter avdrag för kostnader<br>Genomsnittlig avkastning per år | 14 886 USD<br>48,9% | 17 667 USD<br>12,1% |
+Exempel på investering 10000 USD
 
-**Vad händer om SEB Funds AB inte kan göra några utbetalningar?**
+Om du löser in efter 1 år Om du löser in efter 5 år (rekommenderad innehavstid)
 
-Fondens tillgångar får enligt lag inte förvaras av fondbolaget. I stället måste varje fond ha ett särskilt förvaringsinstitut som tar hand om förvaringen av fondens tillgångar. I det fall fondbolaget skulle gå i konkurs tas förvaltningen av fonden över av förvaringsinstitutet. Det finns ingen annan kompensations- eller garantinordning för investerare i fonden.
+## Scenarier
 
-**Vilka är kostnaderna?**
+Minimum Det finns ingen garanterad minsta avkastning. Du kan förlora hela eller delar av din investering.
+
+Stress Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 2 698 USD (-73,0% per år)
+- Efter 5 år: 3 610 USD (-18,4% per år)
+
+Negativt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 6 693 USD (-33,1% per år)
+- Efter 5 år: 7 054 USD (-6,7% per år)
+
+Neutralt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 10 415 USD (4,2% per år)
+- Efter 5 år: 10 590 USD (1,2% per år)
+
+Positivt Vad du kan få tillbaka efter avdrag för kostnader Genomsnittlig avkastning per år
+- Efter 1 år: 14 886 USD (48,9% per år)
+- Efter 5 år: 17 667 USD (12,1% per år)
+
+## Vad händer om SEB Funds AB inte kan göra några utbetalningar?
+
+Fondens tillgångar får enligt lag inte förvaras av fondbolaget. I stället måste varje fond ha ett särskilt förvaringsinstitut som tar hand om förvaringen av fondens tillgångar. I det fall fondbolaget skulle gå i konkurs tas förvaltningen av fonden över av förvaringsinstitutet. Det finns ingen annan kompensations- eller garantiordning för investerare i fonden.
+
+## Vilka är kostnaderna?
 
 Den person som ger dig råd om eller säljer produkten kan ta ut andra kostnader. Om så är fallet ska personen i fråga informera dig om dessa kostnader och om hur de påverkar din investering. Om fonden ingår som en del i en annan produkt, t.ex. fondförsäkring, kan det tillkomma andra kostnader för den produkten.
 
-**Kostnader över tid**
+## Kostnader över tid
 
-Tabellerna visar de belopp som tas från din investering för att täcka olika typer av kostnader. Beloppens storlek beror på hur mycket du investerar, hur länge du innehar produkten och hur din produkt presterar. Beloppen som visas här är baserade på ett exempel på investeringsbelopp och olika möjliga investeringsperioder. 
+Tabellerna visar de belopp som tas från din investering för att täcka olika typer av kostnader. Beloppens storlek beror på hur mycket du investerar, hur länge du innehar produkten och hur din produkt presterar. Beloppen som visas här är baserade på ett exempel på investeringsbelopp och olika möjliga investeringsperioder.
+
 Vi har antagit följande:
-
 - Det första året får du tillbaka det belopp som du investerat (0% årlig avkastning). För produktens rekommenderade innehavsperiod har vi antagit att produkten presterar i enlighet med vad som visas i det neutrala scenariot.
+- 10 000 USD investeras.
 
-- 10 000 USD investeras.Totala kostnader | Om du löser in efter 1 år | Om du löser in efter 5 år (rekommenderad innehavstid)
----|---|---
-Årliga kostnadseffekter* | 2,1% | 2,1%
+## Totala kostnader
+
+Om du löser in efter 1 år: 205 USD
+Om du löser in efter 5 år (rekommenderad innehavstid): 1 004 USD
+
+Årliga kostnadseffekter*
+
+Om du löser in efter 1 år: 2,1%
+Om du löser in efter 5 år: 2,1%
 
 (*) Detta illustrerar hur kostnader minskar din avkastning varje år under innehavstiden. Det visar till exempel att om du löser in vid den rekommenderade innehavstiden beräknas din genomsnittliga avkastning per år bli 3,3% före kostnader och 1,2% efter kostnader. Som ersättning för sina tjänster kan personen som säljer produkten till dig komma att erhålla en del av de kostnader som du betalar till oss. Du kommer att få information om beloppet.
 
 ## Kostnadssammansättning
 
-Engångskostnader vid teckning eller inlösen | Om du löser in efter 1 år
----|---
-Teckningskostnader | Vi tar inte ut någon teckningsavgift, men personen som säljer produkten till dig kan komma att göra det. | 0 USD
-Inlösenkostnader | Vi tar inte ut någon inlösenavgift för denna produkt, men personen som säljer produkten till dig kan komma att göra det. | 0 USD
+### Engångskostnader vid teckning eller inlösen
 
-Löpande kostnader som tas ut varje år | 
----|---
-Förvaltningsavgifter och andra administrations- eller driftkostnader | 1,52% av värdet på din investering per år. Detta är en uppskattning baserad på faktiska kostnader under det senaste året. | 152 USD
-Transaktionskostnader | 0,54% av värdet på din investering per år. Detta är en uppskattning av kostnader som uppstår när vi köper och säljer produktens underliggande investeringar. Det faktiska beloppet kommer att variera beroende på hur mycket vi köper och säljer. | 54 USD
+Teckningskostnader: Vi tar inte ut någon teckningsavgift, men personen som säljer produkten till dig kan komma att göra det. 0 USD
 
-Extra kostnader som tas ut under särskilda omständigheter | 
----|---
-Resultatrelaterade avgifter | Ingen resultatrelaterad avgift tas ut för denna produkt. | 0 USD
+Inlösenkostnader: Vi tar inte ut någon inlösenavgift för denna produkt, men personen som säljer produkten till dig kan komma att göra det. 0 USD
+
+### Löpande kostnader som tas ut varje år
+
+Förvaltningsavgifter och andra administrations- eller driftskostnader: 1,52% av värdet på din investering per år. Detta är en uppskattning baserad på faktiska kostnader under det senaste året. 152 USD
+
+Transaktionskostnader: 0,54% av värdet på din investering per år. Detta är en uppskattning av kostnader som uppstår när vi köper och säljer produktens underliggande investeringar. Det faktiska beloppet kommer att variera beroende på hur mycket vi köper och säljer. 54 USD
+
+### Extra kostnader som tas ut under särskilda omständigheter
+
+Resultatrelaterade avgifter: Ingen resultatrelaterad avgift tas ut för denna produkt. 0 USD
 
 ## Hur länge bör jag behålla investeringsprodukten och kan jag ta ut pengar i förtid?
 
-**Rekommenderad innehavstid: 5 år**
+Rekommenderad innehavstid: 5 år
 
 Fonden har inget krav på minsta innehavsperiod, men eftersom den investerar i aktier är den lämplig för en medellång till lång investeringshorisont. Du bör vara beredd att spara i fonden under åtminstone 5 år. Du har normalt möjlighet att sälja dina fondandelar alla svenska bankdagar utan någon extra avgift.
 
