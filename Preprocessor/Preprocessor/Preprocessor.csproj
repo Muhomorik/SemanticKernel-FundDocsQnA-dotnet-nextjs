@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="nul" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
@@ -16,7 +20,6 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.68.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.68.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.68.0" />
-    <PackageReference Include="PdfPig" Version="0.1.12" />
   </ItemGroup>
 
 </Project>

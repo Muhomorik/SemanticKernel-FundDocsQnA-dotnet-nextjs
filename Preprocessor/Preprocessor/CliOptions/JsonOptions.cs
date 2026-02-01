@@ -16,9 +16,6 @@ public class JsonOptions : BaseEmbeddingOptions
         HelpText = "Append to existing output file instead of overwriting")]
     public bool Append { get; init; }
 
-    [Option('m', "method", Default = "pdfpig", HelpText = "Extraction method: 'pdfpig'")]
-    public string Method { get; init; } = "pdfpig";
-
     /// <summary>
     /// Validates the options and returns any validation errors.
     /// </summary>
@@ -27,12 +24,6 @@ public class JsonOptions : BaseEmbeddingOptions
         foreach (var error in base.Validate())
         {
             yield return error;
-        }
-
-        var validMethods = new[] { "pdfpig" };
-        if (!validMethods.Contains(Method.ToLowerInvariant()))
-        {
-            yield return $"Invalid method '{Method}'. Must be one of: {string.Join(", ", validMethods)}";
         }
 
         var outputDir = Path.GetDirectoryName(Output);

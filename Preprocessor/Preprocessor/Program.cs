@@ -76,7 +76,6 @@ static async Task<int> RunJsonVerbAsync(JsonOptions opts)
     // Create processing options (data only)
     var processingOptions = new ProcessingOptions
     {
-        Method = opts.Method,
         InputDirectory = opts.Input
     };
 
@@ -134,7 +133,6 @@ static async Task<int> RunCosmosDbVerbAsync(CosmosDbOptions opts)
     // Create processing options (data only)
     var processingOptions = new ProcessingOptions
     {
-        Method = "pdfpig", // CosmosDB verb always uses pdfpig
         InputDirectory = opts.Input
     };
 
@@ -253,14 +251,13 @@ static IServiceCollection BuildServiceCollection(BaseEmbeddingOptions opts, stri
         return kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     });
 
-    // Register PDF extractor
-    services.AddSingleton<IPdfExtractor, PdfPigExtractor>();
+    // Register text file extractor
+    services.AddSingleton<IPdfExtractor, TextFileExtractor>();
 
-    // Register text chunker with default chunk size
-    services.AddSingleton<ITextChunker>(sp => new SentenceBoundaryChunker(maxChunkSize: 1000));
+    // Register semantic chunker with paragraph-based splitting and overlap
+    services.AddSingleton<ITextChunker>(sp => new SemanticChunker(maxChunkSize: 800, overlapPercentage: 0.15));
 
     // Register services
-    services.AddSingleton<IChunkSanitizer, ChunkSanitizer>();
     services.AddSingleton<IEmbeddingService, OllamaEmbeddingService>();
     services.AddSingleton<PreprocessorService>();
 

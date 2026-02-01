@@ -15,7 +15,6 @@ public class PreprocessorServiceTests
 {
     private Mock<IPdfExtractor> _extractorMock = null!;
     private Mock<IEmbeddingService> _embeddingServiceMock = null!;
-    private Mock<IChunkSanitizer> _chunkSanitizerMock = null!;
     private Mock<ILogger<PreprocessorService>> _loggerMock = null!;
     private Mock<IEmbeddingOutput> _outputMock = null!;
     private PreprocessorService _service = null!;
@@ -29,11 +28,6 @@ public class PreprocessorServiceTests
 
         _embeddingServiceMock = new Mock<IEmbeddingService>();
 
-        _chunkSanitizerMock = new Mock<IChunkSanitizer>();
-        _chunkSanitizerMock
-            .Setup(x => x.Sanitize(It.IsAny<IEnumerable<DocumentChunk>>()))
-            .Returns<IEnumerable<DocumentChunk>>(chunks => chunks);
-
         _loggerMock = new Mock<ILogger<PreprocessorService>>();
 
         _outputMock = new Mock<IEmbeddingOutput>();
@@ -44,7 +38,6 @@ public class PreprocessorServiceTests
         _service = new PreprocessorService(
             new[] { _extractorMock.Object },
             _embeddingServiceMock.Object,
-            _chunkSanitizerMock.Object,
             _loggerMock.Object);
 
         _tempDir = Path.Combine(Path.GetTempPath(), $"PreprocessorTests_{Guid.NewGuid()}");
@@ -218,12 +211,10 @@ public class PreprocessorServiceTests
     }
 
     private ProcessingOptions CreateOptions(
-        string method = "pdfpig",
         string? input = null)
     {
         return new ProcessingOptions
         {
-            Method = method,
             InputDirectory = input ?? _tempDir
         };
     }

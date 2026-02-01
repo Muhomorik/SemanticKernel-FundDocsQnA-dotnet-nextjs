@@ -13,25 +13,22 @@ public class PreprocessorService
 {
     private readonly IEnumerable<IPdfExtractor> _extractors;
     private readonly IEmbeddingService _embeddingService;
-    private readonly IChunkSanitizer _chunkSanitizer;
     private readonly ILogger<PreprocessorService> _logger;
 
     public PreprocessorService(
         IEnumerable<IPdfExtractor> extractors,
         IEmbeddingService embeddingService,
-        IChunkSanitizer chunkSanitizer,
         ILogger<PreprocessorService> logger)
     {
         _extractors = extractors;
         _embeddingService = embeddingService;
-        _chunkSanitizer = chunkSanitizer;
         _logger = logger;
     }
 
     /// <summary>
     /// Processes PDF files according to the provided options.
     /// </summary>
-    /// <param name="options">Processing configuration (extraction method, input directory).</param>
+    /// <param name="options">Processing configuration (input directory).</param>
     /// <param name="output">Output handler for embeddings (behavior).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Exit code (0 for success, non-zero for failure).</returns>
@@ -42,17 +39,16 @@ public class PreprocessorService
     {
         try
         {
-            // Find the appropriate extractor
-            var extractor = _extractors.FirstOrDefault(e =>
-                e.MethodName.Equals(options.Method, StringComparison.OrdinalIgnoreCase));
+            // Get the text file extractor
+            var extractor = _extractors.FirstOrDefault();
 
             if (extractor == null)
             {
-                _logger.LogError("No extractor found for method: {Method}", options.Method);
+                _logger.LogError("No text extractor registered");
                 return 1;
             }
 
-            _logger.LogInformation("Using extraction method: {Method}", extractor.MethodName);
+            _logger.LogInformation("Using text file extractor");
             _logger.LogInformation("Output destination: {Destination}", output.DisplayName);
 
             // Convert relative paths to absolute paths based on current working directory
@@ -96,9 +92,6 @@ public class PreprocessorService
 
                     _logger.LogInformation("Extracted {Count} chunks from {FileName}", chunkList.Count,
                         Path.GetFileName(pdfFile));
-
-                    // Sanitize chunks to remove noise patterns
-                    chunkList = [.._chunkSanitizer.Sanitize(chunkList)];
 
                     // Generate embeddings for each chunk
                     foreach (var chunk in chunkList)

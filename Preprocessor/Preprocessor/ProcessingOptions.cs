@@ -6,12 +6,8 @@ namespace Preprocessor;
 public class ProcessingOptions
 {
     /// <summary>
-    /// Extraction method (e.g., "pdfpig").
-    /// </summary>
-    public required string Method { get; init; }
-
-    /// <summary>
-    /// Input directory containing PDF files.
+    /// Input directory containing PDF files and their corresponding text files.
+    /// Text files must follow naming pattern: {PdfBaseName}_page_{PageNumber}.txt
     /// </summary>
     public required string InputDirectory { get; init; }
 }
