@@ -28,7 +28,7 @@ public static class TestFiles
     /// two-column layout with fund description.</para>
     /// <para><b>Use case:</b> Test general text extraction and layout handling.</para>
     /// </remarks>
-    public static string PdfExamplePage1Text => Path.Combine(TestDataDirectory, "pdf_example _page_1.txt");
+    public static string PdfExamplePage1Text => Path.Combine(TestDataDirectory, "pdf_example_page_1.txt");
 
     /// <summary>
     /// Gets the path to page 2 text from the example PDF.

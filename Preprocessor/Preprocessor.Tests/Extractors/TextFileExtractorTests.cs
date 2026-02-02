@@ -7,6 +7,7 @@ using Moq;
 
 using Preprocessor.Extractors;
 using Preprocessor.Services;
+using Preprocessor.Tests.TestHelpers;
 
 namespace Preprocessor.Tests.Extractors;
 
@@ -109,17 +110,7 @@ public class TextFileExtractorTests
     public async Task ExtractAsync_WithRealPdfExtraction_CreatesSemanticChunks()
     {
         // Arrange
-        var testDataDir = Path.Combine(
-            Path.GetDirectoryName(typeof(TextFileExtractorTests).Assembly.Location)!,
-            "..", "..", "..", "TestData");
-
-        var pdfPath = Path.Combine(testDataDir, "pdf_example.pdf");
-
-        // Create dummy PDF file if it doesn't exist
-        if (!File.Exists(pdfPath))
-        {
-            File.WriteAllText(pdfPath, "dummy");
-        }
+        var pdfPath = TestFiles.PdfExamplePdf;
 
         // Use real SemanticChunker
         var realChunker = new SemanticChunker(800, 0.15);
