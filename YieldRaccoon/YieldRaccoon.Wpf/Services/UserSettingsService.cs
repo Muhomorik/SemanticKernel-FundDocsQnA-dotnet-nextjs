@@ -10,6 +10,12 @@ namespace YieldRaccoon.Wpf.Services;
 /// </summary>
 public class UserSettingsService : IUserSettingsService
 {
+
+// TODO: we are doing what??? use proper way with 
+// dotnet add package System.Configuration.ConfigurationManager
+// refactor your UserSettingsService to use ApplicationSettingsBase instead of manual JSON
+// add note to the view that this is singleton and requires program restart to apply changes.
+
     private readonly ILogger _logger;
     private readonly string _settingsFilePath;
     private readonly JsonSerializerOptions _jsonOptions;

@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-29 (YieldRaccoon Fund Ingestion Integration)
+Last Updated: 2026-02-02 (Query Answerability AI Evaluation Tests)
 
 **Tech Stack:**
 
@@ -58,6 +58,7 @@ Last Updated: 2026-01-29 (YieldRaccoon Fund Ingestion Integration)
 | Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
 | Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
 | Unit Tests | ✅ | NUnit + AutoFixture + AutoMoq tests for services and extraction (56 tests passing) |
+| AI Evaluation Tests | ✅ | **NEW 2026-02-02**: `ExampleQueriesAIEvaluatedTests` - evaluates frontend queries for answerability against PRIIP/KID documents, generates markdown report with categories (single_doc_answerable, multi_doc_answerable, context_dependent, info_missing) and suggested rephrases. Requires OpenAI API key, marked `[Explicit]`. |
 | Documentation | ✅ | README with usage examples and architecture documentation |
 
 ### Planned Features

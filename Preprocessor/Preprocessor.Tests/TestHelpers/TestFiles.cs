@@ -63,6 +63,25 @@ public static class TestFiles
     public static string SebAsienfondPdf => Path.Combine(TestDataDirectory, "SEB Asienfond ex Japan D utd.pdf");
 
     /// <summary>
+    /// Gets the path to the example queries JSON file.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Content:</b> Query structure extracted from frontend/components/example-queries.tsx
+    /// containing categorized example queries for the fund Q&amp;A system.</para>
+    /// <para><b>Use case:</b> AI-evaluated tests to verify query answerability against documents.</para>
+    /// </remarks>
+    public static string ExampleQueriesJson => Path.Combine(TestDataDirectory, "example_queries.json");
+
+    /// <summary>
+    /// Gets the path to the query evaluation report output file.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Content:</b> Generated markdown report showing which queries can/cannot be answered.</para>
+    /// <para><b>Use case:</b> Output from ExampleQueriesAIEvaluatedTests.</para>
+    /// </remarks>
+    public static string QueryEvaluationReport => Path.Combine(TestDataDirectory, "query_evaluation_report.md");
+
+    /// <summary>
     /// Verifies that the specified test file exists.
     /// </summary>
     public static bool Exists(string path) => File.Exists(path);
