@@ -14,6 +14,19 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 
 Comprehensive guidance for implementing Model-View-ViewModel (MVVM) patterns in WPF applications using DevExpress MVVM, Autofac dependency injection, and Rx.NET for reactive programming.
 
+## ⚠️ Check MS Learn Before Implementing Common Patterns
+
+Before manually implementing WPF/Windows infrastructure (settings, validation, collections, etc.), **use the `microsoft_docs_search` MCP tool** to find built-in .NET solutions.
+
+Examples of patterns with built-in support:
+
+- User settings → `ApplicationSettingsBase`
+- Input validation → `INotifyDataErrorInfo`
+- Collection filtering/sorting → `ICollectionView`
+- Weak events → `WeakEventManager`
+
+**Always query MS Learn first** to avoid reinventing the wheel.
+
 ## Quick Start
 
 ### Minimal ViewModel
