@@ -5,7 +5,6 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using NLog;
 using YieldRaccoon.Wpf.Models;
-using System.Text;
 using System.Text.Json.Serialization;
 
 namespace YieldRaccoon.Wpf.Services;

@@ -1,9 +1,9 @@
 namespace YieldRaccoon.Wpf.Models;
 
 /// <summary>
-/// Model representing an intercepted HTTP request/response pair from the AboutFund browser.
+/// Model representing an intercepted HTTP request/response pair from a WebView2 browser.
 /// </summary>
-public class AboutFundInterceptedRequest
+public class InterceptedHttpRequest
 {
     /// <summary>
     /// Gets the unique identifier for this request.

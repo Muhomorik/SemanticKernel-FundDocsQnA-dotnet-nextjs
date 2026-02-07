@@ -4,29 +4,37 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:behaviors="clr-namespace:YieldRaccoon.Wpf.Behaviors"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
+    xmlns:views="clr-namespace:YieldRaccoon.Wpf.Views"
     xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
     Title="{Binding Title}"
-    Width="1400"
+    Width="1600"
     Height="900"
-    MinWidth="800"
+    MinWidth="1000"
     MinHeight="600"
+    d:DataContext="{d:DesignInstance viewModels:AboutFundWindowViewModel,
+                                     IsDesignTimeCreatable=True}"
     TitleCharacterCasing="Normal"
     WindowStartupLocation="CenterScreen"
-    d:DataContext="{d:DesignInstance viewModels:AboutFundWindowViewModel, IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
+
+    <!--  Bind Window Loaded event to ViewModel command  -->
+    <dxmvvm:Interaction.Behaviors>
+        <dxmvvm:EventToCommand Command="{Binding LoadedCommand}" EventName="Loaded" />
+    </dxmvvm:Interaction.Behaviors>
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <!-- Browser toolbar -->
+            <!--  Browser toolbar  -->
             <RowDefinition Height="Auto" />
-            <!-- Main content (browser + interceptor) -->
+            <!--  Main content (schedule | browser | control panel)  -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Browser Toolbar -->
+        <!--  Browser Toolbar  -->
         <Border
             Grid.Row="0"
             Padding="10,5"
@@ -39,10 +47,9 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Reload button -->
+                <!--  Reload button  -->
                 <Button
                     Grid.Column="0"
                     Width="80"
@@ -50,7 +57,7 @@
                     Content="Reload"
                     Style="{StaticResource MahApps.Styles.Button.Flat}" />
 
-                <!-- URL input -->
+                <!--  URL input  -->
                 <TextBox
                     Grid.Column="1"
                     Margin="10,0"
@@ -62,39 +69,44 @@
                     </TextBox.InputBindings>
                 </TextBox>
 
-                <!-- Navigate button -->
+                <!--  Navigate button  -->
                 <Button
                     Grid.Column="2"
                     Width="80"
                     Command="{Binding NavigateCommand}"
                     Content="Go"
                     Style="{StaticResource MahApps.Styles.Button.Flat}" />
-
-                <!-- Interceptor toggle -->
-                <mah:ToggleSwitch
-                    Grid.Column="3"
-                    Margin="10,0,0,0"
-                    IsOn="{Binding IsInterceptorEnabled}"
-                    OffContent="Paused"
-                    OnContent="Recording"
-                    ToolTip="Toggle request interception" />
             </Grid>
         </Border>
 
-        <!-- Main Content - Split horizontally -->
+        <!--  Main Content - 3-column layout  -->
         <Grid Grid.Row="1" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
-                <!-- WebView2 Browser -->
-                <ColumnDefinition Width="*" />
-                <!-- Splitter -->
+                <!--  Fund Schedule (left)  -->
+                <ColumnDefinition Width="280" />
+                <!--  Splitter  -->
                 <ColumnDefinition Width="Auto" />
-                <!-- Interceptor Panel -->
-                <ColumnDefinition Width="400" />
+                <!--  WebView2 Browser (middle)  -->
+                <ColumnDefinition Width="*" />
+                <!--  Splitter  -->
+                <ColumnDefinition Width="Auto" />
+                <!--  Control Panel (right)  -->
+                <ColumnDefinition Width="350" />
             </Grid.ColumnDefinitions>
 
-            <!-- WebView2 Browser -->
+            <!--  Fund Schedule (left panel)  -->
+            <views:AboutFundScheduleView Grid.Column="0" DataContext="{Binding FundScheduleViewModel}" />
+
+            <!--  Splitter  -->
+            <GridSplitter
+                Grid.Column="1"
+                Width="5"
+                HorizontalAlignment="Center"
+                Background="{DynamicResource MahApps.Brushes.Gray8}" />
+
+            <!--  WebView2 Browser (middle)  -->
             <Border
-                Grid.Column="0"
+                Grid.Column="2"
                 BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
                 BorderThickness="1"
                 CornerRadius="4">
@@ -104,143 +116,15 @@
                     Source="{Binding BrowserUrl, Mode=OneWay}" />
             </Border>
 
-            <!-- Splitter -->
+            <!--  Splitter  -->
             <GridSplitter
-                Grid.Column="1"
+                Grid.Column="3"
                 Width="5"
                 HorizontalAlignment="Center"
                 Background="{DynamicResource MahApps.Brushes.Gray8}" />
 
-            <!-- Interceptor Panel -->
-            <Border
-                Grid.Column="2"
-                Background="{DynamicResource MahApps.Brushes.Gray10}"
-                BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="150" />
-                    </Grid.RowDefinitions>
-
-                    <!-- Header -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal">
-                        <TextBlock
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            FontFamily="Segoe Fluent Icons"
-                            FontSize="16"
-                            Text="&#xEBE8;" />
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Text="Network Inspector" />
-                    </StackPanel>
-
-                    <!-- Filter -->
-                    <TextBox
-                        Grid.Row="1"
-                        Margin="0,10,0,0"
-                        mah:TextBoxHelper.ClearTextButton="True"
-                        mah:TextBoxHelper.Watermark="Filter by URL..."
-                        Text="{Binding UrlFilter, UpdateSourceTrigger=PropertyChanged}" />
-
-                    <!-- Request List -->
-                    <DataGrid
-                        Grid.Row="2"
-                        Margin="0,10,0,0"
-                        AutoGenerateColumns="False"
-                        CanUserAddRows="False"
-                        GridLinesVisibility="Horizontal"
-                        HeadersVisibility="Column"
-                        IsReadOnly="True"
-                        ItemsSource="{Binding FilteredRequests}"
-                        SelectedItem="{Binding SelectedRequest}"
-                        SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn
-                                Width="70"
-                                Binding="{Binding Timestamp, StringFormat=HH:mm:ss}"
-                                Header="Time" />
-                            <DataGridTextColumn
-                                Width="55"
-                                Binding="{Binding Method}"
-                                Header="Method" />
-                            <DataGridTextColumn
-                                Width="50"
-                                Binding="{Binding StatusCode}"
-                                Header="Status" />
-                            <DataGridTextColumn
-                                Width="*"
-                                Binding="{Binding ShortUrl}"
-                                Header="URL" />
-                        </DataGrid.Columns>
-                        <DataGrid.RowStyle>
-                            <Style BasedOn="{StaticResource MahApps.Styles.DataGridRow}" TargetType="DataGridRow">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSuccess}" Value="True">
-                                        <Setter Property="Foreground" Value="#2ECC71" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsClientError}" Value="True">
-                                        <Setter Property="Foreground" Value="#F39C12" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsServerError}" Value="True">
-                                        <Setter Property="Foreground" Value="#E74C3C" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.RowStyle>
-                    </DataGrid>
-
-                    <!-- Action buttons -->
-                    <StackPanel
-                        Grid.Row="3"
-                        Margin="0,10,0,0"
-                        Orientation="Horizontal">
-                        <Button
-                            Width="60"
-                            Command="{Binding ClearRequestsCommand}"
-                            Content="Clear"
-                            Style="{StaticResource MahApps.Styles.Button.Flat}" />
-                        <Button
-                            Width="75"
-                            Margin="5,0,0,0"
-                            Command="{Binding CopyUrlCommand}"
-                            Content="Copy URL"
-                            Style="{StaticResource MahApps.Styles.Button.Flat}" />
-                        <Button
-                            Width="100"
-                            Margin="5,0,0,0"
-                            Command="{Binding CopyResponseCommand}"
-                            Content="Copy Response"
-                            Style="{StaticResource MahApps.Styles.Button.Flat}" />
-                    </StackPanel>
-
-                    <!-- Response Preview -->
-                    <Border
-                        Grid.Row="4"
-                        Margin="0,10,0,0"
-                        BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
-                        BorderThickness="1"
-                        CornerRadius="4">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <TextBox
-                                AcceptsReturn="True"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                FontFamily="Consolas"
-                                FontSize="11"
-                                IsReadOnly="True"
-                                Text="{Binding SelectedRequest.ResponsePreview, Mode=OneWay}"
-                                TextWrapping="Wrap" />
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </Border>
+            <!--  Control Panel (right panel)  -->
+            <views:AboutFundControlPanelView Grid.Column="4" DataContext="{Binding ControlPanelViewModel}" />
         </Grid>
     </Grid>
 </mah:MetroWindow>

@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-02 (Query Answerability AI Evaluation Tests)
+Last Updated: 2026-02-07 (IAboutFundPageInteractor: auto-click "Utvecklingen i SEK" checkbox after navigation via DDD abstraction)
 
 **Tech Stack:**
 
@@ -594,6 +594,47 @@ IFundRepository (CRUD by ISIN)
     ↓ Rx.NET timers
 Observable.Timer (20-60s random delays)
 ```
+
+### AboutFund 3-Column Layout + Fund Overview Browsing ✅ COMPLETED (2026-02-07)
+
+Refactored the AboutFund window from a 2-column layout (WebView2 + Network Inspector) to a 3-column layout matching MainWindow (fund schedule | browser | control panel). Added independent domain events for fund browsing sessions with Rx.NET orchestration.
+
+**Layout:**
+
+| Column | Width | Content |
+| -------- | ------- | --------- |
+| Left | 280px | Fund schedule (sorted by history count ascending) |
+| Middle | * | WebView2 browser (preserved) |
+| Right | 350px | Overview control panel (session controls, events, options) |
+
+**New Domain Events (Independent from ICrawlEvent):**
+
+| Category | Events | Status |
+| --------- | -------- | -------- |
+| **Session Lifecycle** | AboutFundSessionStarted, Completed, Cancelled | ✅ Complete |
+| **Navigation** | AboutFundNavigationStarted, Completed, Failed | ✅ Complete |
+
+**New Components (20 new files, 8 modified):**
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `IAboutFundEvent` interface, 6 event records, `AboutFundSessionId` value object | ✅ |
+| **Application** | `AboutFundScheduleItem` DTO, `AboutFundSessionState` model, `IAboutFundEventStore`, `IAboutFundOrchestrator` | ✅ |
+| **Infrastructure** | `InMemoryAboutFundEventStore`, `AboutFundOrchestrator` (Rx.NET with auto-advance timer) | ✅ |
+| **Presentation** | `AboutFundScheduleView/VM`, `AboutFundControlPanelView/VM`, `AboutFundEventViewModel` | ✅ |
+| **Extracted** | `InterceptorView/VM` (fully decoupled, own generic types: `InterceptedHttpRequest/VM`) | ✅ |
+| **Wired Up** | `IAboutFundResponseInterceptor` registered in DI, initialized in `AboutFundWindow` code-behind | ✅ |
+| **Data Flow** | `AboutFundInterceptedRequest` moved to Application layer, interceptor→orchestrator via code-behind forwarding, URL filtering added | ✅ |
+| **Refactored** | `AboutFundWindow.xaml` (3-col), `AboutFundWebView2Behavior`, `PresentationModule` (DI), `YieldRaccoonOptions` | ✅ |
+
+**Key Features:**
+
+- Fund schedule loaded from DB, sorted by history record count (ascending - least data first)
+- Manual "Start Overview" button + optional AutoStartOverview toggle
+- Auto-advance timer (12s) when AutoStartOverview is enabled
+- Session cancellation on window close or Stop button
+- Event log panel showing real-time browsing events with icons
+- URL template uses OrderbookId externally (`{0}` placeholder), ISIN internally
 
 ### Future Enhancements (Planned)
 

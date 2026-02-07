@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Domain.Entities;
 using YieldRaccoon.Domain.ValueObjects;
@@ -33,5 +34,26 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     {
         // No-op for in-memory storage - changes are applied immediately
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+        int limit = 60, CancellationToken cancellationToken = default)
+    {
+        // In-memory implementation returns all profiles with zero history count
+        // since history records are tracked in a separate in-memory repository.
+        var items = _profiles.Values
+            .Select(fp => new AboutFundScheduleItem
+            {
+                Isin = fp.Id.Isin,
+                OrderbookId = fp.OrderbookId,
+                Name = fp.Name,
+                HistoryRecordCount = 0
+            })
+            .OrderBy(f => f.Name)
+            .Take(limit)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<AboutFundScheduleItem>>(items);
     }
 }

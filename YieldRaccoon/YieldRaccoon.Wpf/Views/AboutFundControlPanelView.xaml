@@ -1,0 +1,211 @@
+<UserControl
+    x:Class="YieldRaccoon.Wpf.Views.AboutFundControlPanelView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
+    d:DataContext="{d:DesignInstance viewModels:AboutFundControlPanelViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <!--  Header  -->
+            <RowDefinition Height="Auto" />
+            <!--  Options  -->
+            <RowDefinition Height="Auto" />
+            <!--  Session Control  -->
+            <RowDefinition Height="Auto" />
+            <!--  Progress  -->
+            <RowDefinition Height="Auto" />
+            <!--  Events list (fills remaining space)  -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <TextBlock
+            Grid.Row="0"
+            FontSize="16"
+            FontWeight="Bold"
+            Text="Overview Control" />
+
+        <!--  Options  -->
+        <StackPanel Grid.Row="1" Margin="0,15,0,0">
+            <TextBlock
+                Margin="0,0,0,5"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Text="OPTIONS" />
+            <mah:ToggleSwitch
+                IsOn="{Binding AutoStartOverview}"
+                OffContent="Auto-start disabled"
+                OnContent="Auto-start enabled"
+                ToolTip="Automatically start browsing when window opens" />
+        </StackPanel>
+
+        <!--  Session Control  -->
+        <StackPanel Grid.Row="2" Margin="0,20,0,0">
+            <TextBlock
+                Margin="0,0,0,5"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Text="SESSION CONTROL" />
+
+            <Grid Margin="0,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="5" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    Grid.Column="0"
+                    Command="{Binding StartOverviewCommand}"
+                    Content="Start Overview"
+                    Style="{StaticResource MahApps.Styles.Button.Square.Accent}" />
+                <Button
+                    Grid.Column="2"
+                    Command="{Binding StopOverviewCommand}"
+                    Content="Stop"
+                    Style="{StaticResource MahApps.Styles.Button.Square}" />
+            </Grid>
+
+            <Button
+                Margin="0,5,0,0"
+                Command="{Binding NextFundCommand}"
+                Content="Next Fund"
+                Style="{StaticResource MahApps.Styles.Button.Square}" />
+        </StackPanel>
+
+        <!--  Session Progress (visible when session is active)  -->
+        <StackPanel
+            Grid.Row="3"
+            Margin="0,20,0,0"
+            Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+
+            <TextBlock
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Text="SESSION PROGRESS" />
+
+            <!--  Status message  -->
+            <TextBlock
+                Margin="0,10,0,0"
+                FontWeight="Medium"
+                Text="{Binding StatusMessage}"
+                TextWrapping="Wrap" />
+
+            <!--  Delay countdown with ProgressRing (visible during delay)  -->
+            <StackPanel
+                Margin="0,10,0,0"
+                Orientation="Horizontal"
+                Visibility="{Binding IsDelayInProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <mah:ProgressRing
+                    Width="20"
+                    Height="20"
+                    IsActive="True" />
+                <TextBlock
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource MahApps.Brushes.Accent}"
+                    Text="{Binding DelayCountdown, StringFormat={}{0}s}" />
+            </StackPanel>
+
+            <!--  Fund progress  -->
+            <TextBlock Margin="0,10,0,0" FontSize="12">
+                <Run Text="Fund: " />
+                <Run FontWeight="Bold" Text="{Binding CurrentIndex, Mode=OneWay, StringFormat={}{0}}" />
+                <Run Text=" / " />
+                <Run Text="{Binding TotalFunds, Mode=OneWay}" />
+            </TextBlock>
+
+            <!--  Time remaining  -->
+            <TextBlock Margin="0,5,0,0" FontSize="12">
+                <Run Text="Time remaining: " />
+                <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
+            </TextBlock>
+
+            <!--  Progress bar  -->
+            <mah:MetroProgressBar
+                Margin="0,10,0,0"
+                Maximum="{Binding TotalFunds}"
+                Value="{Binding CurrentIndex}" />
+        </StackPanel>
+
+        <!--  Events list  -->
+        <Grid Grid.Row="4" Margin="0,15,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock
+                Grid.Row="0"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Text="EVENT LOG" />
+
+            <ListBox
+                Grid.Row="1"
+                Margin="0,5,0,0"
+                Background="Transparent"
+                BorderThickness="0"
+                ItemsSource="{Binding Events}"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                VirtualizingPanel.IsVirtualizing="True"
+                VirtualizingPanel.VirtualizationMode="Recycling">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!--  Event icon  -->
+                            <TextBlock
+                                Grid.Column="0"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe Fluent Icons"
+                                FontSize="12"
+                                Foreground="{Binding IconColor}"
+                                Text="{Binding Icon}" />
+
+                            <!--  Event description  -->
+                            <StackPanel Grid.Column="1">
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding EventType}" />
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                                    Text="{Binding Description}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <!--  Timestamp  -->
+                            <TextBlock
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                FontSize="10"
+                                Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                                Text="{Binding Timestamp, StringFormat=HH:mm:ss}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </Grid>
+</UserControl>

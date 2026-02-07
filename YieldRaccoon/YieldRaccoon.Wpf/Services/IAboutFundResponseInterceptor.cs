@@ -1,5 +1,5 @@
 using Microsoft.Web.WebView2.Wpf;
-using YieldRaccoon.Wpf.Models;
+using YieldRaccoon.Application.Models;
 
 namespace YieldRaccoon.Wpf.Services;
 

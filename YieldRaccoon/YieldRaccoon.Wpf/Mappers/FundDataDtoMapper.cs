@@ -20,7 +20,7 @@ public static class FundDataDtoMapper
             // Identifiers
             Isin = fund.Isin,
             Name = fund.Name,
-            OrderbookId = fund.OrderbookId,
+            OrderbookId = fund.OrderBookId,
 
             // Metadata
             Category = fund.Category,

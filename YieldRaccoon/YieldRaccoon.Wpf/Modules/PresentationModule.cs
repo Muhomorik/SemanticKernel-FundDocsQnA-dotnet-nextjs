@@ -52,6 +52,11 @@ public class PresentationModule : Module
             .As<ICrawlEventStore>()
             .SingleInstance();
 
+        // Register about-fund event store as singleton for browsing session event sourcing
+        builder.RegisterType<InMemoryAboutFundEventStore>()
+            .As<IAboutFundEventStore>()
+            .SingleInstance();
+
         // User settings service registration
         // Register settings service for persisting user preferences
         builder.RegisterType<UserSettingsService>()
@@ -93,6 +98,46 @@ public class PresentationModule : Module
                 (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
                 (pi, ctx) => LogManager.GetLogger(typeof(CrawlSessionOrchestrator).FullName!)))
             .SingleInstance();
+
+        // AboutFund page data collector registration
+        // Accumulates per-fund page data from multiple fetch steps, signals when complete
+        builder.RegisterType<AboutFundPageDataCollector>()
+            .As<IAboutFundPageDataCollector>()
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
+                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundPageDataCollector).FullName!)))
+            .SingleInstance();
+
+        // AboutFund orchestrator registration
+        // Register orchestrator for fund browsing session lifecycle and navigation
+        builder.RegisterType<AboutFundOrchestrator>()
+            .As<IAboutFundOrchestrator>()
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
+                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundOrchestrator).FullName!)))
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(string) && pi.Name == "fundDetailsUrlTemplate",
+                (pi, ctx) => ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+            .SingleInstance();
+
+        // AboutFund page interactor registration
+        // Executes post-navigation interactions (e.g., clicking tabs) on fund detail pages
+        builder.RegisterType<WebView2AboutFundPageInteractor>()
+            .As<IAboutFundPageInteractor>()
+            .AsSelf()
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
+                (pi, ctx) => LogManager.GetLogger(typeof(WebView2AboutFundPageInteractor).FullName!)))
+            .SingleInstance();
+
+        // AboutFund response interceptor registration
+        // Captures ALL network traffic from AboutFund WebView2 browser for debugging
+        builder.RegisterType<AboutFundResponseInterceptor>()
+            .As<IAboutFundResponseInterceptor>()
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
+                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundResponseInterceptor).FullName!)))
+            .InstancePerDependency();
 
         // Database provider registration
         RegisterDatabaseProvider(builder);

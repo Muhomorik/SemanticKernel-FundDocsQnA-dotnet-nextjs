@@ -4,10 +4,10 @@ using YieldRaccoon.Wpf.Models;
 namespace YieldRaccoon.Wpf.ViewModels;
 
 /// <summary>
-/// ViewModel wrapper for <see cref="AboutFundInterceptedRequest"/> that implements INotifyPropertyChanged
+/// ViewModel wrapper for <see cref="InterceptedHttpRequest"/> that implements INotifyPropertyChanged
 /// for proper WPF data binding and change notification.
 /// </summary>
-public class AboutFundInterceptedRequestViewModel : BindableBase
+public class InterceptedHttpRequestViewModel : BindableBase
 {
     /// <summary>
     /// Gets or sets the unique identifier for this request.
@@ -111,10 +111,10 @@ public class AboutFundInterceptedRequestViewModel : BindableBase
     public string ShortUrl => Url.Length > 80 ? Url[..77] + "..." : Url;
 
     /// <summary>
-    /// Updates this ViewModel from an <see cref="AboutFundInterceptedRequest"/> model.
+    /// Updates this ViewModel from an <see cref="InterceptedHttpRequest"/> model.
     /// </summary>
     /// <param name="request">The source request to update from.</param>
-    public void UpdateFrom(AboutFundInterceptedRequest request)
+    public void UpdateFrom(InterceptedHttpRequest request)
     {
         Id = request.Id;
         Timestamp = request.Timestamp;
@@ -134,13 +134,13 @@ public class AboutFundInterceptedRequestViewModel : BindableBase
     }
 
     /// <summary>
-    /// Creates a new <see cref="AboutFundInterceptedRequestViewModel"/> from an <see cref="AboutFundInterceptedRequest"/>.
+    /// Creates a new <see cref="InterceptedHttpRequestViewModel"/> from an <see cref="InterceptedHttpRequest"/>.
     /// </summary>
     /// <param name="request">The source request.</param>
     /// <returns>A new ViewModel instance.</returns>
-    public static AboutFundInterceptedRequestViewModel FromModel(AboutFundInterceptedRequest request)
+    public static InterceptedHttpRequestViewModel FromModel(InterceptedHttpRequest request)
     {
-        var vm = new AboutFundInterceptedRequestViewModel();
+        var vm = new InterceptedHttpRequestViewModel();
         vm.UpdateFrom(request);
         return vm;
     }

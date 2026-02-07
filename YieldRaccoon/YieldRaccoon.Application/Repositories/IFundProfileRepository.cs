@@ -1,3 +1,4 @@
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Domain.Entities;
 
 namespace YieldRaccoon.Application.Repositories;
@@ -26,4 +27,16 @@ public interface IFundProfileRepository
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets fund profiles ordered by history record count (ascending), limited to a specified count.
+    /// </summary>
+    /// <remarks>
+    /// Used by the about-fund browsing feature to find funds with the least historical data.
+    /// </remarks>
+    /// <param name="limit">Maximum number of funds to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Funds with their history record counts, ordered ascending.</returns>
+    Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+        int limit = 60, CancellationToken cancellationToken = default);
 }

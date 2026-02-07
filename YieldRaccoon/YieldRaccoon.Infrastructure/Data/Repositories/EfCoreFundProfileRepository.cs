@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Domain.Entities;
 using YieldRaccoon.Infrastructure.Data.Context;
@@ -42,5 +43,22 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+        int limit = 60, CancellationToken cancellationToken = default)
+    {
+        return await _context.FundProfiles
+            .Select(fp => new AboutFundScheduleItem
+            {
+                Isin = fp.Id.Isin,
+                OrderbookId = fp.OrderbookId,
+                Name = fp.Name,
+                HistoryRecordCount = fp.HistoryRecords.Count
+            })
+            .OrderBy(f => f.HistoryRecordCount)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
     }
 }

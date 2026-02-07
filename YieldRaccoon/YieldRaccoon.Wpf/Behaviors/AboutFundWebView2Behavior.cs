@@ -1,17 +1,19 @@
 using System.Windows;
-using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using NLog;
-using YieldRaccoon.Wpf.Models;
-using YieldRaccoon.Wpf.Services;
 using YieldRaccoon.Wpf.ViewModels;
 
 namespace YieldRaccoon.Wpf.Behaviors;
 
 /// <summary>
 /// Attached behavior for WebView2 in the AboutFund window.
-/// Handles initialization, navigation events, and response interception.
+/// Handles initialization, navigation events, and loading state notifications.
 /// </summary>
+/// <remarks>
+/// This is a thin bridge that forwards navigation events between the WebView2 control
+/// and <see cref="AboutFundWindowViewModel"/>. Page interaction logic (e.g., clicking elements,
+/// executing scripts) belongs in dedicated services, not here.
+/// </remarks>
 public static class AboutFundWebView2Behavior
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
@@ -28,49 +30,46 @@ public static class AboutFundWebView2Behavior
             typeof(AboutFundWebView2Behavior),
             new PropertyMetadata(null, OnViewModelChanged));
 
-    public static AboutFundWindowViewModel? GetViewModel(DependencyObject obj) =>
-        (AboutFundWindowViewModel?)obj.GetValue(ViewModelProperty);
+    /// <summary>
+    /// Gets the <see cref="AboutFundWindowViewModel"/> attached to the specified <see cref="DependencyObject"/>.
+    /// </summary>
+    /// <param name="obj">The element to read the property from.</param>
+    /// <returns>The attached ViewModel, or <see langword="null"/> if not set.</returns>
+    public static AboutFundWindowViewModel? GetViewModel(DependencyObject obj)
+    {
+        return (AboutFundWindowViewModel?)obj.GetValue(ViewModelProperty);
+    }
 
-    public static void SetViewModel(DependencyObject obj, AboutFundWindowViewModel? value) =>
+    /// <summary>
+    /// Sets the <see cref="AboutFundWindowViewModel"/> on the specified <see cref="DependencyObject"/>.
+    /// </summary>
+    /// <param name="obj">The element to set the property on.</param>
+    /// <param name="value">The ViewModel to attach.</param>
+    public static void SetViewModel(DependencyObject obj, AboutFundWindowViewModel? value)
+    {
         obj.SetValue(ViewModelProperty, value);
+    }
 
     #endregion
 
-    #region Interceptor Storage Property
-
-    private static readonly DependencyProperty InterceptorProperty =
-        DependencyProperty.RegisterAttached(
-            "Interceptor",
-            typeof(IAboutFundResponseInterceptor),
-            typeof(AboutFundWebView2Behavior),
-            new PropertyMetadata(null));
-
-    private static IAboutFundResponseInterceptor? GetInterceptor(DependencyObject obj) =>
-        (IAboutFundResponseInterceptor?)obj.GetValue(InterceptorProperty);
-
-    private static void SetInterceptor(DependencyObject obj, IAboutFundResponseInterceptor? value) =>
-        obj.SetValue(InterceptorProperty, value);
-
-    #endregion
-
+    /// <summary>
+    /// Handles <see cref="ViewModelProperty"/> changes — detaches from the old ViewModel and attaches to the new one.
+    /// </summary>
     private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not WebView2 webView)
             return;
 
         // Cleanup old ViewModel subscriptions
-        if (e.OldValue is AboutFundWindowViewModel oldViewModel)
-        {
-            DetachViewModel(webView, oldViewModel);
-        }
+        if (e.OldValue is AboutFundWindowViewModel oldViewModel) DetachViewModel(webView, oldViewModel);
 
         // Setup new ViewModel
-        if (e.NewValue is AboutFundWindowViewModel newViewModel)
-        {
-            AttachViewModel(webView, newViewModel);
-        }
+        if (e.NewValue is AboutFundWindowViewModel newViewModel) AttachViewModel(webView, newViewModel);
     }
 
+    /// <summary>
+    /// Subscribes to ViewModel commands and kicks off WebView2 async initialization.
+    /// </summary>
     private static void AttachViewModel(WebView2 webView, AboutFundWindowViewModel viewModel)
     {
         Logger.Debug("Attaching ViewModel to WebView2");
@@ -81,24 +80,23 @@ public static class AboutFundWebView2Behavior
 
         // Handle Loaded event for async initialization
         if (webView.IsLoaded)
-        {
             _ = InitializeWebView2Async(webView, viewModel);
-        }
         else
-        {
             webView.Loaded += async (s, e) => await InitializeWebView2Async(webView, viewModel);
-        }
-
-        // Handle Unloaded for cleanup
-        webView.Unloaded += (s, e) => CleanupWebView2(webView);
     }
 
+    /// <summary>
+    /// Placeholder for unsubscribing from ViewModel events when the binding changes.
+    /// </summary>
     private static void DetachViewModel(WebView2 webView, AboutFundWindowViewModel viewModel)
     {
         Logger.Debug("Detaching ViewModel from WebView2");
-        CleanupWebView2(webView);
     }
 
+    /// <summary>
+    /// Ensures <c>CoreWebView2</c> is ready, then wires <c>NavigationStarting</c>/<c>NavigationCompleted</c>
+    /// events to <see cref="AboutFundWindowViewModel.OnBrowserLoadingChanged"/>.
+    /// </summary>
     private static async Task InitializeWebView2Async(WebView2 webView, AboutFundWindowViewModel viewModel)
     {
         try
@@ -114,30 +112,10 @@ public static class AboutFundWebView2Behavior
                 return;
             }
 
-            // Wire up navigation events
-            webView.CoreWebView2.NavigationStarting += (s, e) =>
-            {
-                viewModel.OnBrowserLoadingChanged(true);
-            };
+            // Wire up navigation events for loading state
+            webView.CoreWebView2.NavigationStarting += (s, e) => { viewModel.OnBrowserLoadingChanged(true); };
 
-            webView.CoreWebView2.NavigationCompleted += (s, e) =>
-            {
-                viewModel.OnBrowserLoadingChanged(false);
-            };
-
-            // Create and initialize interceptor
-            var interceptor = new AboutFundResponseInterceptor(Logger);
-            interceptor.Initialize(webView);
-
-            // Connect interceptor to ViewModel
-            interceptor.RequestIntercepted += (s, request) =>
-            {
-                // Marshal to UI thread
-                webView.Dispatcher.InvokeAsync(() => viewModel.OnRequestIntercepted(request));
-            };
-
-            // Store interceptor for cleanup
-            SetInterceptor(webView, interceptor);
+            webView.CoreWebView2.NavigationCompleted += (s, e) => { viewModel.OnBrowserLoadingChanged(false); };
 
             Logger.Info("WebView2 initialized successfully for AboutFund");
         }
@@ -147,18 +125,9 @@ public static class AboutFundWebView2Behavior
         }
     }
 
-    private static void CleanupWebView2(WebView2 webView)
-    {
-        Logger.Debug("Cleaning up WebView2");
-
-        var interceptor = GetInterceptor(webView);
-        if (interceptor != null)
-        {
-            interceptor.Dispose();
-            SetInterceptor(webView, null);
-        }
-    }
-
+    /// <summary>
+    /// Handles a reload request from the ViewModel by calling <see cref="CoreWebView2.Reload"/>.
+    /// </summary>
     private static void OnBrowserReloadRequested(WebView2 webView)
     {
         if (webView.CoreWebView2 != null)
@@ -168,6 +137,9 @@ public static class AboutFundWebView2Behavior
         }
     }
 
+    /// <summary>
+    /// Handles a navigation request from the ViewModel by calling <see cref="CoreWebView2.Navigate"/>.
+    /// </summary>
     private static void OnNavigationRequested(WebView2 webView, string url)
     {
         if (webView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(url))

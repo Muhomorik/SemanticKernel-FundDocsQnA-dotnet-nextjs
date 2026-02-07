@@ -42,21 +42,25 @@ Because why scrape a website with a simple script when you can architect a *solu
 YieldRaccoon.sln
 ├── YieldRaccoon.Domain/              # Core business logic (no dependencies)
 │   ├── Entities/                     # FundProfile, FundHistoryRecord
-│   └── ValueObjects/                 # FundId, FundHistoryRecordId
+│   ├── Events/AboutFund/             # IAboutFundEvent, session & navigation events
+│   └── ValueObjects/                 # FundId, AboutFundSessionId, AboutFundFetchSlot
 │
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── DTOs/                         # FundDataDto
+│   ├── Models/                       # AboutFundPageData, AboutFundScheduleItem, session state
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
-│   └── Services/                     # IFundIngestionService, ICrawlEventStore
+│   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector
 │
 ├── YieldRaccoon.Infrastructure/      # Technical concerns
 │   ├── Data/                         # EF Core DbContext, configurations
 │   │   └── Repositories/             # EfCore* and InMemory* repository implementations
-│   └── EventStore/                   # InMemoryCrawlEventStore
+│   ├── EventStore/                   # InMemoryCrawlEventStore, InMemoryAboutFundEventStore
+│   └── Services/                     # AboutFundOrchestrator, PageDataCollector, ResponseParser
 │
 └── YieldRaccoon.Wpf/                 # WPF UI
     ├── ViewModels/                   # DevExpress MVVM ViewModels
     ├── Views/                        # XAML views
+    ├── Services/                     # WebView2 interceptor, page interactor
     └── Configuration/                # DatabaseOptions, YieldRaccoonOptions
 ```
 
@@ -299,6 +303,136 @@ stateDiagram-v2
 | Session | `Started`, `Completed`, `Failed`, `Cancelled` |
 | Batch | `Scheduled`, `DelayStarted`, `DelayCompleted`, `Started`, `Completed`, `Failed` |
 | Daily | `DailyCrawlScheduled`, `DailyCrawlReady` |
+
+### AboutFund Browsing Events
+
+Events tracking fund detail page browsing sessions — automated navigation through fund overview pages sorted by history record count. Separate bounded context with its own `IAboutFundEvent` interface and `InMemoryAboutFundEventStore`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> SessionStarted
+    SessionStarted --> NavigationStarted
+
+    state "Fund Visit Cycle" as FVC {
+        NavigationStarted --> NavigationCompleted: Success
+        NavigationStarted --> NavigationFailed: Error
+    }
+
+    FVC --> NavigationStarted: Next fund
+    FVC --> SessionCompleted: All funds visited
+    FVC --> SessionCancelled: User cancels
+```
+
+| Category | Events | Key Properties |
+| ---------- | -------- | ---------------- |
+| Session | `AboutFundSessionStarted` | `SessionId`, `TotalFunds`, `FirstOrderbookId` |
+| Session | `AboutFundSessionCompleted` | `SessionId`, `FundsVisited`, `Duration` |
+| Session | `AboutFundSessionCancelled` | `SessionId`, `FundsVisited`, `Reason` |
+| Navigation | `AboutFundNavigationStarted` | `SessionId`, `Isin`, `OrderbookId`, `Index`, `Url` |
+| Navigation | `AboutFundNavigationCompleted` | `SessionId`, `Isin`, `OrderbookId`, `Index` |
+| Navigation | `AboutFundNavigationFailed` | `SessionId`, `Isin`, `Reason` |
+
+### WebView2 Network Interception
+
+How the AboutFund browser's network traffic is intercepted and routed to data collection. The `AboutFundResponseInterceptor` captures HTTP responses via `CoreWebView2.WebResourceResponseReceived` and calls `IAboutFundOrchestrator.NotifyResponseCaptured()`. The orchestrator routes matched responses through `AboutFundResponseParser` → `IAboutFundPageDataCollector`, which accumulates per-fund data slots until all have resolved.
+
+```mermaid
+sequenceDiagram
+    participant DI as Autofac DI
+    participant Win as AboutFundWindow
+    participant VM as AboutFundWindowViewModel
+    participant WV2 as WebView2 Control
+    participant Beh as AboutFundWebView2Behavior
+    participant Int as AboutFundResponseInterceptor
+    participant Orc as AboutFundOrchestrator
+    participant Parser as AboutFundResponseParser
+    participant Col as AboutFundPageDataCollector
+
+    Note over DI,Col: Window Creation
+    DI->>Win: Resolve(logger, viewModel, interceptor)
+    DI->>Int: Resolve(logger, orchestrator)
+    DI->>VM: Resolve(orchestrator, childVMs, scheduler)
+    Win->>Win: InitializeComponent()
+    Win->>WV2: Subscribe CoreWebView2InitializationCompleted
+
+    Note over Beh,WV2: WebView2 Initialization
+    Beh->>WV2: EnsureCoreWebView2Async()
+    WV2-->>Beh: CoreWebView2 ready
+    Beh->>VM: OnBrowserLoadingChanged(true/false)
+    WV2-->>Win: CoreWebView2InitializationCompleted
+    Win->>Int: Initialize(WebView2)
+    Int->>WV2: Subscribe WebResourceResponseReceived
+
+    Note over WV2,Col: Runtime — Response Capture
+    VM->>Win: NavigationRequested event
+    Win->>WV2: Navigate(url)
+    Orc->>Col: BeginCollection(isin, orderbookId)
+    WV2->>Int: WebResourceResponseReceived
+    Int->>Int: Create AboutFundInterceptedRequest
+    Int-->>VM: Raise RequestIntercepted (network inspector UI)
+    Int->>Orc: NotifyResponseCaptured(request)
+    Orc->>Parser: TryRoute(request)
+    Parser->>Col: ReceiveChartTimePeriods(json)
+    Note over Col: ChartTimePeriods slot: ✅
+
+    Note over WV2,Col: Runtime — Page Interaction
+    Orc->>WV2: PageInteractor.ActivateSekViewAsync()
+    alt Button found
+        WV2->>Int: WebResourceResponseReceived (SEK endpoint)
+        Int->>Orc: NotifyResponseCaptured(request)
+        Orc->>Parser: TryRoute(request)
+        Parser->>Col: ReceiveSekPerformance(json)
+        Note over Col: SekPerformance slot: ✅
+    else Button not found
+        Orc->>Col: FailSlot(SekPerformance, reason)
+        Note over Col: SekPerformance slot: ❌
+    end
+    Col-->>Orc: Completed (all slots resolved)
+    Orc->>Orc: OnPageDataCollected → single DB write
+
+    Note over Win,Int: Window Close
+    Win->>Int: Dispose()
+    Int->>WV2: Unsubscribe WebResourceResponseReceived
+    Win->>VM: Dispose()
+```
+
+### AboutFund Page Data Collection
+
+Each fund detail page requires multiple interactions (clicks) that trigger separate API calls. The `AboutFundPageDataCollector` accumulates responses into typed slots and signals completion when all have resolved, enabling a single database write per fund.
+
+```mermaid
+flowchart LR
+    subgraph Presentation
+        Int[ResponseInterceptor]
+        PI[PageInteractor]
+    end
+
+    subgraph Infrastructure
+        Parser[ResponseParser]
+        Col[PageDataCollector]
+        Orc[Orchestrator]
+    end
+
+    subgraph Application
+        PD[AboutFundPageData]
+    end
+
+    Int -->|raw HTTP| Parser
+    Parser -->|URL match| Col
+    PI -->|click failed| Col
+    Col -->|fills slots on| PD
+    PD -->|IsComplete| Orc
+    Orc -->|single write| DB[(Repository)]
+```
+
+**Slot states:** Each `AboutFundFetchSlot` is independently `Pending` then `Succeeded` or `Failed`.
+
+| Slot | Triggered by | Filled by |
+| ---- | ------------ | --------- |
+| `ChartTimePeriods` | Initial page load | Interceptor matching `chart/timeperiods/` |
+| `SekPerformance` | Clicking settings checkbox | Interceptor matching SEK endpoint, or `FailSlot` if button not found |
+
+**Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting.
 
 ## Layer Responsibilities
 

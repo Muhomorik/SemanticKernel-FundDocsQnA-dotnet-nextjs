@@ -22,10 +22,10 @@ public class InterceptedFund
     public string? Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the orderbook ID.
+    /// Gets or sets the OrderBook ID.
     /// </summary>
     [JsonPropertyName("orderbookId")]
-    public string? OrderbookId { get; set; }
+    public string? OrderBookId { get; set; }
 
     // ===== RISK METRICS =====
 

@@ -1,20 +1,31 @@
-using System.Collections.ObjectModel;
-using System.Windows;
+using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using NLog;
+using YieldRaccoon.Application.Services;
+using YieldRaccoon.Domain.Events.AboutFund;
 using YieldRaccoon.Wpf.Configuration;
-using YieldRaccoon.Wpf.Models;
 
 namespace YieldRaccoon.Wpf.ViewModels;
 
 /// <summary>
-/// ViewModel for the AboutFund browser window with network request interception.
+/// ViewModel for the AboutFund browser window with 3-column layout.
 /// </summary>
+/// <remarks>
+/// Orchestrates child ViewModels for fund schedule (left), browser (middle), and control panel (right).
+/// Subscribes to the <see cref="IAboutFundOrchestrator"/> for navigation and state updates.
+/// </remarks>
 public class AboutFundWindowViewModel : ViewModelBase, IDisposable
 {
+    private const string BlankPageUrl = "about:blank";
+
     private readonly ILogger _logger;
     private readonly YieldRaccoonOptions _options;
+    private readonly IAboutFundOrchestrator _orchestrator;
+    private readonly IScheduler _uiScheduler;
+    private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
     /// <summary>
@@ -31,6 +42,20 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     /// Event raised when navigation is requested.
     /// </summary>
     public event EventHandler<string>? NavigationRequested;
+
+    #region Child ViewModels
+
+    /// <summary>
+    /// Gets the fund schedule ViewModel (left panel).
+    /// </summary>
+    public AboutFundScheduleViewModel FundScheduleViewModel { get; }
+
+    /// <summary>
+    /// Gets the control panel ViewModel (right panel).
+    /// </summary>
+    public AboutFundControlPanelViewModel ControlPanelViewModel { get; }
+
+    #endregion
 
     #region Properties
 
@@ -53,27 +78,6 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Gets or sets the URL filter for the interceptor panel.
-    /// </summary>
-    public string UrlFilter
-    {
-        get => GetProperty(() => UrlFilter);
-        set
-        {
-            if (SetProperty(() => UrlFilter, value)) ApplyFilter();
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets whether request interception is enabled.
-    /// </summary>
-    public bool IsInterceptorEnabled
-    {
-        get => GetProperty(() => IsInterceptorEnabled);
-        set => SetProperty(() => IsInterceptorEnabled, value);
-    }
-
-    /// <summary>
     /// Gets or sets whether the browser is currently loading.
     /// </summary>
     public bool IsLoading
@@ -81,32 +85,6 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         get => GetProperty(() => IsLoading);
         set => SetProperty(() => IsLoading, value);
     }
-
-    /// <summary>
-    /// Gets or sets the currently selected request.
-    /// </summary>
-    public AboutFundInterceptedRequestViewModel? SelectedRequest
-    {
-        get => GetProperty(() => SelectedRequest);
-        set
-        {
-            if (SetProperty(() => SelectedRequest, value)) CommandManager.InvalidateRequerySuggested();
-        }
-    }
-
-    #endregion
-
-    #region Collections
-
-    /// <summary>
-    /// Gets all intercepted requests (unfiltered).
-    /// </summary>
-    public ObservableCollection<AboutFundInterceptedRequestViewModel> InterceptedRequests { get; } = new();
-
-    /// <summary>
-    /// Gets the filtered requests based on UrlFilter.
-    /// </summary>
-    public ObservableCollection<AboutFundInterceptedRequestViewModel> FilteredRequests { get; } = new();
 
     #endregion
 
@@ -123,50 +101,56 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     public ICommand ReloadCommand { get; }
 
     /// <summary>
-    /// Gets the command to clear all intercepted requests.
-    /// </summary>
-    public ICommand ClearRequestsCommand { get; }
-
-    /// <summary>
     /// Gets the command to close the window.
     /// </summary>
     public ICommand CloseCommand { get; }
 
     /// <summary>
-    /// Gets the command to copy the selected request URL.
+    /// Gets the command executed when the window is loaded.
     /// </summary>
-    public ICommand CopyUrlCommand { get; }
-
-    /// <summary>
-    /// Gets the command to copy the selected request response.
-    /// </summary>
-    public ICommand CopyResponseCommand { get; }
+    public ICommand LoadedCommand { get; }
 
     #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundWindowViewModel"/> class.
     /// </summary>
-    /// <param name="logger">Logger for diagnostic output.</param>
-    /// <param name="options">Configuration options containing URL templates.</param>
-    public AboutFundWindowViewModel(ILogger logger, YieldRaccoonOptions options)
+    public AboutFundWindowViewModel(
+        ILogger logger,
+        YieldRaccoonOptions options,
+        IAboutFundOrchestrator orchestrator,
+        AboutFundScheduleViewModel fundScheduleViewModel,
+        AboutFundControlPanelViewModel controlPanelViewModel,
+        IScheduler uiScheduler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+        _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
 
-        Title = "AboutFund - Network Inspector";
-        BrowserUrl = _options.FundDetailsPageUrlTemplate;
-        UrlFilter = string.Empty;
-        IsInterceptorEnabled = true;
+        FundScheduleViewModel = fundScheduleViewModel ?? throw new ArgumentNullException(nameof(fundScheduleViewModel));
+        ControlPanelViewModel = controlPanelViewModel ?? throw new ArgumentNullException(nameof(controlPanelViewModel));
+
+        Title = "AboutFund - Overview";
+        BrowserUrl = BlankPageUrl;
         IsLoading = false;
+
+        // Initialize AutoStartOverview from options
+        ControlPanelViewModel.AutoStartOverview = _options.AutoStartOverview;
 
         // Initialize commands
         NavigateCommand = new DelegateCommand(ExecuteNavigate);
         ReloadCommand = new DelegateCommand(ExecuteReload);
-        ClearRequestsCommand = new DelegateCommand(ExecuteClearRequests);
         CloseCommand = new DelegateCommand(ExecuteClose);
-        CopyUrlCommand = new DelegateCommand(ExecuteCopyUrl, CanExecuteCopyUrl, true);
-        CopyResponseCommand = new DelegateCommand(ExecuteCopyResponse, CanExecuteCopyResponse, true);
+        LoadedCommand = new DelegateCommand(ExecuteLoaded);
+
+        // Wire control panel events to orchestrator
+        ControlPanelViewModel.StartOverviewRequested += OnStartOverviewRequested;
+        ControlPanelViewModel.StopOverviewRequested += OnStopOverviewRequested;
+        ControlPanelViewModel.NextFundRequested += OnNextFundRequested;
+
+        // Subscribe to orchestrator observables
+        SetupOrchestratorSubscriptions();
 
         _logger.Debug("AboutFundWindowViewModel initialized");
     }
@@ -178,61 +162,157 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     {
         _logger = LogManager.GetCurrentClassLogger();
         _options = new YieldRaccoonOptions { FundDetailsPageUrlTemplate = "https://example.com/" };
+        _orchestrator = null!;
+        _uiScheduler = null!;
 
-        Title = "AboutFund - Network Inspector (Design)";
-        BrowserUrl = _options.FundDetailsPageUrlTemplate;
-        UrlFilter = string.Empty;
-        IsInterceptorEnabled = true;
+        FundScheduleViewModel = new AboutFundScheduleViewModel(LogManager.GetCurrentClassLogger());
+        ControlPanelViewModel = new AboutFundControlPanelViewModel(LogManager.GetCurrentClassLogger());
+
+        Title = "AboutFund - Overview (Design)";
+        BrowserUrl = BlankPageUrl;
         IsLoading = false;
 
         NavigateCommand = new DelegateCommand(() => { });
         ReloadCommand = new DelegateCommand(() => { });
-        ClearRequestsCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
-        CopyUrlCommand = new DelegateCommand(() => { });
-        CopyResponseCommand = new DelegateCommand(() => { });
-
-        // Add sample data for design time
-        var sampleRequest = new AboutFundInterceptedRequestViewModel
-        {
-            Timestamp = DateTime.Now,
-            Method = "GET",
-            Url = "https://example.com/",
-            StatusCode = 200,
-            ContentType = "application/json"
-        };
-        InterceptedRequests.Add(sampleRequest);
-        FilteredRequests.Add(sampleRequest);
+        LoadedCommand = new DelegateCommand(() => { });
     }
+
+    #region Initialization
+
+    /// <summary>
+    /// Executes when the window is loaded.
+    /// Loads the fund schedule and navigates to the first fund.
+    /// If AutoStartOverview is enabled, starts the full browsing session.
+    /// </summary>
+    private async void ExecuteLoaded()
+    {
+        _logger.Info("Window loaded - initializing AboutFund");
+
+        try
+        {
+            // Load fund schedule from database
+            var schedule = await _orchestrator.LoadScheduleAsync();
+            FundScheduleViewModel.LoadSchedule(schedule);
+
+            _logger.Info("Fund schedule loaded: {0} funds", schedule.Count);
+
+            if (schedule.Count == 0)
+            {
+                _logger.Warn("No funds in schedule - nothing to display");
+                return;
+            }
+
+            if (ControlPanelViewModel.AutoStartOverview)
+            {
+                // Auto-start: begin full browsing session with auto-advance
+                _logger.Info("Auto-start enabled - starting browsing session");
+                _orchestrator.SetAutoAdvance(true);
+                await _orchestrator.StartSessionAsync();
+            }
+            else
+            {
+                // Navigate to first fund without starting a session
+                NavigateToFirstFund(schedule);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to initialize AboutFund window");
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the first fund in the schedule that has an OrderbookId.
+    /// </summary>
+    private void NavigateToFirstFund(IReadOnlyList<Application.Models.AboutFundScheduleItem> schedule)
+    {
+        var firstFund = schedule.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f.OrderbookId));
+        if (firstFund == null)
+        {
+            _logger.Warn("No funds with OrderbookId in schedule");
+            return;
+        }
+
+        var url = _options.GetFundDetailsUrlByOrderbookId(firstFund.OrderbookId!);
+        _logger.Info("Navigating to first fund: {0}", url);
+        BrowserUrl = url;
+        NavigationRequested?.Invoke(this, url);
+    }
+
+    #endregion
+
+    #region Orchestrator Subscriptions
+
+    private void SetupOrchestratorSubscriptions()
+    {
+        // Navigate to URL
+        _disposables.Add(
+            _orchestrator.NavigateToUrl
+                .ObserveOn(_uiScheduler)
+                .Subscribe(OnNavigateToUrl));
+
+        // Session state changes
+        _disposables.Add(
+            _orchestrator.SessionState
+                .ObserveOn(_uiScheduler)
+                .Subscribe(OnSessionStateChanged));
+
+        // Events
+        _disposables.Add(
+            _orchestrator.Events
+                .ObserveOn(_uiScheduler)
+                .Subscribe(OnEventReceived));
+
+        // Countdown ticks
+        _disposables.Add(
+            _orchestrator.CountdownTick
+                .ObserveOn(_uiScheduler)
+                .Subscribe(OnCountdownTick));
+    }
+
+    private void OnNavigateToUrl(string url)
+    {
+        _logger.Debug("Orchestrator requests navigation to: {0}", url);
+        BrowserUrl = url;
+        NavigationRequested?.Invoke(this, url);
+    }
+
+    private void OnSessionStateChanged(Application.Models.AboutFundSessionState state)
+    {
+        ControlPanelViewModel.OnSessionStateChanged(state);
+
+        if (state.IsActive) FundScheduleViewModel.MarkCurrentFund(state.CurrentIndex);
+    }
+
+    private void OnEventReceived(IAboutFundEvent aboutFundEvent)
+    {
+        ControlPanelViewModel.OnEventReceived(aboutFundEvent);
+
+        // Mark fund as completed in schedule
+        if (aboutFundEvent is AboutFundNavigationCompleted completed)
+            FundScheduleViewModel.MarkCompleted(completed.Index);
+    }
+
+    private void OnCountdownTick(int secondsRemaining)
+    {
+        ControlPanelViewModel.OnCountdownTick(secondsRemaining);
+    }
+
+    #endregion
 
     #region Public Methods
 
     /// <summary>
-    /// Called when a request is intercepted by the interceptor service.
-    /// </summary>
-    /// <param name="request">The intercepted request.</param>
-    public void OnRequestIntercepted(AboutFundInterceptedRequest request)
-    {
-        if (!IsInterceptorEnabled) return;
-
-        var viewModel = AboutFundInterceptedRequestViewModel.FromModel(request);
-
-        // Insert at the beginning (most recent first)
-        InterceptedRequests.Insert(0, viewModel);
-
-        // Apply filter
-        if (MatchesFilter(viewModel)) FilteredRequests.Insert(0, viewModel);
-
-        _logger.Trace("Intercepted: {0} {1} -> {2}", request.Method, request.Url, request.StatusCode);
-    }
-
-    /// <summary>
     /// Called when browser loading state changes.
+    /// Called from <see cref="YieldRaccoon.Wpf.Behaviors.AboutFundWebView2Behavior"/>.
     /// </summary>
-    /// <param name="isLoading">Whether the browser is loading.</param>
     public void OnBrowserLoadingChanged(bool isLoading)
     {
         IsLoading = isLoading;
+
+        // Notify orchestrator when navigation completes
+        if (!isLoading) _orchestrator.NotifyNavigationCompleted();
     }
 
     #endregion
@@ -254,67 +334,37 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         BrowserReloadRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void ExecuteClearRequests()
-    {
-        _logger.Debug("Clearing requests");
-        InterceptedRequests.Clear();
-        FilteredRequests.Clear();
-        SelectedRequest = null;
-    }
-
     private void ExecuteClose()
     {
         _logger.Debug("Close requested");
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private bool CanExecuteCopyUrl()
-    {
-        return SelectedRequest != null;
-    }
-
-    private void ExecuteCopyUrl()
-    {
-        if (SelectedRequest != null)
-        {
-            Clipboard.SetText(SelectedRequest.Url);
-            _logger.Debug("Copied URL to clipboard: {0}", SelectedRequest.Url);
-        }
-    }
-
-    private bool CanExecuteCopyResponse()
-    {
-        return SelectedRequest?.ResponsePreview != null;
-    }
-
-    private void ExecuteCopyResponse()
-    {
-        if (SelectedRequest?.ResponsePreview != null)
-        {
-            Clipboard.SetText(SelectedRequest.ResponsePreview);
-            _logger.Debug("Copied response to clipboard");
-        }
-    }
-
     #endregion
 
-    #region Filter Logic
+    #region Control Panel Event Handlers
 
-    private void ApplyFilter()
+    private async void OnStartOverviewRequested(object? sender, EventArgs e)
     {
-        FilteredRequests.Clear();
-
-        foreach (var request in InterceptedRequests)
-            if (MatchesFilter(request))
-                FilteredRequests.Add(request);
+        try
+        {
+            _orchestrator.SetAutoAdvance(ControlPanelViewModel.AutoStartOverview);
+            await _orchestrator.StartSessionAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to start overview session");
+        }
     }
 
-    private bool MatchesFilter(AboutFundInterceptedRequestViewModel request)
+    private void OnStopOverviewRequested(object? sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(UrlFilter))
-            return true;
+        _orchestrator.CancelSession("User stopped");
+    }
 
-        return request.Url.Contains(UrlFilter, StringComparison.OrdinalIgnoreCase);
+    private void OnNextFundRequested(object? sender, EventArgs e)
+    {
+        _orchestrator.AdvanceToNextFund();
     }
 
     #endregion
@@ -333,10 +383,22 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     protected virtual void Dispose(bool disposing)
     {
-        if (_disposed)
-            return;
+        if (_disposed) return;
 
-        if (disposing) _logger.Debug("AboutFundWindowViewModel disposing");
+        if (disposing)
+        {
+            _logger.Debug("AboutFundWindowViewModel disposing");
+
+            // Cancel active session on window close
+            _orchestrator.CancelSession("Window closed");
+
+            // Unsubscribe from control panel events
+            ControlPanelViewModel.StartOverviewRequested -= OnStartOverviewRequested;
+            ControlPanelViewModel.StopOverviewRequested -= OnStopOverviewRequested;
+            ControlPanelViewModel.NextFundRequested -= OnNextFundRequested;
+
+            _disposables.Dispose();
+        }
 
         _disposed = true;
     }

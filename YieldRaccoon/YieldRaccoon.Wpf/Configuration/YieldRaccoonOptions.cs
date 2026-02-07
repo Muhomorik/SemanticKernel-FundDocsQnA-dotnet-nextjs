@@ -20,6 +20,15 @@ public class YieldRaccoonOptions
     public string FundDetailsPageUrlTemplate { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets whether the about-fund overview should auto-start navigating through funds.
+    /// </summary>
+    /// <remarks>
+    /// When true, the browsing session starts automatically when the AboutFund window opens.
+    /// Default: false (user must click "Start Overview" button).
+    /// </remarks>
+    public bool AutoStartOverview { get; set; } = false;
+
+    /// <summary>
     /// Gets the fund details URL for a specific ISIN.
     /// </summary>
     /// <param name="isin">The fund's ISIN code.</param>
@@ -30,5 +39,22 @@ public class YieldRaccoonOptions
             throw new ArgumentException("ISIN cannot be null or whitespace.", nameof(isin));
 
         return FundDetailsPageUrlTemplate.Replace("{isin}", isin, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Gets the fund details URL for a specific OrderbookId.
+    /// </summary>
+    /// <remarks>
+    /// Uses the <c>{0}</c> placeholder format from user secrets.
+    /// The external website uses OrderbookId in the URL, while internal tracking uses ISIN.
+    /// </remarks>
+    /// <param name="orderbookId">The fund's OrderbookId.</param>
+    /// <returns>The formatted URL with the OrderbookId substituted.</returns>
+    public string GetFundDetailsUrlByOrderbookId(string orderbookId)
+    {
+        if (string.IsNullOrWhiteSpace(orderbookId))
+            throw new ArgumentException("OrderbookId cannot be null or whitespace.", nameof(orderbookId));
+
+        return FundDetailsPageUrlTemplate.Replace("{0}", orderbookId, StringComparison.OrdinalIgnoreCase);
     }
 }
