@@ -6,42 +6,188 @@ This document explains how to use and configure the WebView2 response intercepti
 
 The implementation intercepts network responses from the WebView2 browser control and extracts fund data from JSON responses. This allows you to capture data from JavaScript API calls without modifying the web page's code.
 
-## Architecture
+There are two interception implementations:
 
-```plaintext
-Web Page → JavaScript API Call → Network Response
-                                         ↓
-                           WebView2ResponseInterceptor
-                                         ↓
-                               FundDataIntercepted Event
-                                         ↓
-                                  MainWindow
-                                         ↓
-                              MainWindowViewModel.OnFundDataReceived()
-                                         ↓
-                        ObservableCollection<FundInfo> (UI updates)
+1. **MainWindow (Fund List)** - Intercepts specific API endpoints for fund list data
+2. **AboutFundWindow (Network Inspector)** - Intercepts ALL network requests for debugging/exploration
+
+---
+
+## MainWindow Architecture (Fund List Interception)
+
+```mermaid
+flowchart TD
+    A[Web Page] --> B[JavaScript API Call]
+    B --> C[Network Response]
+    C --> D[WebView2ResponseInterceptor]
+    D --> E[FundDataIntercepted Event]
+    E --> F[MainWindow]
+    F --> G["MainWindowViewModel.OnFundDataReceived()"]
+    G --> H["ObservableCollection&lt;FundInfo&gt; (UI updates)"]
 ```
+
+---
+
+## AboutFundWindow Architecture (Network Inspector)
+
+The AboutFundWindow uses a DDD-compliant architecture with separation of concerns:
+
+```mermaid
+flowchart TB
+    subgraph View["AboutFundWindow.xaml"]
+        direction LR
+        WV["WebView2<br/>(with attached behavior)"]
+        IP["Interceptor Panel<br/>- DataGrid (requests)<br/>- Response preview"]
+    end
+
+    subgraph Service["IAboutFundResponseInterceptor"]
+        S1["Initialize(WebView2)"]
+        S2["RequestIntercepted event"]
+    end
+
+    subgraph ViewModel["AboutFundWindowViewModel"]
+        VM1["OnRequestIntercepted(AboutFundInterceptedRequest)"]
+        VM2["InterceptedRequests: ObservableCollection"]
+        VM3["FilteredRequests: ObservableCollection"]
+        VM4["Commands: Navigate, Reload, Clear, Copy"]
+    end
+
+    WV -->|"AboutFundWebView2Behavior"| Service
+    Service -->|"Event"| ViewModel
+    ViewModel -->|"Data Binding"| IP
+```
+
+### Key Differences from MainWindow
+
+| Aspect | MainWindow | AboutFundWindow |
+| ------ | ---------- | --------------- |
+| Purpose | Capture fund list data | Network inspector/debugging |
+| URL Filtering | Specific patterns only | ALL requests captured |
+| Code-behind | WebView2 init + interceptor wiring | Minimal (just DataContext) |
+| Initialization | Code-behind | Attached Behavior |
+| Service | WebView2ResponseInterceptor | IAboutFundResponseInterceptor |
+
+### AboutFund Files
+
+#### Services
+
+- **`Services/IAboutFundResponseInterceptor.cs`** - Interface:
+
+  ```csharp
+  public interface IAboutFundResponseInterceptor : IDisposable
+  {
+      void Initialize(WebView2 webView);
+      event EventHandler<AboutFundInterceptedRequest>? RequestIntercepted;
+  }
+  ```
+
+- **`Services/AboutFundResponseInterceptor.cs`** - Implementation:
+  - Subscribes to `CoreWebView2.WebResourceResponseReceived`
+  - Captures ALL network requests (no URL filtering)
+  - Extracts response content preview (first 2KB for JSON/text)
+  - Raises `RequestIntercepted` event
+
+#### Models
+
+- **`Models/AboutFundInterceptedRequest.cs`** - Captured request data:
+
+  ```csharp
+  public class AboutFundInterceptedRequest
+  {
+      public string Id { get; init; }
+      public DateTime Timestamp { get; init; }
+      public string Method { get; init; }
+      public string Url { get; init; }
+      public int StatusCode { get; init; }
+      public string ContentType { get; init; }
+      public long ContentLength { get; init; }
+      public string? ResponsePreview { get; init; }
+  }
+  ```
+
+#### Behaviors
+
+- **`Behaviors/AboutFundWebView2Behavior.cs`** - Attached behavior:
+  - Handles `EnsureCoreWebView2Async()` initialization
+  - Wires up navigation events for loading state
+  - Creates and initializes `IAboutFundResponseInterceptor`
+  - Connects interceptor events to ViewModel
+
+#### ViewModels
+
+- **`ViewModels/AboutFundInterceptedRequestViewModel.cs`** - Request display:
+
+  ```csharp
+  public class AboutFundInterceptedRequestViewModel : BindableBase
+  {
+      // Properties for binding
+      public bool IsSuccess => StatusCode >= 200 && StatusCode < 300;
+      public bool IsClientError => StatusCode >= 400 && StatusCode < 500;
+      public bool IsServerError => StatusCode >= 500;
+      public string ShortUrl => Url.Length > 80 ? Url[..77] + "..." : Url;
+  }
+  ```
+
+- **`ViewModels/AboutFundWindowViewModel.cs`** - Window ViewModel with filtering and commands
+
+### Usage
+
+1. Click the **AboutFund** button in the MainWindow title bar
+2. Enter a URL and click **Go** or press Enter
+3. All network requests appear in the interceptor panel
+4. Use the filter to narrow down by URL pattern
+5. Click a request to see response preview
+6. Use **Copy URL** or **Copy Response** to extract data
 
 ## Files Created
 
-### 1. Service Layer
+### MainWindow (Fund List) Files
+
+#### 1. Service Layer
 
 - **`Services/WebView2ResponseInterceptor.cs`**
   - Intercepts network responses using `WebResourceResponseReceived` event
   - Filters responses by URL patterns
   - Parses JSON content and raises `FundDataIntercepted` event
 
-### 2. Model Classes
+#### 2. Model Classes
 
-- **`Models/FundInfo.cs`** - Represents a single fund
-- **`Models/FundListResponse.cs`** - Represents the API response structure
+- **`Models/InterceptedFund.cs`** - Represents a single fund with 70+ properties
+- **`Models/InterceptedFundList.cs`** - Represents the API response structure
 - **`Models/FundDataInterceptedEventArgs.cs`** - Event args for interception events
 
-### 3. Integration
+#### 3. Integration
 
 - **`MainWindow.xaml.cs`** - Creates and initializes the interceptor
 - **`ViewModels/MainWindowViewModel.cs`** - Handles intercepted data and updates UI
 - **`MainWindow.xaml`** - Displays the fund list in the left panel
+
+### AboutFundWindow (Network Inspector) Files
+
+**Services:**
+
+- `Services/IAboutFundResponseInterceptor.cs` - Interface for response interception
+- `Services/AboutFundResponseInterceptor.cs` - Captures ALL network requests
+- `Services/IAboutFundWindowService.cs` - Interface for window management
+- `Services/AboutFundWindowService.cs` - Non-modal window service
+
+**Models:**
+
+- `Models/AboutFundInterceptedRequest.cs` - Captured request/response data
+
+**Behaviors:**
+
+- `Behaviors/AboutFundWebView2Behavior.cs` - Attached behavior for WebView2 initialization
+
+**ViewModels:**
+
+- `ViewModels/AboutFundInterceptedRequestViewModel.cs` - Request display with status colors
+- `ViewModels/AboutFundWindowViewModel.cs` - Window state and commands
+
+**Views:**
+
+- `Views/AboutFundWindow.xaml` - Split layout with WebView2 and interceptor panel
+- `Views/AboutFundWindow.xaml.cs` - Minimal code-behind (DI only)
 
 ## Configuration
 
@@ -107,7 +253,9 @@ public class FundInfo
 
 ## Testing
 
-### 1. Enable Trace Logging
+### MainWindow Testing
+
+#### Enable Trace Logging
 
 Add to your `nlog.config` to see all intercepted requests:
 
@@ -115,7 +263,7 @@ Add to your `nlog.config` to see all intercepted requests:
 <logger name="YieldRaccoon.Wpf.Services.WebView2ResponseInterceptor" minlevel="Trace" writeTo="file" />
 ```
 
-### 2. Check Logs
+#### Check Logs
 
 Look for these log messages:
 
@@ -126,7 +274,7 @@ Look for these log messages:
 [Info] Successfully parsed fund data with 15 funds
 ```
 
-### 3. Inspect Raw JSON
+#### Inspect Raw JSON
 
 Temporarily add this to `ProcessResponseAsync()` to see raw responses:
 
@@ -134,7 +282,35 @@ Temporarily add this to `ProcessResponseAsync()` to see raw responses:
 _logger.Info($"Raw JSON: {jsonContent}");
 ```
 
-### 4. Use Browser DevTools
+### AboutFundWindow Testing
+
+The AboutFund window is a visual network inspector - no log configuration needed.
+
+#### Manual Testing Checklist
+
+- [ ] AboutFund button appears in MainWindow title bar with bug icon
+- [ ] Clicking opens non-modal window (can use both windows)
+- [ ] WebView2 loads default URL
+- [ ] URL input + Go button navigates correctly
+- [ ] Reload button refreshes the page
+- [ ] Recording toggle pauses/resumes interception
+- [ ] All network requests appear in DataGrid
+- [ ] Status codes are color-coded (green=2xx, orange=4xx, red=5xx)
+- [ ] URL filter narrows results
+- [ ] Clicking a request shows response preview
+- [ ] Copy URL button copies selected URL
+- [ ] Copy Response button copies response content
+- [ ] Clear button removes all entries
+- [ ] Re-clicking AboutFund button brings existing window to focus
+
+#### Enable AboutFund Logging
+
+```xml
+<logger name="YieldRaccoon.Wpf.Services.AboutFundResponseInterceptor" minlevel="Trace" writeTo="file" />
+<logger name="YieldRaccoon.Wpf.Behaviors.AboutFundWebView2Behavior" minlevel="Debug" writeTo="file" />
+```
+
+### Use Browser DevTools
 
 1. Right-click in the WebView2 browser → **Inspect**
 2. Go to **Network** tab

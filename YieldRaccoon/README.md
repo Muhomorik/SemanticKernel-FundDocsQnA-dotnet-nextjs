@@ -2,7 +2,7 @@
 
 A massively over-engineered fund price crawler that sneaks around financial websites like a raccoon rummaging through garbage bins at 3 AM.
 
-We've taken the simple task of "check if number went up or down" and wrapped it in layers of DDD, CQRS, event sourcing, reactive programming, and enough design patterns to make a senior architect weep with joy (or horror - it's hard to tell).
+I've taken the simple task of "check if number went up or down" and wrapped it in layers of DDD, CQRS, event sourcing, reactive programming, and enough design patterns to make a senior architect weep with joy (or horror - it's hard to tell).
 
 Because why scrape a website with a simple script when you can architect a *solution* with Aggregates, Value Objects, and Domain Events? 🦝
 
@@ -91,6 +91,87 @@ Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
 | ------- | --------- |
 | `FundProfiles` | Static fund data (name, fees, ESG scores) - keyed by ISIN |
 | `FundHistoryRecords` | Time-series data (NAV, owners, ratings) - FK to FundProfiles |
+
+<details>
+<summary><strong>SQLite Schema</strong></summary>
+
+```sql
+CREATE TABLE FundProfiles (
+    Isin                     TEXT    NOT NULL
+                                     CONSTRAINT PK_FundProfiles PRIMARY KEY,
+    Name                     TEXT    NOT NULL,
+    OrderbookId              TEXT,
+    Category                 TEXT,
+    CompanyName              TEXT,
+    FundType                 TEXT,
+    IsIndexFund              INTEGER,
+    CurrencyCode             TEXT,
+    ManagedType              TEXT,
+    StartDate                TEXT,
+    Buyable                  INTEGER,
+    HasCashDividends         INTEGER,
+    HasCurrencyExchangeFee   INTEGER,
+    RecommendedHoldingPeriod TEXT,
+    ManagementFee            REAL,
+    TotalFee                 REAL,
+    TransactionFee           REAL,
+    OngoingFee               REAL,
+    MinimumBuy               REAL,
+    Capital                  REAL,
+    NumberOfOwners           INTEGER,
+    Rating                   INTEGER,
+    Risk                     INTEGER,
+    SharpeRatio              REAL,
+    StandardDeviation        REAL,
+    SustainabilityLevel      TEXT,
+    SustainabilityRating     INTEGER,
+    EsgScore                 REAL,
+    EnvironmentalScore       REAL,
+    SocialScore              REAL,
+    GovernanceScore          REAL,
+    LowCarbon                INTEGER,
+    EuArticleType            TEXT,
+    FirstSeenAt              TEXT    NOT NULL,
+    CrawlerLastUpdatedAt     TEXT
+);
+
+CREATE TABLE FundHistoryRecords (
+    Id                INTEGER NOT NULL
+                              CONSTRAINT PK_FundHistoryRecords PRIMARY KEY,
+    FundId            TEXT    NOT NULL,
+    Nav               REAL,
+    NavDate           TEXT,
+    Capital           REAL,
+    NumberOfOwners    INTEGER,
+    Risk              INTEGER,
+    SharpeRatio       REAL,
+    StandardDeviation REAL,
+    CONSTRAINT FK_FundHistoryRecords_FundProfiles_FundId FOREIGN KEY (
+        FundId
+    )
+    REFERENCES FundProfiles (Isin) ON DELETE CASCADE
+);
+```
+
+</details>
+
+View to show funds by number of values.
+
+```sql
+
+CREATE VIEW vw_FundProfileHistoryCounts AS
+SELECT
+    fp.Isin,
+    fp.OrderbookId,
+    fp.Name,
+    COUNT(fhr.Id) AS HistoryRecordCount
+FROM FundProfiles fp
+LEFT JOIN FundHistoryRecords fhr ON fhr.FundId = fp.Isin
+GROUP BY fp.Isin, fp.Name, fp.OrderbookId
+ORDER BY HistoryRecordCount DESC
+LIMIT 60;
+
+```
 
 ## Repository Architecture
 
