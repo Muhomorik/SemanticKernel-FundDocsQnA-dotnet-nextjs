@@ -1,6 +1,6 @@
 ---
 name: dotnet-documentation
-description: XML documentation and DebuggerDisplay conventions for .NET (.csproj, C#). Use when adding XML docs or DebuggerDisplay attributes. DO NOT use for web frameworks (Next.js, React, JavaScript, TypeScript, Node.js).
+description: Documentation conventions for .NET (.csproj, C#) including XML docs, DebuggerDisplay attributes, and Mermaid diagrams for architecture documentation. Use when adding XML docs, DebuggerDisplay, or creating architecture diagrams in markdown. DO NOT use for web frameworks (Next.js, React, JavaScript, TypeScript, Node.js).
 allowed-tools: Read, Edit, Write, Glob, Grep
 ---
 
@@ -72,6 +72,10 @@ Document:
 /// </remarks>
 ```
 
+## Architecture Diagrams
+
+When documenting architecture in markdown files, **always use Mermaid diagrams** instead of ASCII art.
+
 ## Checklist
 
 - [ ] `[DebuggerDisplay]` on DTOs, entities, value objects
@@ -79,6 +83,6 @@ Document:
 - [ ] `<param>` with nullability and constraints
 - [ ] `<returns>` with nullability
 - [ ] `<exception>` with trigger conditions
+- [ ] `<see cref="..."/>` for cross-references
 - [ ] Async methods document cancellation and ConfigureAwait
 - [ ] UI-thread requirements stated explicitly
-- [ ] `<see cref="..."/>` for cross-references

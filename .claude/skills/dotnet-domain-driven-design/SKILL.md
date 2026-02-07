@@ -133,6 +133,29 @@ public async Task<Order?> GetByIdAsync(OrderId id, CancellationToken ct = defaul
     => await _context.Orders.FindAsync(new object[] { id }, ct);
 ```
 
+## Documentation Guidelines
+
+When documenting architecture in markdown files, **always use Mermaid diagrams** instead of ASCII art. Mermaid renders properly in GitHub, VS Code, and most documentation tools.
+
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer"]
+        UI["UI, ViewModels"]
+    end
+    subgraph Application["Application Layer"]
+        Services["Application Services"]
+    end
+    subgraph Domain["Domain Layer"]
+        Entities["Entities, Aggregates"]
+    end
+    subgraph Infrastructure["Infrastructure Layer"]
+        Repos["Repositories, External APIs"]
+    end
+    Presentation --> Application
+    Application --> Domain
+    Domain --> Infrastructure
+```
+
 ## Supporting Documentation
 
 For detailed guidance on specific DDD patterns, see:

@@ -4,26 +4,35 @@ Comprehensive guide to layer responsibilities, boundaries, and prohibited patter
 
 ## Layer Overview
 
-```text
-┌─────────────────────────────────────┐
-│     Presentation Layer              │  UI, binding, process lifetime
-│  (WPF, Blazor, ASP.NET Controllers) │  Handles intents from lower layers
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│     Application Layer               │  Use-case orchestration
-│  (Services, Command Handlers)       │  Publishes domain events
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│     Domain Layer                    │  Business logic & invariants
-│  (Entities, Aggregates, Services)   │  Pure domain model
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│     Infrastructure Layer            │  Technical I/O
-│  (Repositories, External APIs)      │  Emits intent signals
-└─────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer"]
+        P1["WPF, Blazor, ASP.NET Controllers"]
+        P2["UI, binding, process lifetime"]
+        P3["Handles intents from lower layers"]
+    end
+
+    subgraph Application["Application Layer"]
+        A1["Services, Command Handlers"]
+        A2["Use-case orchestration"]
+        A3["Publishes domain events"]
+    end
+
+    subgraph Domain["Domain Layer"]
+        D1["Entities, Aggregates, Services"]
+        D2["Business logic & invariants"]
+        D3["Pure domain model"]
+    end
+
+    subgraph Infrastructure["Infrastructure Layer"]
+        I1["Repositories, External APIs"]
+        I2["Technical I/O"]
+        I3["Emits intent signals"]
+    end
+
+    Presentation --> Application
+    Application --> Domain
+    Domain --> Infrastructure
 ```
 
 ## Presentation Layer (UI)
