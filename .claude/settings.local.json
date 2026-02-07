@@ -10,7 +10,13 @@
       "mcp__microsoft-learn__microsoft_docs_fetch",
       "Bash(ls:*)"
     ],
-    "deny": [],
+    "deny": [
+      "Bash(git diff:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git reflog:*)"
+    ],
     "ask": []
   },
   "enableAllProjectMcpServers": true,
