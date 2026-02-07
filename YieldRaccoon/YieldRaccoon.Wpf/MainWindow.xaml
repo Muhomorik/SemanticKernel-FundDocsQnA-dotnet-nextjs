@@ -19,6 +19,15 @@
     <!--  Title bar commands (right side)  -->
     <mah:MetroWindow.RightWindowCommands>
         <mah:WindowCommands>
+            <Button Command="{Binding OpenAboutFundCommand}" ToolTip="AboutFund Browser">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="14"
+                        Text="&#xEBE8;" />
+                    <TextBlock Margin="6,0,0,0" Text="AboutFund" />
+                </StackPanel>
+            </Button>
             <Button Command="{Binding OpenSettingsCommand}" ToolTip="Settings">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock

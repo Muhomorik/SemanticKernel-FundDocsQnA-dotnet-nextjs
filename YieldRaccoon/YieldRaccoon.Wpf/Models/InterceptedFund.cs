@@ -112,6 +112,7 @@ public class InterceptedFund
     /// <summary>
     /// Gets or sets the NAV date.
     /// </summary>
+    /// <example>2026-02-04T00:00:00</example>
     [JsonPropertyName("navDate")]
     public string? NavDate { get; set; }
 

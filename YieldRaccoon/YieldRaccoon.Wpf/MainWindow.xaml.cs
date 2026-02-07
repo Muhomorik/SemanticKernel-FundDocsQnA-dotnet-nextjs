@@ -235,8 +235,14 @@ public partial class MainWindow : MetroWindow
     {
         using var image = new MagickImage(inputStream);
 
-        // Charcoal(radius, sigma): higher values = more abstract, text unreadable
-        image.Charcoal(7, 4);
+        // Convert to grayscale for sketch effect
+        image.ColorType = ColorType.Grayscale;
+
+        // Enhance contrast for more pronounced edges
+        image.Contrast();
+
+        // Apply Charcoal effect with more natural sketch parameters
+        image.Charcoal(3, 14);
 
         using var outputStream = new MemoryStream();
         image.Write(outputStream, MagickFormat.Png);

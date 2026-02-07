@@ -70,6 +70,15 @@ public class PresentationModule : Module
                 (pi, ctx) => LogManager.GetLogger(typeof(SettingsDialogService).FullName!)))
             .InstancePerDependency();
 
+        // AboutFund window service registration
+        // Register window service for showing AboutFund browser window from ViewModels
+        builder.RegisterType<AboutFundWindowService>()
+            .As<IAboutFundWindowService>()
+            .WithParameter(new Autofac.Core.ResolvedParameter(
+                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
+                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundWindowService).FullName!)))
+            .SingleInstance();
+
         // Session scheduler registration
         // Register session scheduler for pre-calculating batch timings with randomized delays
         builder.RegisterType<CrawlSessionScheduler>()

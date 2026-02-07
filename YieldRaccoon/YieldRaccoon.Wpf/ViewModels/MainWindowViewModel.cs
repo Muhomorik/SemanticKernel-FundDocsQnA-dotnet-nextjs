@@ -37,6 +37,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly YieldRaccoonOptions _options;
     private readonly ICrawlSessionOrchestrator _orchestrator;
     private readonly ISettingsDialogService _settingsDialogService;
+    private readonly IAboutFundWindowService _aboutFundWindowService;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
@@ -216,10 +217,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         get => GetProperty(() => IsStreamingMode);
         set
         {
-            SetProperty(() => IsStreamingMode, value, () =>
-            {
-                StreamingModeChanged?.Invoke(this, EventArgs.Empty);
-            });
+            SetProperty(() => IsStreamingMode, value, () => { StreamingModeChanged?.Invoke(this, EventArgs.Empty); });
         }
     }
 
@@ -276,6 +274,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ICommand OpenSettingsCommand { get; }
 
+    /// <summary>
+    /// Gets the command to open the AboutFund browser window.
+    /// </summary>
+    public ICommand OpenAboutFundCommand { get; }
+
     #endregion
 
     #region Events
@@ -308,16 +311,21 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="options">Configuration options containing URLs for fund pages.</param>
     /// <param name="orchestrator">Orchestrator for session lifecycle and batch workflow.</param>
     /// <param name="settingsDialogService">Service for showing the settings dialog.</param>
+    /// <param name="aboutFundWindowService"></param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
         YieldRaccoonOptions options,
         ICrawlSessionOrchestrator orchestrator,
-        ISettingsDialogService settingsDialogService)
+        ISettingsDialogService settingsDialogService,
+        IAboutFundWindowService aboutFundWindowService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
-        _settingsDialogService = settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
+        _settingsDialogService =
+            settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
+        _aboutFundWindowService =
+            aboutFundWindowService ?? throw new ArgumentNullException(nameof(aboutFundWindowService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
@@ -345,13 +353,14 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IsStreamingMode = false;
 
         // Initialize commands with CommandManager integration enabled
-        RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, useCommandManager: true);
-        ReloadBrowserCommand = new DelegateCommand(ExecuteReloadBrowser, CanExecuteReloadBrowser, useCommandManager: true);
-        LoadNextBatchCommand = new DelegateCommand(ExecuteLoadNextBatch, CanExecuteLoadNextBatch, useCommandManager: true);
-        StartSessionCommand = new DelegateCommand(ExecuteStartSession, CanExecuteStartSession, useCommandManager: true);
-        StopSessionCommand = new DelegateCommand(ExecuteStopSession, CanExecuteStopSession, useCommandManager: true);
+        RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
+        ReloadBrowserCommand = new DelegateCommand(ExecuteReloadBrowser, CanExecuteReloadBrowser, true);
+        LoadNextBatchCommand = new DelegateCommand(ExecuteLoadNextBatch, CanExecuteLoadNextBatch, true);
+        StartSessionCommand = new DelegateCommand(ExecuteStartSession, CanExecuteStartSession, true);
+        StopSessionCommand = new DelegateCommand(ExecuteStopSession, CanExecuteStopSession, true);
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
         OpenSettingsCommand = new DelegateCommand(ExecuteOpenSettings);
+        OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
 
         // Set up subscriptions to orchestrator streams
         SetupOrchestratorSubscriptions();
@@ -369,6 +378,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _options = new YieldRaccoonOptions { FundListPageUrlOverviewTab = "https://example.com" };
         _orchestrator = null!; // Design-time only
         _settingsDialogService = null!; // Design-time only
+        _aboutFundWindowService = null!; // Design-time only
 
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
@@ -397,6 +407,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         StopSessionCommand = new DelegateCommand(() => { });
         LoadedCommand = new DelegateCommand(() => { });
         OpenSettingsCommand = new DelegateCommand(() => { });
+        OpenAboutFundCommand = new DelegateCommand(() => { });
     }
 
     #region Orchestrator Subscriptions
@@ -468,19 +479,14 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         // Update existing items or add new ones (preserves ViewModels for proper INPC)
         foreach (var batch in batches)
         {
-            var existing = ScheduledBatches.FirstOrDefault(
-                vm => vm.BatchNumber.Value == batch.BatchNumber.Value);
+            var existing = ScheduledBatches.FirstOrDefault(vm => vm.BatchNumber.Value == batch.BatchNumber.Value);
 
             if (existing != null)
-            {
                 // Update existing ViewModel - this triggers INPC properly
                 existing.UpdateFrom(batch);
-            }
             else
-            {
                 // Add new ViewModel
                 ScheduledBatches.Add(ScheduledBatchItemViewModel.FromModel(batch));
-            }
         }
 
         // Remove items that no longer exist in the source
@@ -489,10 +495,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             .Where(vm => !batchNumbers.Contains(vm.BatchNumber.Value))
             .ToList();
 
-        foreach (var item in toRemove)
-        {
-            ScheduledBatches.Remove(item);
-        }
+        foreach (var item in toRemove) ScheduledBatches.Remove(item);
     }
 
     /// <summary>
@@ -550,6 +553,16 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
+    /// Executes the open AboutFund command.
+    /// Shows the AboutFund browser window via the window service.
+    /// </summary>
+    private void ExecuteOpenAboutFund()
+    {
+        _logger.Debug("Open AboutFund window command executed");
+        _aboutFundWindowService.ShowAboutFundWindow();
+    }
+
+    /// <summary>
     /// Determines whether the refresh command can be executed.
     /// </summary>
     private bool CanExecuteRefresh()
@@ -598,7 +611,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteLoadNextBatch()
     {
         var canExecute = IsWebView2Ready && FundCount > 0 && !IsPaginationInProgress && TotalFundCount > FundCount;
-        _logger.Trace("CanExecuteLoadNextBatch: WebView2Ready={0}, FundCount={1}, InProgress={2}, Total={3}, returning {4}",
+        _logger.Trace(
+            "CanExecuteLoadNextBatch: WebView2Ready={0}, FundCount={1}, InProgress={2}, Total={3}, returning {4}",
             IsWebView2Ready, FundCount, IsPaginationInProgress, TotalFundCount, canExecute);
         return canExecute;
     }
@@ -619,7 +633,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteStartSession()
     {
         var canExecute = IsWebView2Ready && FundCount > 0 && !IsSessionActive && TotalFundCount > FundCount;
-        _logger.Trace("CanExecuteStartSession: WebView2Ready={0}, FundCount={1}, SessionActive={2}, Total={3}, returning {4}",
+        _logger.Trace(
+            "CanExecuteStartSession: WebView2Ready={0}, FundCount={1}, SessionActive={2}, Total={3}, returning {4}",
             IsWebView2Ready, FundCount, IsSessionActive, TotalFundCount, canExecute);
         return canExecute;
     }
@@ -732,10 +747,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Update UI counts
         FundCount = Funds.Count;
-        if (fundData.TotalCount.HasValue)
-        {
-            TotalFundCount = fundData.TotalCount.Value;
-        }
+        if (fundData.TotalCount.HasValue) TotalFundCount = fundData.TotalCount.Value;
 
         _logger.Info("Processed funds: {0} added, {1} updated (total: {2}/{3})",
             addedCount, updatedCount, FundCount, TotalFundCount);
@@ -750,21 +762,15 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         if (fundDtos.Count > 0)
         {
             if (IsSessionActive)
-            {
                 // Session active: orchestrator handles persistence + event publishing (fire-and-forget)
                 _ = _orchestrator.NotifyBatchLoadedAsync(fundDtos, FundCount, fundData.HasMore);
-            }
             else
-            {
                 // No session: just persist without session events (fire-and-forget)
                 _ = _orchestrator.IngestFundsAsync(fundDtos).ContinueWith(t =>
                 {
                     if (t.IsCompletedSuccessfully)
-                    {
                         _logger.Info("Persisted {0} funds to database (no active session)", t.Result);
-                    }
                 });
-            }
         }
 
         // Handle UI status updates and pagination (only when no active session)
