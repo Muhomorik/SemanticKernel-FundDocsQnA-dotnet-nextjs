@@ -6,8 +6,9 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 | --------- | ------------- |
 | **Semantic Search** | Vector embeddings for accurate document retrieval |
 | **Natural Language Q&A** | Ask questions, get answers with source citations |
-| **Low Cost** | Free-tier cloud services (Groq, OpenAI) |
+| **Low Cost** | Free-tier cloud services (Groq, OpenAI, Cosmos DB) |
 | **Local Processing** | Generate embeddings with LM Studio or Ollama |
+| **Flexible Storage** | In-memory (default) or Azure Cosmos DB vector search |
 
 ---
 
@@ -27,7 +28,7 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 
 ## 🤖 For AI Agents
 
-**IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md) to understand:cosmosdb-funddocs-2025-v1
+**IMPORTANT:** Before implementing any changes, consult [Status.md](Status.md)
 
 - What features are already implemented
 - Current implementation status of each component
@@ -50,8 +51,9 @@ A low-cost hobby project that enables semantic Q&A over PDF documents. Upload PD
 
 - Semantic search using vector embeddings
 - Natural language Q&A with source citations
-- Free-tier cloud services (Groq, OpenAI)
+- Free-tier cloud services (Groq, OpenAI, Cosmos DB)
 - Local embedding generation (LM Studio/Ollama)
+- Switchable vector storage: in-memory (default) or Azure Cosmos DB
 
 ---
 
@@ -59,15 +61,30 @@ A low-cost hobby project that enables semantic Q&A over PDF documents. Upload PD
 
 ```mermaid
 flowchart LR
-    subgraph Preprocessing
-        PDF[PDF Files] --> PRE[Preprocessor]
-        PRE --> EMB[embeddings.json]
-        PRE -.->|local| LOCAL[Ollama / LM Studio]
+    subgraph PdfTextExtractor ["PdfTextExtractor (extraction)"]
+        PDF[PDF Files] --> PTE[PdfTextExtractor]
+        PTE -->|native| PDFPIG[PdfPig]
+        PTE -.->|OCR| LMS[LM Studio / OpenAI]
+        PTE --> TXT[Text Files]
     end
 
-    subgraph Runtime
+    subgraph Preprocessor ["Preprocessor (embedding)"]
+        TXT --> PRE[Preprocessor]
+        PRE --> EMB[embeddings.json]
+        PRE -.->|local| LOCAL[Ollama / LM Studio]
+        PRE -.->|cloud| OAI_EMB[OpenAI Embeddings]
+    end
+
+    subgraph YieldRaccoon ["YieldRaccoon (data collection)"]
+        YR[YieldRaccoon] -->|WebView2| FP[Fund Provider]
+        YR --> DB[(SQLite)]
+    end
+
+    subgraph Runtime ["Backend + Frontend (retrieval & generation)"]
         FE[Frontend] --> API[Backend API]
-        EMB --> API
+        EMB -->|default| API
+        COSMOS[(Cosmos DB)] -.->|optional| API
+        DB -.->|planned| API
         API -->|embeddings & LLM| OAI[OpenAI API]
         API -.->|LLM alt| GROQ[Groq API]
     end
@@ -77,9 +94,11 @@ flowchart LR
 
 | Component | Tech Stack | Description |
 | ----------- | ------------ | ------------- |
-| [Preprocessor](Preprocessor/README.md) | .NET 9, PdfPig, Semantic Kernel | Extract text from PDFs, generate embeddings |
-| [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel | Semantic search + Q&A API |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | .NET 9, PdfPig, LM Studio, OpenAI | PDF text extraction library with native + OCR support |
+| [Preprocessor](Preprocessor/ReadMe.md) | .NET 9, Semantic Kernel | Read pre-extracted text files, generate embeddings (file or Cosmos DB) |
+| [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel, Cosmos DB | Semantic search + Q&A API with in-memory or Cosmos DB vector storage |
 | [Frontend](frontend/README.md) | Next.js 16, TypeScript, shadcn/ui | Chat interface |
+| [YieldRaccoon](YieldRaccoon/README.md) | .NET 9, WPF, EF Core, Rx.NET | Fund price crawler with DDD, CQRS, and WebView2 interception |
 
 ---
 
@@ -97,15 +116,25 @@ flowchart LR
 
 > **Configuration:** See [Configuration & Secrets Guide](docs/SECRETS-MANAGEMENT.md) for complete setup instructions.
 
-### 1. Generate Embeddings
+### 1. Extract Text from PDFs
+
+```bash
+cd PdfTextExtractor
+dotnet run --project PdfTextExtractor.Wpf
+# Use the WPF GUI to extract text files from your PDFs
+```
+
+See [PdfTextExtractor README](PdfTextExtractor/ReadMe.md) for CLI and API usage.
+
+### 2. Generate Embeddings
 
 ```bash
 cd Preprocessor/Preprocessor
-# Add PDFs to ./pdfs folder
+# Ensure text files from step 1 are in ./pdfs folder alongside the PDFs
 dotnet run
 ```
 
-### 2. Start Backend
+### 3. Start Backend
 
 ```bash
 cd backend/Backend.API
@@ -115,7 +144,7 @@ cp ../../Preprocessor/Preprocessor/bin/Debug/net9.0/output.json Data/embeddings.
 dotnet run
 ```
 
-### 3. Start Frontend
+### 4. Start Frontend
 
 ```bash
 cd frontend
@@ -131,11 +160,20 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ```plaintext
 .
-├── Preprocessor/           # PDF text extraction & embeddings
+├── Preprocessor/           # Embedding generation from pre-extracted text
 ├── backend/                # ASP.NET Core API
 │   ├── Backend.API/        # Main API project
 │   └── Backend.Tests/      # Unit tests
 ├── frontend/               # Next.js web app
+├── PdfTextExtractor/       # PDF extraction library (native + OCR)
+│   ├── PdfTextExtractor.Core/       # Core library (DDD, extractors, events)
+│   ├── PdfTextExtractor.Wpf/        # WPF desktop application
+│   └── PdfTextExtractor.Core.Tests/ # NUnit tests
+├── YieldRaccoon/           # Fund price crawler (WPF desktop)
+│   ├── YieldRaccoon.Domain/         # Business logic, entities, value objects
+│   ├── YieldRaccoon.Application/    # Use-case orchestration, interfaces
+│   ├── YieldRaccoon.Infrastructure/ # EF Core, event stores, services
+│   └── YieldRaccoon.Wpf/           # WPF UI with WebView2
 ├── docs/                   # Guides
 │   ├── AZURE-DEPLOYMENT.md
 │   └── SECRETS-MANAGEMENT.md
@@ -154,6 +192,7 @@ Deploy to Azure with near-zero cost (~$0.03/month):
 | Azure Static Web Apps | Free | $0 |
 | Application Insights | Free (5GB) | $0 |
 | Azure Key Vault | Standard | ~$0.03 |
+| Azure Cosmos DB | Free tier (1000 RU/s) | $0 |
 | OpenAI Embeddings | Pay-per-use | ~$0.003 |
 | Groq LLM | Free tier | $0 |
 
@@ -194,7 +233,9 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
 | [Backend API](backend/README.md) | API endpoints and configuration |
 | [Frontend](frontend/README.md) | Development and testing |
-| [Preprocessor](Preprocessor/README.md) | PDF processing options |
+| [Preprocessor](Preprocessor/ReadMe.md) | Embedding generation and providers |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | PDF extraction library (native + OCR) |
+| [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
 | [Project Status](Status.md) | Implementation progress |
 
 ---
@@ -203,10 +244,12 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 
 | Layer | Technologies |
 | ------- | -------------- |
-| **Preprocessor** | .NET 9, PdfPig, Semantic Kernel, Ollama/LM Studio |
-| **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq |
+| **Preprocessor** | .NET 9, Semantic Kernel, Ollama/LM Studio/OpenAI |
+| **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq, Cosmos DB |
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
-| **Infrastructure** | Azure App Service, Static Web Apps, Key Vault, Application Insights |
+| **PdfTextExtractor** | .NET 9, PdfPig, LM Studio, OpenAI, Rx.NET, WPF |
+| **YieldRaccoon** | .NET 9, WPF, EF Core, Rx.NET, WebView2, DevExpress MVVM, Autofac |
+| **Infrastructure** | Azure App Service, Static Web Apps, Key Vault, Application Insights, Cosmos DB |
 
 ---
 

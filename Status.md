@@ -1,10 +1,10 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-01-11 (Cosmos DB Throttling & Exponential Backoff Added)
+Last Updated: 2026-02-07 (IAboutFundPageInteractor: auto-click "Utvecklingen i SEK" checkbox after navigation via DDD abstraction)
 
 **Tech Stack:**
 
-- Preprocessor: .NET 9 Console App + PdfPig + Semantic Kernel
+- Preprocessor: .NET 9 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
 - Backend: ASP.NET Core 9 + Semantic Kernel + OpenAI (default) / Groq API (optional)
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
@@ -48,7 +48,8 @@ Last Updated: 2026-01-11 (Cosmos DB Throttling & Exponential Backoff Added)
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
 | Console Application | ✅ | .NET 9 with CommandLineParser |
-| PDF Text Extraction | ✅ | PdfPig with word-based smart chunking |
+| Text File Reading | ✅ | **UPDATED 2026-01-28**: TextFileExtractor reads pre-extracted text files from PdfTextExtractor (pattern: {basename}_page_{N}.txt), validates sequential pages, comprehensive tests (14 tests) |
+| Text Chunking | ✅ | **UPDATED 2026-01-28**: SemanticChunker only - paragraph-based splitting with 15% overlap (800 chars default), follows 2025 RAG best practices, preserves semantic boundaries, DI-based, AutoFixture + AutoMoq tests (23 tests) |
 | Embedding Generation | ✅ | Supports Ollama, LM Studio, OpenAI |
 | JSON Export | ✅ | Structured format (id, text, embedding, source, page) |
 | Append Mode | ✅ | Incremental processing of new PDFs |
@@ -56,8 +57,9 @@ Last Updated: 2026-01-11 (Cosmos DB Throttling & Exponential Backoff Added)
 | Provider Abstraction | ✅ | Ollama/LM Studio/OpenAI with secure API key management |
 | Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
 | Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
-| Unit Tests | ✅ | NUnit tests for services and extraction |
-| Documentation | ✅ | README with usage examples |
+| Unit Tests | ✅ | NUnit + AutoFixture + AutoMoq tests for services and extraction (56 tests passing) |
+| AI Evaluation Tests | ✅ | **NEW 2026-02-02**: `ExampleQueriesAIEvaluatedTests` - evaluates frontend queries for answerability against PRIIP/KID documents, generates markdown report with categories (single_doc_answerable, multi_doc_answerable, context_dependent, info_missing) and suggested rephrases. Requires OpenAI API key, marked `[Explicit]`. |
+| Documentation | ✅ | README with usage examples and architecture documentation |
 
 ### Planned Features
 
@@ -310,6 +312,340 @@ public enum VectorStorageType
 | Provisioned (400 RU/s) | 400 RU/s | Variable | ~$23/month | Consistent low traffic |
 
 **Estimated for this project:** $0/month (within free tier limits)
+
+---
+
+## Part 5: PdfTextExtractor.Core Library ✅ COMPLETED
+
+Reusable .NET library for PDF text extraction using Domain-Driven Design architecture. Supports multiple extraction methods (PdfPig, LM Studio OCR, Ollama OCR) with reactive event streams via Rx.NET.
+
+### Implementation Status
+
+| Component | Status | Notes |
+| ----------- | -------- | ------- |
+| Project Setup | ✅ | .NET 9.0 class library with 7 NuGet packages |
+| DDD Architecture | ✅ | Domain/ApplicationCore/Infrastructure layers, pure domain logic |
+| Autofac DI | ✅ | PdfTextExtractorModule with automatic service registration |
+| Rx.NET Events | ✅ | ReactiveEventPublisher exposing IObservable<PdfExtractionEventBase> |
+| Domain Events | ✅ | 23 events across 5 categories (Batch, Document, Page, OCR, TextProcessing, Infrastructure) |
+| Value Objects | ✅ | FilePath, PageNumber, ChunkContent, ExtractorType, SessionId, CorrelationId (immutable, self-validating) |
+| Domain Entities | ✅ | Document, Page, TextChunk with identity and lifecycle |
+| Aggregate Root | ✅ | ExtractionSession controlling documents and enforcing invariants |
+| PdfPig Extractor | ✅ | Complete implementation with text extraction, chunking, and event publishing |
+| LM Studio Extractor | ✅ | Stub implementation (planned for future) |
+| Ollama Extractor | ✅ | Stub implementation (planned for future) |
+| File System Services | ✅ | FileSystemService, TextFileWriter with async support |
+| Public API | ✅ | IPdfTextExtractorLib with three async extraction methods |
+| Configuration DTOs | ✅ | PdfPigParameters, LMStudioParameters, OllamaParameters |
+| Build Verification | ✅ | 0 build errors, 7 nullable warnings (expected for EF Core) |
+| Unit Testing | ✅ | 19 test classes, 70 test methods, 90% pass rate (63/70 passing), NUnit + AutoFixture + Moq |
+| Documentation | ✅ | Comprehensive README with icons, 5 Mermaid diagrams, tech stack, API reference |
+
+### Domain Events (23 Total)
+
+| Category | Events | Status |
+| --------- | -------- | -------- |
+| **Batch Events** | BatchExtractionStarted, Completed, Failed, Cancelled | ✅ Complete |
+| **Document Events** | DocumentExtractionStarted, Completed, Failed, Cancelled | ✅ Complete |
+| **Page Events** | PageExtractionStarted, Completed, Failed, EmptyPageDetected | ✅ Complete |
+| **OCR Events** | PageRasterizationStarted, Completed, Failed, OcrProcessingStarted, Completed, Failed | ✅ Complete |
+| **Text Processing** | TextChunked, ChunkCreated | ✅ Complete |
+| **Infrastructure** | TempImageSaved, TempFilesCleanedUp, ExtractionProgressUpdated | ✅ Complete |
+
+### Architecture
+
+**DDD Layers:**
+```
+Entry Point (PdfTextExtractorLib)
+    ↓
+ApplicationCore (Use cases, DTOs, orchestration)
+    ↓
+Domain (Entities, Value Objects, Events - PURE)
+    ↓
+Infrastructure (Extractors, File System, Event Bus)
+```
+
+**Key Patterns:**
+- Aggregate Root pattern (ExtractionSession)
+- Factory methods for entity creation
+- Immutable value objects with validation
+- Event-driven architecture with reactive streams
+- Repository Pattern (IExtractionSessionRepository)
+- Separation of concerns (Domain has ZERO external dependencies)
+
+### NuGet Dependencies
+
+| Package | Version | Purpose |
+| --------- | --------- | --------- |
+| Autofac | 8.0.0 | Dependency injection container |
+| System.Reactive | 6.0.0 | Rx.NET for IObservable event streams |
+| PdfPig | 0.1.12 | PDF text extraction |
+| SixLabors.ImageSharp | 3.1.12 | Image processing for OCR (future) |
+| Microsoft.Extensions.Http | 9.0.0 | HTTP client for LM Studio/Ollama APIs (future) |
+| System.Text.Json | 9.0.0 | JSON serialization |
+| Microsoft.Extensions.Logging.Abstractions | 9.0.0 | Logging infrastructure |
+
+### Public API Methods
+
+| Method | Parameters | Return Type | Status |
+| -------- | ------------ | ------------- | -------- |
+| `ExtractWithPdfPigAsync` | PdfPigParameters | Task<ExtractionResult> | ✅ Implemented |
+| `ExtractWithLMStudioAsync` | LMStudioParameters | Task<ExtractionResult> | 🚧 Stub |
+| `ExtractWithOllamaAsync` | OllamaParameters | Task<ExtractionResult> | 🚧 Stub |
+| `GetPdfFiles` | string folderPath | string[] | ✅ Implemented |
+| `GetTextFiles` | string folderPath | string[] | ✅ Implemented |
+| `Events` | - | IObservable<PdfExtractionEventBase> | ✅ Implemented |
+
+### Documentation
+
+| Component | Status | Notes |
+| ----------- | -------- | ------- |
+| README.md | ✅ Complete | AI-agent optimized with icons, 5 Mermaid.js diagrams, tech stack section |
+| Table of Contents | ✅ Complete | Anchor links for all sections |
+| Quick Start Guide | ✅ Complete | 3-step guide with code examples |
+| API Reference | ✅ Complete | All methods with signatures, parameters, return types |
+| Event Catalog | ✅ Complete | All 23 events documented with code examples |
+| Project Structure | ✅ Complete | ASCII tree view of DDD layers |
+| Usage Examples | ✅ Complete | CLI and WPF integration examples |
+| Tech Stack Badges | ✅ Complete | .NET 9.0, C# 12.0 badges with tables |
+| Mermaid Diagrams | ✅ Complete | DDD layers, project structure, domain layer, sequence diagram, event flow |
+
+### Mermaid Diagrams (5 Total)
+
+1. **DDD Layered Architecture** - Graph showing Entry Point → ApplicationCore → Domain → Infrastructure
+2. **Project Structure** - Relationship graph of all major components
+3. **Domain Layer Structure** - Detailed view of Aggregates, Entities, Value Objects, Events
+4. **Event Sequence Diagram** - User → API → Extractor → EventPublisher flow
+5. **Event Flow Diagram** - Decision tree for event types and categories
+
+### Future Enhancements (Planned)
+
+| Feature | Phase | Status | Notes |
+| --------- | ------- | -------- | ------- |
+| LM Studio OCR | Phase 6 | 📅 Planned | Rasterize PDF pages, call LM Studio vision API, extract text from response |
+| Ollama OCR | Phase 7 | 📅 Planned | Rasterize PDF pages, call Ollama vision API, extract text from response |
+| Page Rasterization | Phase 8 | 📅 Planned | Configurable DPI, temp file management |
+| Parallel Processing | Phase 8 | 📅 Planned | Batch processing optimization, parallel page processing |
+| Retry Logic | Phase 8 | 📅 Planned | API failure recovery for OCR endpoints |
+| Confidence Scoring | Phase 8 | 📅 Planned | OCR quality metrics |
+
+### Build Status
+
+```bash
+cd PdfTextExtractor/PdfTextExtractor.Core
+dotnet build
+# Result: Build succeeded
+# Errors: 0
+# Warnings: 7 (nullable references - expected for EF Core entities)
+```
+
+### Project Location
+
+`PdfTextExtractor/PdfTextExtractor.Core/` (50+ files)
+
+---
+
+## Part 6: YieldRaccoon.Wpf Desktop Application ✅ COMPLETED
+
+WPF desktop application implementing Model-View-ViewModel pattern using DevExpress MVVM framework, Autofac dependency injection, and MahApps.Metro modern UI styling.
+
+### Implementation Status
+
+| Component | Status | Notes |
+| ----------- | -------- | ------- |
+| Project Setup | ✅ | .NET 9.0 WPF with Windows 10.0.26100.0 target framework |
+| MVVM Architecture | ✅ | **Completed 2026-01-28**: DevExpress ViewModelBase, property change notification, ICommand implementation |
+| MainWindowViewModel | ✅ | **Completed 2026-01-28**: Title and StatusMessage properties, RefreshCommand, IDisposable implementation |
+| Autofac DI Container | ✅ | **Completed 2026-01-28**: Configured in App.xaml.cs OnStartup, ViewModel and View registration, constructor injection |
+| MahApps.Metro UI | ✅ | **Completed 2026-01-28**: MetroWindow conversion, Light.Blue theme, resource dictionaries in App.xaml |
+| Data Binding | ✅ | **Completed 2026-01-28**: Title binding, StatusMessage binding, Command binding |
+| Constructor Injection | ✅ | **Completed 2026-01-28**: MainWindow receives MainWindowViewModel via constructor, DataContext set in constructor |
+| Fund Repository Integration | ✅ | **Completed 2026-01-29**: IFundRepository DI registration, FundMapper (InterceptedFund → Fund), repository persistence in OnFundDataReceived, thread-safe in-memory storage via ConcurrentDictionary |
+| InMemory Repository Provider | ✅ | **NEW 2026-01-29**: InMemoryFundProfileRepository + InMemoryFundHistoryRepository implementations with ConcurrentDictionary storage, DatabaseProvider enum for switching (InMemory/SQLite), conditional DI registration in PresentationModule, README updated with mermaid architecture diagram |
+| Fund Ingestion Integration | ✅ | **NEW 2026-01-29**: ICrawlSessionOrchestrator now coordinates database persistence via IFundIngestionService. NotifyBatchLoaded accepts FundDataDto collection, maps to domain entities (FundProfile + FundHistoryRecord), and persists to configured repository (InMemory or SQLite). Added FundDataDtoMapper (InterceptedFund → FundDataDto). |
+| Streaming Mode Privacy | ✅ | **Completed 2026-01-29**: ToggleSwitch in browser toolbar, WebView2 screenshot capture via `CapturePreviewAsync`, Magick.NET OilPaint effect (radius: 6, sigma: 1), "🔴 STREAMING" overlay indicator, auto-update on navigation complete |
+| Build Verification | ✅ | **Completed 2026-01-29**: Clean build with 0 errors, 0 warnings, all nullability warnings resolved |
+
+### NuGet Dependencies
+
+| Package | Version | Purpose |
+| --------- | --------- | --------- |
+| **Autofac** | 9.0.0 | Dependency injection container |
+| **DevExpressMvvm** | 24.1.6 | MVVM framework (ViewModelBase, DelegateCommand) |
+| **MahApps.Metro** | 2.4.11 | Modern WPF UI controls and themes |
+| **System.Reactive** | 6.1.0 | Reactive Extensions for IObservable patterns |
+| **NLog** | 6.0.7 | Logging framework (infrastructure ready) |
+| **NLog.Extensions.Logging** | 6.1.0 | NLog integration with Microsoft.Extensions.Logging |
+| **Magick.NET-Q8-AnyCPU** | 14.10.2 | ImageMagick for streaming mode OilPaint effect |
+
+### Architecture
+
+**MVVM Pattern:**
+```
+View (MainWindow.xaml)
+    ↓ DataBinding
+ViewModel (MainWindowViewModel)
+    ↓ Business Logic
+Model (Application/Infrastructure layers)
+```
+
+**Dependency Injection:**
+```
+App.xaml.cs (OnStartup)
+    ↓ Configure
+ContainerBuilder
+    ↓ Register
+ViewModels + Views
+    ↓ Resolve
+MainWindow(MainWindowViewModel)
+```
+
+**Key Patterns:**
+- DevExpress ViewModelBase with GetProperty/SetProperty
+- DelegateCommand for ICommand implementation
+- Autofac constructor injection
+- IDisposable for resource cleanup
+- Tell-don't-ask principle (ViewModel drives UI state)
+
+### Components
+
+**ViewModels:**
+- ✅ `MainWindowViewModel` - Main window ViewModel with Title, StatusMessage properties and RefreshCommand
+
+**Views:**
+- ✅ `MainWindow` - MetroWindow with data binding to MainWindowViewModel
+- ✅ Status bar with StatusMessage display and Refresh button
+
+**Application:**
+- ✅ `App.xaml.cs` - Autofac container configuration, OnStartup/OnExit lifecycle management
+
+**Theme:**
+- ✅ MahApps.Metro Light.Blue theme applied globally
+- ✅ MetroWindow with centered startup location and normal title casing
+
+### DevExpress MVVM Best Practices (Applied)
+
+- ✅ Inherits from ViewModelBase
+- ✅ Uses GetProperty<T>() / SetProperty<T>() for observable properties
+- ✅ Uses DelegateCommand for ICommand
+- ✅ Implements IDisposable for cleanup
+- ✅ Follows tell-don't-ask principle
+- ✅ ViewModels are testable (no UI dependencies)
+- ✅ Constructor injection via Autofac
+
+### Build Status
+
+```bash
+cd YieldRaccoon/YieldRaccoon/YieldRaccoon.Wpf
+dotnet build
+# Result: Build succeeded
+# Errors: 0
+# Warnings: 0
+```
+
+### Project Location
+
+`YieldRaccoon/YieldRaccoon/YieldRaccoon.Wpf/` (MainWindow, App, ViewModels folder)
+
+### Domain Events Redesign ✅ COMPLETED (2026-01-29)
+
+Redesigned domain events for batch-based fund crawling from paginated list pages (clicking "Visa fler" ~74 times) instead of visiting individual fund pages with 4 tabs.
+
+**Key Changes:**
+
+| Change | Details |
+| -------- | ------- |
+| **Removed** | `FundPageTab.cs` value object (no tab navigation needed) |
+| **Removed** | 11 old events: TabNavigation*, TabDataExtraction*, NextCrawlScheduled, CrawlDelay*, CrawlSessionTimedOut |
+| **Added** | `BatchNumber.cs` value object (1-based, strongly-typed batch number) |
+| **Added** | `Fund.cs` entity (domain entity with 25+ properties from fund list) |
+| **Modified** | Session events (CrawlSessionStarted/Completed/Failed) with timing data and batch timestamps |
+| **Added** | `CrawlSessionCancelled.cs` event (user cancellation) |
+| **Added** | 6 BatchLoad events (Scheduled, Started, Completed, Failed, DelayStarted, DelayCompleted) |
+
+**New Domain Events (12 Total):**
+
+| Category | Events | Status |
+| --------- | -------- | -------- |
+| **Session Lifecycle** | CrawlSessionStarted, Completed, Failed, Cancelled | ✅ Complete |
+| **Batch Load** | BatchLoadScheduled, Started, Completed, Failed | ✅ Complete |
+| **Batch Delay** | BatchLoadDelayStarted, BatchLoadDelayCompleted | ✅ Complete |
+| **Daily Scheduling** | DailyCrawlScheduled, DailyCrawlReady | ✅ Complete (simplified) |
+
+**New Repositories & Event Store:**
+
+| Component | Layer | Status | Notes |
+| ----------- | ------- | -------- | ------- |
+| `IFundRepository.cs` | Application | ✅ | Fund data access interface (CRUD by ISIN) |
+| `InMemoryFundRepository.cs` | Infrastructure | ✅ | `ConcurrentDictionary<FundId, Fund>` implementation, thread-safe singleton |
+| `ICrawlEventStore.cs` | Application | ✅ | Append-only event log with query projections |
+| `InMemoryCrawlEventStore.cs` | Infrastructure | ✅ | `List<IDomainEvent>` with LINQ projections |
+| `FundMapper.cs` | Mappers | ✅ | **NEW 2026-01-29**: Extension methods for InterceptedFund → Fund conversion with ISIN validation |
+| **Repository Population** | Integration | ✅ | **NEW 2026-01-29**: Crawled funds now persisted to repository during `OnFundDataReceived()` via `AddOrUpdateRange()` |
+
+**Architecture (Event-Driven with Rx.NET):**
+
+```text
+CrawlOrchestrationService
+    ↓ Append events
+ICrawlEventStore (query projections)
+    ↓ Update funds
+IFundRepository (CRUD by ISIN)
+    ↓ Rx.NET timers
+Observable.Timer (20-60s random delays)
+```
+
+### AboutFund 3-Column Layout + Fund Overview Browsing ✅ COMPLETED (2026-02-07)
+
+Refactored the AboutFund window from a 2-column layout (WebView2 + Network Inspector) to a 3-column layout matching MainWindow (fund schedule | browser | control panel). Added independent domain events for fund browsing sessions with Rx.NET orchestration.
+
+**Layout:**
+
+| Column | Width | Content |
+| -------- | ------- | --------- |
+| Left | 280px | Fund schedule (sorted by history count ascending) |
+| Middle | * | WebView2 browser (preserved) |
+| Right | 350px | Overview control panel (session controls, events, options) |
+
+**New Domain Events (Independent from ICrawlEvent):**
+
+| Category | Events | Status |
+| --------- | -------- | -------- |
+| **Session Lifecycle** | AboutFundSessionStarted, Completed, Cancelled | ✅ Complete |
+| **Navigation** | AboutFundNavigationStarted, Completed, Failed | ✅ Complete |
+
+**New Components (20 new files, 8 modified):**
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `IAboutFundEvent` interface, 6 event records, `AboutFundSessionId` value object | ✅ |
+| **Application** | `AboutFundScheduleItem` DTO, `AboutFundSessionState` model, `IAboutFundEventStore`, `IAboutFundOrchestrator` | ✅ |
+| **Infrastructure** | `InMemoryAboutFundEventStore`, `AboutFundOrchestrator` (Rx.NET with auto-advance timer) | ✅ |
+| **Presentation** | `AboutFundScheduleView/VM`, `AboutFundControlPanelView/VM`, `AboutFundEventViewModel` | ✅ |
+| **Extracted** | `InterceptorView/VM` (fully decoupled, own generic types: `InterceptedHttpRequest/VM`) | ✅ |
+| **Wired Up** | `IAboutFundResponseInterceptor` registered in DI, initialized in `AboutFundWindow` code-behind | ✅ |
+| **Data Flow** | `AboutFundInterceptedRequest` moved to Application layer, interceptor→orchestrator via code-behind forwarding, URL filtering added | ✅ |
+| **Refactored** | `AboutFundWindow.xaml` (3-col), `AboutFundWebView2Behavior`, `PresentationModule` (DI), `YieldRaccoonOptions` | ✅ |
+
+**Key Features:**
+
+- Fund schedule loaded from DB, sorted by history record count (ascending - least data first)
+- Manual "Start Overview" button + optional AutoStartOverview toggle
+- Auto-advance timer (12s) when AutoStartOverview is enabled
+- Session cancellation on window close or Stop button
+- Event log panel showing real-time browsing events with icons
+- URL template uses OrderbookId externally (`{0}` placeholder), ISIN internally
+
+### Future Enhancements (Planned)
+
+| Feature | Status | Notes |
+| --------- | -------- | ------- |
+| CrawlOrchestrationService | 📅 Planned | Application service coordinating crawl sessions with Rx.NET |
+| Additional ViewModels | 📅 Planned | Create ViewModels for specific features |
+| User Controls | 📅 Planned | Break down MainWindow into smaller user controls |
+| Rx.NET Integration | 📅 Planned | Leverage System.Reactive for reactive patterns |
+| NLog Configuration | 📅 Planned | Set up logging configuration when needed |
+| Unit Tests | 📅 Planned | Test ViewModels with NUnit + AutoFixture + Moq |
 
 ---
 

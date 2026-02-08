@@ -1,0 +1,167 @@
+{
+  "groups": [
+    {
+      "title": "Quick Start",
+      "categories": [
+        {
+          "title": "Getting Started",
+          "queries": [
+            "Show me all available funds",
+            "Which funds have low risk (level 1-3)?",
+            "Which funds invest in Swedish stocks?",
+            "I want low risk",
+            "Compare costs of all funds",
+            "Which funds pay dividends?",
+            "Which funds have a recommended holding period of at least 5 years?",
+            "Show me emerging market options"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Comparison Questions",
+      "categories": [
+        {
+          "title": "Direct Comparisons",
+          "queries": [
+            "Compare SEB Sverigefond and SEB Sverige Expanderad",
+            "Compare the two Emerging Markets funds",
+            "Compare all Swedish equity funds",
+            "Compare all bond funds",
+            "Compare all global/world funds",
+            "What's the difference between SEB Nordenfond and SEB Sverigefond?"
+          ]
+        },
+        {
+          "title": "Best/Worst Analysis",
+          "queries": [
+            "Which fund has the best positive scenario return?",
+            "Which fund has the worst stress scenario?",
+            "Which fund has the highest neutral scenario return?",
+            "Which equity fund has the lowest costs?",
+            "Which bond fund has the lowest risk?"
+          ]
+        },
+        {
+          "title": "Thematic",
+          "queries": [
+            "Which funds have a low risk level (1-3)?",
+            "Which funds have a high risk level (5-7)?",
+            "Which funds provide geographic diversification?",
+            "Which funds invest in defense and security sectors?"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Specific Funds",
+      "categories": [
+        {
+          "title": "SEB Korträntefond SEK",
+          "queries": [
+            "Why is SEB Korträntefond SEK considered a low risk fund?",
+            "What types of bonds does SEB Korträntefond SEK invest in?",
+            "What is the interest rate duration for SEB Korträntefond SEK?"
+          ]
+        },
+        {
+          "title": "SEB European Defence & Security",
+          "queries": [
+            "What sectors does SEB European Defence & Security invest in?",
+            "Can SEB European Defence & Security invest outside Europe?",
+            "What is SEB European Defence & Security's approach to defense investments?"
+          ]
+        },
+        {
+          "title": "SEB Asienfond ex Japan",
+          "queries": [
+            "What geographic region does SEB Asienfond ex Japan focus on?",
+            "Can SEB Asienfond ex Japan invest in mainland China?",
+            "What is quantitative analysis in the context of SEB Asienfond ex Japan?"
+          ]
+        },
+        {
+          "title": "SEB Världenfond",
+          "queries": [
+            "What is SEB Världenfond's allocation between stocks and bonds?",
+            "How is the Swedish portion of SEB Världenfond managed differently from the global portion?",
+            "What does the composite benchmark for SEB Världenfond represent?"
+          ]
+        },
+        {
+          "title": "SEB Global High Yield",
+          "queries": [
+            "What type of bonds does SEB Global High Yield invest in?",
+            "What is SEB Global High Yield's credit quality focus?",
+            "Why is the energy sector excluded from SEB Global High Yield's benchmark?"
+          ]
+        },
+        {
+          "title": "SEB USA Indexnära",
+          "queries": [
+            "How closely does SEB USA Indexnära track its benchmark?",
+            "Why might SEB USA Indexnära deviate from its benchmark?",
+            "Where is SEB USA Indexnära domiciled?"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Single Fund Questions",
+      "categories": [
+        {
+          "title": "Risk & Returns",
+          "queries": [
+            "What is the fund's risk level (1-7)?",
+            "What does the risk indicator mean?",
+            "What are the potential returns in different scenarios?",
+            "What could I get back in a stress scenario?",
+            "What could I get back in a negative scenario?",
+            "What could I get back in a neutral scenario?",
+            "What could I get back in a positive scenario?",
+            "Is there any capital guarantee?",
+            "What currency risk should I be aware of?",
+            "Is there any protection against market risk?"
+          ]
+        },
+        {
+          "title": "Costs",
+          "queries": [
+            "What are the total annual costs?",
+            "What is the management fee?",
+            "What are the transaction costs?",
+            "Are there any entry fees?",
+            "Are there any exit fees?",
+            "Are there any performance fees?",
+            "How do costs affect my returns over time?",
+            "What is the annual cost impact percentage?"
+          ]
+        },
+        {
+          "title": "Investing",
+          "queries": [
+            "What is the recommended holding period?",
+            "Can I sell my shares at any time?",
+            "When can I buy and sell shares?",
+            "Who is this fund suitable for?",
+            "Do I need special knowledge to invest?",
+            "What happens if I redeem before the recommended holding period?"
+          ]
+        },
+        {
+          "title": "Practical Info",
+          "queries": [
+            "What is the fund's ISIN code?",
+            "Who manages this fund?",
+            "Who is the custodian/depositary?",
+            "How do I file a complaint about an investment fund?",
+            "Where can I find more information?",
+            "What happens to my investment if SEB Funds AB goes bankrupt?",
+            "Does this share class pay dividends?",
+            "Where is the fund domiciled?"
+          ]
+        }
+      ]
+    }
+  ]
+}

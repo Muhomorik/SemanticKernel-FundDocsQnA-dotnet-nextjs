@@ -3,15 +3,27 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(dotnet restore:*)",
+      "mcp__microsoft-learn__microsoft_docs_search",
+      "mcp__microsoft-learn__microsoft_code_sample_search",
+      "mcp__microsoft-learn__microsoft_docs_fetch",
+      "Bash(ls:*)"
     ],
-    "deny": [],
+    "deny": [
+      "Bash(git diff:*)",
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git reflog:*)"
+    ],
     "ask": []
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "microsoft-learn",
     "next-devtools",
-    "shadcn"
+    "shadcn",
+    "dxdocs"
   ]
 }

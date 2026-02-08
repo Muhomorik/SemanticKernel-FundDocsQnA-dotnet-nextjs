@@ -33,7 +33,7 @@ public class CliOptionsParsingTests
         Assert.That(opts.Input, Is.EqualTo("pdfs"));
         Assert.That(opts.Output, Is.EqualTo("./embeddings.json"));
         Assert.That(opts.Append, Is.False);
-        Assert.That(opts.Method, Is.EqualTo("pdfpig"));
+        // Assert.That(opts.Method, Is.EqualTo("pdfpig")); // Removed - Method property no longer exists
         Assert.That(opts.Provider, Is.EqualTo(EmbeddingProvider.OpenAI));
         Assert.That(opts.EmbeddingModel, Is.EqualTo("text-embedding-3-small"));
     }
@@ -48,7 +48,6 @@ public class CliOptionsParsingTests
             "-i", "./my-pdfs",
             "-o", "./my-output.json",
             "-a",
-            "-m", "pdfpig",
             "-p", "Ollama",
             "--embedding-model", "nomic-embed-text",
             "--ollama-url", "http://localhost:11434",
@@ -68,7 +67,7 @@ public class CliOptionsParsingTests
         Assert.That(opts.Input, Is.EqualTo("./my-pdfs"));
         Assert.That(opts.Output, Is.EqualTo("./my-output.json"));
         Assert.That(opts.Append, Is.True);
-        Assert.That(opts.Method, Is.EqualTo("pdfpig"));
+        // Assert.That(opts.Method, Is.EqualTo("pdfpig")); // Removed - Method property no longer exists
         Assert.That(opts.Provider, Is.EqualTo(EmbeddingProvider.Ollama));
         Assert.That(opts.EmbeddingModel, Is.EqualTo("nomic-embed-text"));
         Assert.That(opts.OllamaUrl, Is.EqualTo("http://localhost:11434"));
@@ -327,21 +326,21 @@ public class CliOptionsParsingTests
 
     #region Validation Tests
 
-    [Test]
-    public void JsonOptions_Validate_InvalidMethod_ReturnsError()
-    {
-        // Arrange
-        var args = new[] { "json", "-m", "invalid-method", "-i", "." }; // Use current directory as input
-        var result = Parser.Default.ParseArguments<JsonOptions, CosmosDbOptions>(args);
-        var opts = (JsonOptions)((Parsed<object>)result).Value;
-
-        // Act
-        var errors = opts.Validate().ToList();
-
-        // Assert
-        Assert.That(errors, Has.Count.EqualTo(1));
-        Assert.That(errors[0], Does.Contain("Invalid method"));
-    }
+    // [Test] // Commented out - Method parameter removed
+    // public void JsonOptions_Validate_InvalidMethod_ReturnsError()
+    // {
+    //     // Arrange
+    //     var args = new[] { "json", "-m", "invalid-method", "-i", "." }; // Use current directory as input
+    //     var result = Parser.Default.ParseArguments<JsonOptions, CosmosDbOptions>(args);
+    //     var opts = (JsonOptions)((Parsed<object>)result).Value;
+    //
+    //     // Act
+    //     var errors = opts.Validate().ToList();
+    //
+    //     // Assert
+    //     Assert.That(errors, Has.Count.EqualTo(1));
+    //     Assert.That(errors[0], Does.Contain("Invalid method"));
+    // }
 
     [Test]
     public void JsonOptions_Validate_NonExistentInputDirectory_ReturnsError()

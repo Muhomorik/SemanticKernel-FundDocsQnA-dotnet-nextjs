@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🎭 Communication Style
+
+This is a personal hobby project. Be warm, friendly, and human — like a coding buddy, not a corporate assistant. Humor is welcome and encouraged. Use casual language, share enthusiasm about cool solutions, crack a joke when the moment calls for it, and celebrate wins together. Skip the robotic "I'll help you with that" phrasing — just be yourself and have fun building things.
+
 **🚨 MANDATORY:** All implementation work requires updating [Status.md](Status.md). This is **NOT OPTIONAL** and is part of the Definition of Done. See workflow below.
 
 ## 🚨 MANDATORY WORKFLOW: Status.md Updates
@@ -12,6 +16,7 @@ Source of truth for project status: **[Status.md](Status.md)**
 
 ### Before Starting ANY Work
 
+- [ ] Read the relevant README.md file(s) for the component you're working on — they contain important context, architecture details, and setup instructions
 - [ ] Read Status.md to understand what's implemented, in-progress, or planned
 - [ ] Check if your feature/task is already listed in Status.md
 - [ ] **Avoid duplicating work:** If listed as ✅ or ⏳, do not restart from scratch
@@ -29,7 +34,7 @@ Source of truth for project status: **[Status.md](Status.md)**
 
 **A task is NOT complete until Status.md is updated.** Status.md is the source of truth and must stay synchronized with the codebase at all times.
 
-### Additional Guidance:
+### Additional Guidance
 
 - Keep costs low: When suggesting infrastructure, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 
@@ -49,11 +54,13 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | ---------- | ------------- |
 | [Status.md](Status.md) | Implementation progress tracker (check first!) |
 | [README.md](README.md) | Project overview, quick start, architecture |
-| [Preprocessor/README.md](Preprocessor/README.md) | PDF processing and embedding options |
-| [backend/README.md](backend/README.md) | Semantic search & API setup, troubleshooting |
-| [frontend/README.md](frontend/README.md) | Next.js chat UI, scripts, testing |
-| [docs/SECRETS-MANAGEMENT.md](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, configuration |
-| [docs/AZURE-DEPLOYMENT.md](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
+| [Configuration & Secrets](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, settings |
+| [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
+| [Backend API](backend/README.md) | API endpoints and configuration |
+| [Frontend](frontend/README.md) | Development and testing |
+| [Preprocessor](Preprocessor/ReadMe.md) | Embedding generation and providers |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | PDF extraction library (native + OCR) |
+| [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
 
 ## Build & Run Commands
 
@@ -214,269 +221,14 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 ## Testing Guidelines
 
-### Framework & Libraries
-  
-**Backend (.NET/C#):**
+Complete testing guidelines have been moved to the `dotnet-unit-testing-nunit` skill.
 
-- **Test Framework:** NUnit
-- **Mocking:** AutoFixture.AutoMoq (automatic mock creation)
-- **Test Data:** AutoFixture (generates realistic test data)
+**Quick Reference:**
 
-Key Principles
+- Use NUnit + AutoFixture + AutoMoq for all .NET tests
+- Always resolve SUT from AutoFixture (never `new`)
+- Follow AAA pattern (Arrange, Act, Assert)
+- Test naming: `MethodName_Scenario_ExpectedBehavior`
+- Mock all external dependencies
 
-✅ Always resolve SUT from AutoFixture (never new).
-✅ Use Freeze() for shared dependencies.
-✅ Follow AAA pattern (Arrange, Act, Assert).
-✅ Test naming: MethodName_Scenario_ExpectedBehavior.
-✅ Mock all external dependencies (file system, APIs, Semantic Kernel).
-✅ One test focus (but multiple Assert.That() OK).
-✅ Test happy paths and valid scenarios.
-✅ Verify mock interactions for orchestration.
-✅ Keep tests fast (no real I/O, no network).
-✅ Isolated tests (no shared state).
-❌ Don't manually construct objects.
-❌ Don't use real file system.
-❌ Don't call real APIs.
-❌ Don't share state between tests.
-❌ Don't test framework code.
-❌ Don't over-mock (only interfaces).
-❌ Don't test exception throwing (no Assert.Throws, no validation failure tests).
-
-**Required NuGet Packages:**
-
-```bash
-dotnet add package NUnit
-dotnet add package NUnit3TestAdapter
-dotnet add package Microsoft.NET.Test.Sdk
-dotnet add package AutoFixture
-dotnet add package AutoFixture.AutoMoq
-dotnet add package Moq
-```
-
-### Test Structure (AAA Pattern)
-
-Always structure tests using the **Arrange, Act, Assert** pattern:
-
-```csharp
-[Test]
-public void MethodName_Scenario_ExpectedBehavior()
-{
-    // Arrange
-    var fixture = new Fixture().Customize(new AutoMoqCustomization());
-    var dependency = fixture.Freeze<Mock<IDependency>>();
-    dependency.Setup(x => x.Method()).Returns("expected");
-
-    var sut = fixture.Create<ServiceUnderTest>(); // System Under Test
-
-    // Act
-    var result = sut.MethodToTest();
-
-    // Assert
-    Assert.That(result, Is.EqualTo("expected"));
-    dependency.Verify(x => x.Method(), Times.Once);
-}
-```
-
-### AutoFixture Best Practices
-
-#### 1. Always Resolve SUT from AutoFixture
-
-**Do this:**
-
-```csharp
-private IFixture _fixture;
-private ServiceUnderTest _sut;
-
-[SetUp]
-public void SetUp()
-{
-    _fixture = new Fixture().Customize(new AutoMoqCustomization());
-
-    // Configure dependencies
-    _fixture.Freeze<Mock<IDependency>>();
-
-    // Resolve SUT from fixture
-    _sut = _fixture.Create<ServiceUnderTest>();
-}
-```
-
-**Don't do this:**
-
-```csharp
-// ❌ Manually constructing SUT
-_sut = new ServiceUnderTest(dependency1, dependency2);
-```
-
-#### 2. Create Custom ISpecimenBuilder for Complex Objects
-
-When you need to reuse complex object creation logic:
-
-```csharp
-public class EmbeddingRecordBuilder : ISpecimenBuilder
-{
-    public object Create(object request, ISpecimenContext context)
-    {
-        if (request is Type type && type == typeof(EmbeddingRecord))
-        {
-            return new EmbeddingRecord
-            {
-                Id = context.Create<string>(),
-                Content = context.Create<string>(),
-                Embedding = context.CreateMany<float>(1536).ToArray(),
-                SourceFile = context.Create<string>(),
-                PageNumber = context.Create<int>()
-            };
-        }
-
-        return new NoSpecimen();
-    }
-}
-
-// Usage in test setup
-_fixture.Customizations.Add(new EmbeddingRecordBuilder());
-var record = _fixture.Create<EmbeddingRecord>();
-```
-
-#### 3. Create Custom ICustomization for Reusable Configurations
-
-Group related customizations into a single reusable class:
-
-```csharp
-public class BackendDomainCustomization : ICustomization
-{
-    public void Customize(IFixture fixture)
-    {
-        // Add custom specimen builders
-        fixture.Customizations.Add(new EmbeddingRecordBuilder());
-        fixture.Customizations.Add(new AskRequestBuilder());
-
-        // Configure specific behaviors
-        fixture.Register<IEmbeddingRepository>(() =>
-            fixture.Freeze<Mock<IEmbeddingRepository>>().Object);
-
-        // Set default values
-        fixture.Inject(new BackendOptions
-        {
-            OpenAIApiKey = "test-key",
-            LlmProvider = LlmProvider.OpenAI
-        });
-    }
-}
-
-// Usage in test class
-[SetUp]
-public void SetUp()
-{
-    _fixture = new Fixture()
-        .Customize(new AutoMoqCustomization())
-        .Customize(new BackendDomainCustomization());
-}
-```
-
-#### 4. Use Freeze for Shared Dependencies
-
-When multiple tests need the same mock instance:
-
-```csharp
-[SetUp]
-public void SetUp()
-{
-    _fixture = new Fixture().Customize(new AutoMoqCustomization());
-
-    // Freeze creates a singleton instance that all Create<T>() calls will reuse
-    _loggerMock = _fixture.Freeze<Mock<ILogger<MyService>>>();
-    _repositoryMock = _fixture.Freeze<Mock<IRepository>>();
-
-    _sut = _fixture.Create<MyService>(); // Uses frozen mocks
-}
-
-[Test]
-public void Test_UsesSharedMocks()
-{
-    // Arrange
-    _repositoryMock.Setup(x => x.GetData()).Returns("data");
-
-    // Act & Assert
-    var result = _sut.ProcessData();
-    _loggerMock.Verify(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<string>()), Times.AtLeastOnce);
-}
-```
-
-### Example Test Class Template
-
-```csharp
-using AutoFixture;
-using AutoFixture.AutoMoq;
-using Moq;
-using NUnit.Framework;
-
-namespace Backend.Tests.ApplicationCore.Services
-{
-    [TestFixture]
-    public class QuestionAnsweringServiceTests
-    {
-        private IFixture _fixture;
-        private Mock<IMemoryService> _memoryServiceMock;
-        private Mock<ILogger<QuestionAnsweringService>> _loggerMock;
-        private QuestionAnsweringService _sut;
-
-        [SetUp]
-        public void SetUp()
-        {
-            _fixture = new Fixture()
-                .Customize(new AutoMoqCustomization())
-                .Customize(new BackendDomainCustomization());
-
-            // Freeze dependencies for reuse across tests
-            _memoryServiceMock = _fixture.Freeze<Mock<IMemoryService>>();
-            _loggerMock = _fixture.Freeze<Mock<ILogger<QuestionAnsweringService>>>();
-
-            // Resolve SUT from fixture
-            _sut = _fixture.Create<QuestionAnsweringService>();
-        }
-
-        [Test]
-        public async Task AskQuestionAsync_ValidQuestion_ReturnsAnswer()
-        {
-            // Arrange
-            var question = _fixture.Create<string>();
-            var searchResults = _fixture.CreateMany<EmbeddingRecord>(3).ToList();
-
-            _memoryServiceMock
-                .Setup(x => x.SearchAsync(question, It.IsAny<int>()))
-                .ReturnsAsync(searchResults);
-
-            // Act
-            var result = await _sut.AskQuestionAsync(question);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Answer, Is.Not.Empty);
-            _memoryServiceMock.Verify(x => x.SearchAsync(question, 5), Times.Once);
-        }
-
-        [Test]
-        public async Task AskQuestionAsync_EmptyQuestion_ThrowsArgumentException()
-        {
-            // Arrange
-            var emptyQuestion = string.Empty;
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<ArgumentException>(
-                async () => await _sut.AskQuestionAsync(emptyQuestion));
-
-            Assert.That(ex.ParamName, Is.EqualTo("question"));
-        }
-    }
-}
-```
-
-### Naming Conventions
-
-Test method names should follow: `MethodName_Scenario_ExpectedBehavior`
-
-Examples:
-
-- `AskQuestionAsync_ValidQuestion_ReturnsAnswer`
-- `SearchAsync_EmptyQuery_ThrowsArgumentException`
-- `LoadEmbeddings_InvalidFile_LogsWarningAndReturnsEmpty`
+For detailed patterns, examples, and advanced techniques, see `.claude/skills/dotnet-unit-testing-nunit/SKILL.md`

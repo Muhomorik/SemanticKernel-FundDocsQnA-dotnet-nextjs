@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 namespace Backend.API.Infrastructure.LLM.Providers;
 
 /// <summary>
+/// IMPORTANT: this not used in production.
+/// 
 /// Groq implementation of ILlmProvider.
 /// Uses Groq API via Semantic Kernel's OpenAI-compatible interface.
 /// Logs token usage for monitoring and cost tracking.
