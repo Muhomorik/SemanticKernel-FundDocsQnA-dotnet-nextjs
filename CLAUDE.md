@@ -16,6 +16,7 @@ Source of truth for project status: **[Status.md](Status.md)**
 
 ### Before Starting ANY Work
 
+- [ ] Read the relevant README.md file(s) for the component you're working on — they contain important context, architecture details, and setup instructions
 - [ ] Read Status.md to understand what's implemented, in-progress, or planned
 - [ ] Check if your feature/task is already listed in Status.md
 - [ ] **Avoid duplicating work:** If listed as ✅ or ⏳, do not restart from scratch
@@ -33,7 +34,7 @@ Source of truth for project status: **[Status.md](Status.md)**
 
 **A task is NOT complete until Status.md is updated.** Status.md is the source of truth and must stay synchronized with the codebase at all times.
 
-### Additional Guidance:
+### Additional Guidance
 
 - Keep costs low: When suggesting infrastructure, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 
@@ -53,11 +54,13 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | ---------- | ------------- |
 | [Status.md](Status.md) | Implementation progress tracker (check first!) |
 | [README.md](README.md) | Project overview, quick start, architecture |
-| [Preprocessor/README.md](Preprocessor/README.md) | PDF processing and embedding options |
-| [backend/README.md](backend/README.md) | Semantic search & API setup, troubleshooting |
-| [frontend/README.md](frontend/README.md) | Next.js chat UI, scripts, testing |
-| [docs/SECRETS-MANAGEMENT.md](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, configuration |
-| [docs/AZURE-DEPLOYMENT.md](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
+| [Configuration & Secrets](docs/SECRETS-MANAGEMENT.md) | Environment variables, API keys, settings |
+| [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
+| [Backend API](backend/README.md) | API endpoints and configuration |
+| [Frontend](frontend/README.md) | Development and testing |
+| [Preprocessor](Preprocessor/ReadMe.md) | Embedding generation and providers |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | PDF extraction library (native + OCR) |
+| [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
 
 ## Build & Run Commands
 
