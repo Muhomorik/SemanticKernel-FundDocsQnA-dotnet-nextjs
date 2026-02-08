@@ -16,7 +16,8 @@ export function Footer() {
     "Next.js 16",
     "ASP.NET Core 9",
     "Semantic Kernel",
-    "OpenAI Embeddings",
+    "OpenAI",
+    "Cosmos DB",
   ];
 
   return (
