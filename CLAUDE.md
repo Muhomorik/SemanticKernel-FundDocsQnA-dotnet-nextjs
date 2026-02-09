@@ -58,8 +58,8 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
 | [Backend API](backend/README.md) | API endpoints and configuration |
 | [Frontend](frontend/README.md) | Development and testing |
-| [Preprocessor](Preprocessor/ReadMe.md) | Embedding generation and providers |
-| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | PDF extraction library (native + OCR) |
+| [Preprocessor](Preprocessor/README.md) | Embedding generation and providers |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | PDF extraction library (native + OCR) |
 | [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
 
 ## Build & Run Commands

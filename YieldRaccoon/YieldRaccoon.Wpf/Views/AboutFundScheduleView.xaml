@@ -10,7 +10,7 @@
                                      IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
-    <Grid Margin="10">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -19,12 +19,11 @@
         <!--  Header  -->
         <StackPanel Grid.Row="0">
             <TextBlock
-                FontSize="16"
-                FontWeight="Bold"
+                Style="{StaticResource yr.TitleStyle}"
                 Text="Fund Schedule" />
             <TextBlock
-                Margin="0,5,0,0"
-                FontSize="12"
+                Margin="{StaticResource yr.CompactSpacing}"
+                Style="{StaticResource yr.CaptionStyle}"
                 Foreground="{DynamicResource MahApps.Brushes.Gray1}">
                 <Run Text="Showing: " />
                 <Run FontWeight="Bold" Text="{Binding TotalFunds, Mode=OneWay}" />
@@ -35,14 +34,14 @@
         <!--  Fund List  -->
         <ListBox
             Grid.Row="1"
-            Margin="0,10,0,0"
+            Margin="{StaticResource yr.ItemSpacing}"
             Background="Transparent"
             BorderThickness="0"
             ItemsSource="{Binding Funds}"
             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid x:Name="FundRow" Margin="0,3,0,3">
+                    <Grid x:Name="FundRow" Margin="0,4,0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -66,7 +65,7 @@
                                 Text="{Binding Name}"
                                 TextTrimming="CharacterEllipsis" />
                             <TextBlock
-                                FontSize="11"
+                                Style="{StaticResource yr.SmallStyle}"
                                 Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                 Text="{Binding Isin}" />
                         </StackPanel>
@@ -74,9 +73,9 @@
                         <!--  History count  -->
                         <TextBlock
                             Grid.Column="2"
-                            Margin="8,0,5,0"
+                            Margin="8,0,4,0"
                             VerticalAlignment="Center"
-                            FontSize="11"
+                            Style="{StaticResource yr.SmallStyle}"
                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                             Text="{Binding HistoryRecordCount, StringFormat={}{0} rec}" />
                     </Grid>
@@ -85,7 +84,7 @@
                         <!--  Completed fund: green checkmark  -->
                         <DataTrigger Binding="{Binding IsCompleted}" Value="True">
                             <Setter TargetName="StatusIcon" Property="Text" Value="&#xE73E;" />
-                            <Setter TargetName="StatusIcon" Property="Foreground" Value="#2ECC71" />
+                            <Setter TargetName="StatusIcon" Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
                             <Setter TargetName="FundName" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Gray3}" />
                         </DataTrigger>
                         <!--  Current fund: accent arrow  -->

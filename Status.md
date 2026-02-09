@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-07 (IAboutFundPageInteractor: auto-click "Utvecklingen i SEK" checkbox after navigation via DDD abstraction)
+Last Updated: 2026-02-09 (YieldRaccoon Fluent v2 theme system: created YieldRaccoonTheme.xaml with all yr.* design tokens, RuntimeThemeGenerator for system accent color, migrated all 6 views to use yr.* tokens)
 
 **Tech Stack:**
 
@@ -458,6 +458,8 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | MainWindowViewModel | ✅ | **Completed 2026-01-28**: Title and StatusMessage properties, RefreshCommand, IDisposable implementation |
 | Autofac DI Container | ✅ | **Completed 2026-01-28**: Configured in App.xaml.cs OnStartup, ViewModel and View registration, constructor injection |
 | MahApps.Metro UI | ✅ | **Completed 2026-01-28**: MetroWindow conversion, Light.Blue theme, resource dictionaries in App.xaml |
+| Fluent Design v2 Theme | ✅ | **Implemented 2026-02-09**: `Themes/YieldRaccoonTheme.xaml` — 31 design tokens (7 semantic brushes, 6 spacing doubles, 5 thickness tokens, 7 typography styles, 2 panel styles, 3 button styles, 1 splitter style). `RuntimeThemeGenerator` in App.xaml.cs reads Windows accent color. All 6 views migrated to yr.* tokens: sentence casing, 4px-grid spacing, semantic color brushes, button wrappers with 4px corners, two-tier panel elevation. |
+| Design Guidelines Doc | ✅ | **NEW 2026-02-08**: `DESIGN-GUIDELINES.md` — comprehensive design system reference covering typography, spacing, color, geometry, elevation, buttons, iconography (Segoe Fluent Icons glyph catalog), micro-interactions, WPF gotchas, and do's/don'ts |
 | Data Binding | ✅ | **Completed 2026-01-28**: Title binding, StatusMessage binding, Command binding |
 | Constructor Injection | ✅ | **Completed 2026-01-28**: MainWindow receives MainWindowViewModel via constructor, DataContext set in constructor |
 | Fund Repository Integration | ✅ | **Completed 2026-01-29**: IFundRepository DI registration, FundMapper (InterceptedFund → Fund), repository persistence in OnFundDataReceived, thread-safe in-memory storage via ConcurrentDictionary |
@@ -520,8 +522,11 @@ MainWindow(MainWindowViewModel)
 - ✅ `App.xaml.cs` - Autofac container configuration, OnStartup/OnExit lifecycle management
 
 **Theme:**
-- ✅ MahApps.Metro Light.Blue theme applied globally
+
+- ✅ MahApps.Metro with `RuntimeThemeGenerator` (reads Windows system accent color, falls back to #0078D4)
 - ✅ MetroWindow with centered startup location and normal title casing
+- ✅ Fluent Design v2 theme system (`Themes/YieldRaccoonTheme.xaml`) — 31 yr.* design tokens, all views migrated
+- ✅ `DESIGN-GUIDELINES.md` — comprehensive design system reference document
 
 ### DevExpress MVVM Best Practices (Applied)
 

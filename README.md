@@ -94,8 +94,8 @@ flowchart LR
 
 | Component | Tech Stack | Description |
 | ----------- | ------------ | ------------- |
-| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | .NET 9, PdfPig, LM Studio, OpenAI | PDF text extraction library with native + OCR support |
-| [Preprocessor](Preprocessor/ReadMe.md) | .NET 9, Semantic Kernel | Read pre-extracted text files, generate embeddings (file or Cosmos DB) |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | .NET 9, PdfPig, LM Studio, OpenAI | PDF text extraction library with native + OCR support |
+| [Preprocessor](Preprocessor/README.md) | .NET 9, Semantic Kernel | Read pre-extracted text files, generate embeddings (file or Cosmos DB) |
 | [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel, Cosmos DB | Semantic search + Q&A API with in-memory or Cosmos DB vector storage |
 | [Frontend](frontend/README.md) | Next.js 16, TypeScript, shadcn/ui | Chat interface |
 | [YieldRaccoon](YieldRaccoon/README.md) | .NET 9, WPF, EF Core, Rx.NET | Fund price crawler with DDD, CQRS, and WebView2 interception |
@@ -124,7 +124,7 @@ dotnet run --project PdfTextExtractor.Wpf
 # Use the WPF GUI to extract text files from your PDFs
 ```
 
-See [PdfTextExtractor README](PdfTextExtractor/ReadMe.md) for CLI and API usage.
+See [PdfTextExtractor README](PdfTextExtractor/ReadMe.Md) for CLI and API usage.
 
 ### 2. Generate Embeddings
 
@@ -233,8 +233,8 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | Production deployment guide |
 | [Backend API](backend/README.md) | API endpoints and configuration |
 | [Frontend](frontend/README.md) | Development and testing |
-| [Preprocessor](Preprocessor/ReadMe.md) | Embedding generation and providers |
-| [PdfTextExtractor](PdfTextExtractor/ReadMe.md) | PDF extraction library (native + OCR) |
+| [Preprocessor](Preprocessor/README.md) | Embedding generation and providers |
+| [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | PDF extraction library (native + OCR) |
 | [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
 | [Project Status](Status.md) | Implementation progress |
 

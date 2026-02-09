@@ -11,7 +11,7 @@
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
 
-    <Grid Margin="10">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <!--  Header  -->
             <RowDefinition Height="Auto" />
@@ -28,18 +28,15 @@
         <!--  Header  -->
         <TextBlock
             Grid.Row="0"
-            FontSize="16"
-            FontWeight="Bold"
+            Style="{StaticResource yr.TitleStyle}"
             Text="Overview Control" />
 
         <!--  Options  -->
-        <StackPanel Grid.Row="1" Margin="0,15,0,0">
+        <StackPanel Grid.Row="1" Margin="{StaticResource yr.SubsectionSpacing}">
             <TextBlock
-                Margin="0,0,0,5"
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                Text="OPTIONS" />
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Options" />
             <mah:ToggleSwitch
                 IsOn="{Binding AutoStartOverview}"
                 OffContent="Auto-start disabled"
@@ -48,18 +45,16 @@
         </StackPanel>
 
         <!--  Session Control  -->
-        <StackPanel Grid.Row="2" Margin="0,20,0,0">
+        <StackPanel Grid.Row="2" Margin="{StaticResource yr.SectionSpacing}">
             <TextBlock
-                Margin="0,0,0,5"
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                Text="SESSION CONTROL" />
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Session control" />
 
-            <Grid Margin="0,5,0,0">
+            <Grid Margin="{StaticResource yr.ItemSpacing}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="5" />
+                    <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -67,43 +62,41 @@
                     Grid.Column="0"
                     Command="{Binding StartOverviewCommand}"
                     Content="Start Overview"
-                    Style="{StaticResource MahApps.Styles.Button.Square.Accent}" />
+                    Style="{StaticResource yr.ButtonAccentStyle}" />
                 <Button
                     Grid.Column="2"
                     Command="{Binding StopOverviewCommand}"
                     Content="Stop"
-                    Style="{StaticResource MahApps.Styles.Button.Square}" />
+                    Style="{StaticResource yr.ButtonStyle}" />
             </Grid>
 
             <Button
-                Margin="0,5,0,0"
+                Margin="{StaticResource yr.ItemSpacing}"
                 Command="{Binding NextFundCommand}"
                 Content="Next Fund"
-                Style="{StaticResource MahApps.Styles.Button.Square}" />
+                Style="{StaticResource yr.ButtonStyle}" />
         </StackPanel>
 
         <!--  Session Progress (visible when session is active)  -->
         <StackPanel
             Grid.Row="3"
-            Margin="0,20,0,0"
+            Margin="{StaticResource yr.SectionSpacing}"
             Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
 
             <TextBlock
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                Text="SESSION PROGRESS" />
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Session progress" />
 
             <!--  Status message  -->
             <TextBlock
-                Margin="0,10,0,0"
+                Margin="{StaticResource yr.ItemSpacing}"
                 FontWeight="Medium"
                 Text="{Binding StatusMessage}"
                 TextWrapping="Wrap" />
 
             <!--  Delay countdown with ProgressRing (visible during delay)  -->
             <StackPanel
-                Margin="0,10,0,0"
+                Margin="{StaticResource yr.ItemSpacing}"
                 Orientation="Horizontal"
                 Visibility="{Binding IsDelayInProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
                 <mah:ProgressRing
@@ -111,16 +104,15 @@
                     Height="20"
                     IsActive="True" />
                 <TextBlock
-                    Margin="10,0,0,0"
+                    Margin="12,0,0,0"
                     VerticalAlignment="Center"
-                    FontSize="14"
-                    FontWeight="Bold"
+                    Style="{StaticResource yr.BodyStrongStyle}"
                     Foreground="{DynamicResource MahApps.Brushes.Accent}"
                     Text="{Binding DelayCountdown, StringFormat={}{0}s}" />
             </StackPanel>
 
             <!--  Fund progress  -->
-            <TextBlock Margin="0,10,0,0" FontSize="12">
+            <TextBlock Margin="{StaticResource yr.ItemSpacing}" Style="{StaticResource yr.CaptionStyle}">
                 <Run Text="Fund: " />
                 <Run FontWeight="Bold" Text="{Binding CurrentIndex, Mode=OneWay, StringFormat={}{0}}" />
                 <Run Text=" / " />
@@ -128,20 +120,20 @@
             </TextBlock>
 
             <!--  Time remaining  -->
-            <TextBlock Margin="0,5,0,0" FontSize="12">
+            <TextBlock Margin="{StaticResource yr.CompactSpacing}" Style="{StaticResource yr.CaptionStyle}">
                 <Run Text="Time remaining: " />
                 <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
             </TextBlock>
 
             <!--  Progress bar  -->
             <mah:MetroProgressBar
-                Margin="0,10,0,0"
+                Margin="{StaticResource yr.ItemSpacing}"
                 Maximum="{Binding TotalFunds}"
                 Value="{Binding CurrentIndex}" />
         </StackPanel>
 
         <!--  Events list  -->
-        <Grid Grid.Row="4" Margin="0,15,0,0">
+        <Grid Grid.Row="4" Margin="{StaticResource yr.SubsectionSpacing}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -149,14 +141,12 @@
 
             <TextBlock
                 Grid.Row="0"
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                Text="EVENT LOG" />
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Event log" />
 
             <ListBox
                 Grid.Row="1"
-                Margin="0,5,0,0"
+                Margin="{StaticResource yr.CompactSpacing}"
                 Background="Transparent"
                 BorderThickness="0"
                 ItemsSource="{Binding Events}"
@@ -165,7 +155,7 @@
                 VirtualizingPanel.VirtualizationMode="Recycling">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="0,2">
+                        <Grid Margin="0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
@@ -175,7 +165,7 @@
                             <!--  Event icon  -->
                             <TextBlock
                                 Grid.Column="0"
-                                Margin="0,0,6,0"
+                                Margin="0,0,8,0"
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe Fluent Icons"
                                 FontSize="12"
@@ -185,11 +175,11 @@
                             <!--  Event description  -->
                             <StackPanel Grid.Column="1">
                                 <TextBlock
-                                    FontSize="11"
+                                    Style="{StaticResource yr.SmallStyle}"
                                     FontWeight="SemiBold"
                                     Text="{Binding EventType}" />
                                 <TextBlock
-                                    FontSize="10"
+                                    Style="{StaticResource yr.SmallStyle}"
                                     Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                     Text="{Binding Description}"
                                     TextTrimming="CharacterEllipsis" />
@@ -199,7 +189,7 @@
                             <TextBlock
                                 Grid.Column="2"
                                 VerticalAlignment="Center"
-                                FontSize="10"
+                                Style="{StaticResource yr.SmallStyle}"
                                 Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                 Text="{Binding Timestamp, StringFormat=HH:mm:ss}" />
                         </Grid>

@@ -26,7 +26,7 @@
         <dxmvvm:EventToCommand Command="{Binding LoadedCommand}" EventName="Loaded" />
     </dxmvvm:Interaction.Behaviors>
 
-    <Grid Margin="10">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <!--  Browser toolbar  -->
             <RowDefinition Height="Auto" />
@@ -37,11 +37,9 @@
         <!--  Browser Toolbar  -->
         <Border
             Grid.Row="0"
-            Padding="10,5"
-            Background="{DynamicResource MahApps.Brushes.Gray9}"
-            BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
-            BorderThickness="1"
-            CornerRadius="4">
+            Padding="12,4"
+            Style="{StaticResource yr.PanelControlStyle}"
+            CornerRadius="0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -55,12 +53,12 @@
                     Width="80"
                     Command="{Binding ReloadCommand}"
                     Content="Reload"
-                    Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                    Style="{StaticResource yr.ButtonFlatStyle}" />
 
                 <!--  URL input  -->
                 <TextBox
                     Grid.Column="1"
-                    Margin="10,0"
+                    Margin="8,0"
                     VerticalAlignment="Center"
                     mah:TextBoxHelper.Watermark="Enter URL..."
                     Text="{Binding BrowserUrl, UpdateSourceTrigger=PropertyChanged}">
@@ -75,12 +73,12 @@
                     Width="80"
                     Command="{Binding NavigateCommand}"
                     Content="Go"
-                    Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                    Style="{StaticResource yr.ButtonFlatStyle}" />
             </Grid>
         </Border>
 
         <!--  Main Content - 3-column layout  -->
-        <Grid Grid.Row="1" Margin="0,10,0,0">
+        <Grid Grid.Row="1" Margin="{StaticResource yr.ItemSpacing}">
             <Grid.ColumnDefinitions>
                 <!--  Fund Schedule (left)  -->
                 <ColumnDefinition Width="280" />
@@ -100,16 +98,14 @@
             <!--  Splitter  -->
             <GridSplitter
                 Grid.Column="1"
-                Width="5"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource MahApps.Brushes.Gray8}" />
+                Style="{StaticResource yr.SplitterStyle}" />
 
             <!--  WebView2 Browser (middle)  -->
             <Border
                 Grid.Column="2"
-                BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
+                BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
                 BorderThickness="1"
-                CornerRadius="4">
+                CornerRadius="8">
                 <wv2:WebView2
                     x:Name="Browser"
                     behaviors:AboutFundWebView2Behavior.ViewModel="{Binding}"
@@ -119,9 +115,7 @@
             <!--  Splitter  -->
             <GridSplitter
                 Grid.Column="3"
-                Width="5"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource MahApps.Brushes.Gray8}" />
+                Style="{StaticResource yr.SplitterStyle}" />
 
             <!--  Control Panel (right panel)  -->
             <views:AboutFundControlPanelView Grid.Column="4" DataContext="{Binding ControlPanelViewModel}" />
