@@ -10,8 +10,11 @@
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
 
-                <!--  MahApps.Metro theme (Light Blue)  -->
+                <!--  MahApps.Metro theme (Light Blue — XAML designer fallback, overridden at runtime)  -->
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
+
+                <!--  YieldRaccoon Fluent v2 design tokens  -->
+                <ResourceDictionary Source="Themes/YieldRaccoonTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Media;
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,9 @@ public partial class App
         // Initialize NLog from NLog.config (before DI container)
         LogManager.Setup().LoadConfigurationFromFile("NLog.config");
         Logger.Info("Application starting...");
+
+        // Apply YieldRaccoon theme (system accent color via RuntimeThemeGenerator)
+        ApplyYieldRaccoonTheme();
 
         // Initialize WebView2 environment with Chrome user agent
         await InitializeWebView2EnvironmentAsync();
@@ -95,6 +99,42 @@ public partial class App
         LogManager.Shutdown();
 
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// Applies the YieldRaccoon theme using the Windows system accent color.
+    /// Uses RuntimeThemeGenerator to create a proper MahApps theme that generates
+    /// all 200+ theme resources from the accent color.
+    /// Light.Blue.xaml in App.xaml serves as a XAML designer fallback only.
+    /// </summary>
+    private static void ApplyYieldRaccoonTheme()
+    {
+        try
+        {
+            var accentColor = SystemParameters.WindowGlassColor;
+
+            // Fall back to Windows 11 default blue if transparent or black
+            if (accentColor.A == 0 || (accentColor.R == 0 && accentColor.G == 0 && accentColor.B == 0))
+                accentColor = (Color)ColorConverter.ConvertFromString("#0078D4")!;
+
+            var theme = ControlzEx.Theming.RuntimeThemeGenerator.Current
+                .GenerateRuntimeTheme("Light", accentColor);
+
+            if (theme is null)
+            {
+                Logger.Warn("RuntimeThemeGenerator returned null, falling back to Light.Blue");
+                return;
+            }
+
+            ControlzEx.Theming.ThemeManager.Current
+                .ChangeTheme(System.Windows.Application.Current, theme);
+
+            Logger.Info($"Applied YieldRaccoon theme with accent #{accentColor.R:X2}{accentColor.G:X2}{accentColor.B:X2}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Failed to apply YieldRaccoon theme, falling back to Light.Blue");
+        }
     }
 
     /// <summary>

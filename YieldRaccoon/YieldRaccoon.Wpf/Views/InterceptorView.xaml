@@ -9,7 +9,7 @@
     d:DataContext="{d:DesignInstance viewModels:InterceptorViewModel, IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
 
-    <Grid Margin="10">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -27,15 +27,14 @@
                 FontSize="16"
                 Text="&#xEBE8;" />
             <TextBlock
-                FontSize="16"
-                FontWeight="Bold"
+                Style="{StaticResource yr.TitleStyle}"
                 Text="Network Inspector" />
         </StackPanel>
 
         <!-- Filter -->
         <TextBox
             Grid.Row="1"
-            Margin="0,10,0,0"
+            Margin="{StaticResource yr.ItemSpacing}"
             mah:TextBoxHelper.ClearTextButton="True"
             mah:TextBoxHelper.Watermark="Filter by URL..."
             Text="{Binding UrlFilter, UpdateSourceTrigger=PropertyChanged}" />
@@ -43,7 +42,7 @@
         <!-- Request List -->
         <DataGrid
             Grid.Row="2"
-            Margin="0,10,0,0"
+            Margin="{StaticResource yr.ItemSpacing}"
             AutoGenerateColumns="False"
             CanUserAddRows="False"
             GridLinesVisibility="Horizontal"
@@ -74,13 +73,13 @@
                 <Style BasedOn="{StaticResource MahApps.Styles.DataGridRow}" TargetType="DataGridRow">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsSuccess}" Value="True">
-                            <Setter Property="Foreground" Value="#2ECC71" />
+                            <Setter Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsClientError}" Value="True">
-                            <Setter Property="Foreground" Value="#F39C12" />
+                            <Setter Property="Foreground" Value="{DynamicResource yr.WarningBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsServerError}" Value="True">
-                            <Setter Property="Foreground" Value="#E74C3C" />
+                            <Setter Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -90,34 +89,32 @@
         <!-- Action buttons -->
         <StackPanel
             Grid.Row="3"
-            Margin="0,10,0,0"
+            Margin="{StaticResource yr.ItemSpacing}"
             Orientation="Horizontal">
             <Button
                 Width="60"
                 Command="{Binding ClearRequestsCommand}"
                 Content="Clear"
-                Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                Style="{StaticResource yr.ButtonFlatStyle}" />
             <Button
                 Width="75"
-                Margin="5,0,0,0"
+                Margin="8,0,0,0"
                 Command="{Binding CopyUrlCommand}"
                 Content="Copy URL"
-                Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                Style="{StaticResource yr.ButtonFlatStyle}" />
             <Button
                 Width="100"
-                Margin="5,0,0,0"
+                Margin="8,0,0,0"
                 Command="{Binding CopyResponseCommand}"
                 Content="Copy Response"
-                Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                Style="{StaticResource yr.ButtonFlatStyle}" />
         </StackPanel>
 
         <!-- Response Preview -->
         <Border
             Grid.Row="4"
-            Margin="0,10,0,0"
-            BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
-            BorderThickness="1"
-            CornerRadius="4">
+            Margin="{StaticResource yr.ItemSpacing}"
+            Style="{StaticResource yr.PanelControlStyle}">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <TextBox
                     AcceptsReturn="True"

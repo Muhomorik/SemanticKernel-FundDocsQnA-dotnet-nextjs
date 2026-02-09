@@ -30,12 +30,11 @@
         <!-- Database Location Section -->
         <TextBlock
             Grid.Row="0"
-            Margin="0,0,0,10"
-            FontSize="16"
-            FontWeight="SemiBold"
+            Margin="0,0,0,8"
+            Style="{StaticResource yr.TitleStyle}"
             Text="Database Location" />
 
-        <Grid Grid.Row="1" Margin="0,0,0,10">
+        <Grid Grid.Row="1" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -43,7 +42,7 @@
 
             <TextBox
                 Grid.Column="0"
-                Margin="0,0,10,0"
+                Margin="0,0,8,0"
                 mah:TextBoxHelper.Watermark="Database file path..."
                 Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -51,14 +50,15 @@
                 Grid.Column="1"
                 Width="80"
                 Command="{Binding BrowseCommand}"
-                Content="Browse..." />
+                Content="Browse..."
+                Style="{StaticResource yr.ButtonStyle}" />
         </Grid>
 
         <!-- Info text -->
         <TextBlock
             Grid.Row="2"
-            Margin="0,0,0,10"
-            FontSize="11"
+            Margin="0,0,0,8"
+            Style="{StaticResource yr.SmallStyle}"
             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
             TextWrapping="Wrap">
             <Run Text="Settings file:" />
@@ -68,7 +68,7 @@
         <!-- Restart warning -->
         <TextBlock
             Grid.Row="3"
-            Margin="0,10,0,0"
+            Margin="{StaticResource yr.ItemSpacing}"
             VerticalAlignment="Top"
             FontWeight="SemiBold"
             Foreground="{DynamicResource MahApps.Brushes.Accent}"
@@ -82,15 +82,17 @@
             Orientation="Horizontal">
             <Button
                 Width="80"
-                Margin="0,0,10,0"
+                Margin="0,0,8,0"
                 Command="{Binding SaveCommand}"
                 Content="Save"
-                IsDefault="True" />
+                IsDefault="True"
+                Style="{StaticResource yr.ButtonAccentStyle}" />
             <Button
                 Width="80"
                 Command="{Binding CancelCommand}"
                 Content="Cancel"
-                IsCancel="True" />
+                IsCancel="True"
+                Style="{StaticResource yr.ButtonStyle}" />
         </StackPanel>
     </Grid>
 </mah:MetroWindow>

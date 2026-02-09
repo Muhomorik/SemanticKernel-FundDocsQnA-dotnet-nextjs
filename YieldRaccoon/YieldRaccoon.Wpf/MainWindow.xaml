@@ -25,7 +25,7 @@
                         FontFamily="Segoe Fluent Icons"
                         FontSize="14"
                         Text="&#xEBE8;" />
-                    <TextBlock Margin="6,0,0,0" Text="AboutFund" />
+                    <TextBlock Margin="8,0,0,0" Text="AboutFund" />
                 </StackPanel>
             </Button>
             <Button Command="{Binding OpenSettingsCommand}" ToolTip="Settings">
@@ -34,7 +34,7 @@
                         FontFamily="Segoe Fluent Icons"
                         FontSize="14"
                         Text="&#xE713;" />
-                    <TextBlock Margin="6,0,0,0" Text="Settings" />
+                    <TextBlock Margin="8,0,0,0" Text="Settings" />
                 </StackPanel>
             </Button>
         </mah:WindowCommands>
@@ -51,7 +51,7 @@
         </Grid.RowDefinitions>
 
         <!--  Main content area with 3 columns  -->
-        <Grid Grid.Row="0" Margin="10">
+        <Grid Grid.Row="0" Margin="16">
             <Grid.ColumnDefinitions>
                 <!--  Left column (300px)  -->
                 <ColumnDefinition Width="300" />
@@ -68,11 +68,8 @@
             <!--  Left panel  -->
             <Border
                 Grid.Column="0"
-                Background="{DynamicResource MahApps.Brushes.Gray10}"
-                BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid Margin="10">
+                Style="{StaticResource yr.PanelStyle}">
+                <Grid Margin="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -81,12 +78,11 @@
                     <!--  Header  -->
                     <StackPanel Grid.Row="0">
                         <TextBlock
-                            FontSize="16"
-                            FontWeight="Bold"
+                            Style="{StaticResource yr.TitleStyle}"
                             Text="Extracted Funds" />
                         <TextBlock
-                            Margin="0,5,0,0"
-                            FontSize="12"
+                            Margin="{StaticResource yr.CompactSpacing}"
+                            Style="{StaticResource yr.CaptionStyle}"
                             Foreground="{DynamicResource MahApps.Brushes.Gray1}">
                             <Run Text="Showing: " />
                             <Run FontWeight="Bold" Text="{Binding FundCount, Mode=OneWay}" />
@@ -99,7 +95,7 @@
                     <!--  Fund List  -->
                     <ListBox
                         Grid.Row="1"
-                        Margin="0,10,0,0"
+                        Margin="{StaticResource yr.ItemSpacing}"
                         Background="Transparent"
                         BorderThickness="0"
                         ItemsSource="{Binding Funds}"
@@ -107,7 +103,7 @@
                         behaviors:ListBoxAutoScrollBehavior.AnimationDuration="0:0:3">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="0,5,0,10">
+                                <StackPanel Margin="0,4,0,8">
                                     <!--  Fund Name  -->
                                     <TextBlock
                                         FontWeight="SemiBold"
@@ -116,55 +112,55 @@
 
                                     <!--  ISIN  -->
                                     <TextBlock
-                                        FontSize="11"
+                                        Style="{StaticResource yr.SmallStyle}"
                                         Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                         Text="{Binding Isin}" />
 
                                     <!--  NAV, Currency, and Date  -->
-                                    <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
+                                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
                                         <TextBlock
-                                            FontSize="11"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="Medium"
                                             Foreground="{DynamicResource MahApps.Brushes.Accent}"
                                             Text="NAV: " />
                                         <TextBlock
-                                            FontSize="11"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="Medium"
                                             Foreground="{DynamicResource MahApps.Brushes.Accent}"
                                             Text="{Binding Nav, StringFormat={}{0:N2}}" />
                                         <TextBlock
-                                            Margin="3,0,0,0"
-                                            FontSize="11"
+                                            Margin="4,0,0,0"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                             Text="{Binding CurrencyCode}" />
                                         <TextBlock
-                                            Margin="6,0,0,0"
-                                            FontSize="10"
+                                            Margin="8,0,0,0"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
-                                            Text="•" />
+                                            Text="&#x2022;" />
                                         <TextBlock
                                             x:Name="NavDateText"
-                                            Margin="6,0,0,0"
-                                            FontSize="10"
+                                            Margin="8,0,0,0"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                             Text="{Binding NavDate, StringFormat={}{0:yyyy-MM-dd}}" />
                                     </StackPanel>
 
                                     <!--  Number of Owners  -->
-                                    <StackPanel Margin="0,2,0,0" Orientation="Horizontal">
+                                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
                                         <TextBlock
-                                            FontSize="10"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                             Text="Owners: " />
                                         <TextBlock
-                                            FontSize="10"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                             Text="{Binding NumberOfOwners, StringFormat={}{0:N0}}" />
                                     </StackPanel>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsNavDateToday}" Value="True">
-                                        <Setter TargetName="NavDateText" Property="Foreground" Value="#2ECC71" />
+                                        <Setter TargetName="NavDateText" Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
                                         <Setter TargetName="NavDateText" Property="FontWeight" Value="SemiBold" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
@@ -177,17 +173,15 @@
             <!--  Left splitter  -->
             <GridSplitter
                 Grid.Column="1"
-                Width="5"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource MahApps.Brushes.Gray8}" />
+                Style="{StaticResource yr.SplitterStyle}" />
 
             <!--  Middle panel - Browser  -->
             <Border
                 Grid.Column="2"
                 Background="{DynamicResource MahApps.Brushes.ThemeBackground}"
-                BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
+                BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
                 BorderThickness="1"
-                CornerRadius="4">
+                CornerRadius="8">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -197,9 +191,9 @@
                     <!--  Browser toolbar  -->
                     <Border
                         Grid.Row="0"
-                        Padding="10,5"
-                        Background="{DynamicResource MahApps.Brushes.Gray9}"
-                        BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
+                        Padding="12,4"
+                        Style="{StaticResource yr.PanelControlStyle}"
+                        CornerRadius="0"
                         BorderThickness="0,0,0,1">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -214,12 +208,12 @@
                                 Width="80"
                                 Command="{Binding ReloadBrowserCommand}"
                                 Content="Reload"
-                                Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                                Style="{StaticResource yr.ButtonFlatStyle}" />
 
                             <!--  URL display  -->
                             <TextBox
                                 Grid.Column="1"
-                                Margin="10,0,0,0"
+                                Margin="8,0,0,0"
                                 VerticalAlignment="Center"
                                 IsReadOnly="True"
                                 Text="{Binding BrowserUrl, Mode=OneWay}" />
@@ -227,7 +221,7 @@
                             <!--  Streaming mode toggle  -->
                             <mah:ToggleSwitch
                                 Grid.Column="2"
-                                Margin="10,0,0,0"
+                                Margin="8,0,0,0"
                                 IsOn="{Binding IsStreamingMode}"
                                 OffContent="Normal"
                                 OnContent="Streaming"
@@ -250,15 +244,15 @@
                                 Stretch="Fill" />
 
                             <!--  Streaming mode indicator overlay  -->
-                            <Border Background="#44000000">
+                            <Border Background="{DynamicResource yr.OverlayBrush}">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock
                                         FontSize="48"
                                         FontWeight="Bold"
-                                        Foreground="#FF4444"
-                                        Text="🔴 STREAMING" />
+                                        Foreground="{DynamicResource yr.StreamingBrush}"
+                                        Text="&#x1F534; STREAMING" />
                                     <TextBlock
-                                        Margin="0,15,0,0"
+                                        Margin="0,16,0,0"
                                         HorizontalAlignment="Center"
                                         FontSize="16"
                                         Foreground="White"
@@ -273,18 +267,13 @@
             <!--  Right splitter  -->
             <GridSplitter
                 Grid.Column="3"
-                Width="5"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource MahApps.Brushes.Gray8}" />
+                Style="{StaticResource yr.SplitterStyle}" />
 
             <!--  Right panel - Control Panel  -->
             <Border
                 Grid.Column="4"
-                Background="{DynamicResource MahApps.Brushes.Gray10}"
-                BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid Margin="10">
+                Style="{StaticResource yr.PanelStyle}">
+                <Grid Margin="16">
                     <Grid.RowDefinitions>
                         <!--  Header  -->
                         <RowDefinition Height="Auto" />
@@ -301,44 +290,39 @@
                     <!--  Header  -->
                     <TextBlock
                         Grid.Row="0"
-                        FontSize="16"
-                        FontWeight="Bold"
+                        Style="{StaticResource yr.TitleStyle}"
                         Text="Crawl Control" />
 
                     <!--  Manual Control Section  -->
-                    <StackPanel Grid.Row="1" Margin="0,15,0,0">
+                    <StackPanel Grid.Row="1" Margin="{StaticResource yr.SubsectionSpacing}">
                         <TextBlock
-                            Margin="0,0,0,5"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                            Text="MANUAL CONTROL" />
+                            Margin="{StaticResource yr.LabelSpacing}"
+                            Style="{StaticResource yr.SubheaderStyle}"
+                            Text="Manual control" />
                         <Button
                             Command="{Binding LoadNextBatchCommand}"
                             Content="Load Next Batch"
-                            Style="{StaticResource MahApps.Styles.Button.Square}"
+                            Style="{StaticResource yr.ButtonStyle}"
                             ToolTip="Load next batch only (click 'Visa fler' once)" />
                     </StackPanel>
 
                     <!--  Session Control Section  -->
-                    <StackPanel Grid.Row="2" Margin="0,20,0,0">
+                    <StackPanel Grid.Row="2" Margin="{StaticResource yr.SectionSpacing}">
                         <TextBlock
-                            Margin="0,0,0,5"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                            Text="SESSION CONTROL" />
+                            Margin="{StaticResource yr.LabelSpacing}"
+                            Style="{StaticResource yr.SubheaderStyle}"
+                            Text="Session control" />
 
                         <mah:ToggleSwitch
-                            Margin="0,5,0,0"
+                            Margin="{StaticResource yr.ItemSpacing}"
                             IsOn="{Binding IsAutoStartEnabled}"
                             OffContent="Auto-start disabled"
                             OnContent="Auto-start enabled" />
 
-                        <Grid Margin="0,10,0,0">
+                        <Grid Margin="{StaticResource yr.ItemSpacing}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
@@ -346,38 +330,36 @@
                                 Grid.Column="0"
                                 Command="{Binding StartSessionCommand}"
                                 Content="Start Crawling"
-                                Style="{StaticResource MahApps.Styles.Button.Square.Accent}" />
+                                Style="{StaticResource yr.ButtonAccentStyle}" />
 
                             <Button
                                 Grid.Column="2"
                                 Command="{Binding StopSessionCommand}"
                                 Content="Stop"
-                                Style="{StaticResource MahApps.Styles.Button.Square}" />
+                                Style="{StaticResource yr.ButtonStyle}" />
                         </Grid>
                     </StackPanel>
 
                     <!--  Progress Display (visible when session is active)  -->
                     <StackPanel
                         Grid.Row="3"
-                        Margin="0,20,0,0"
+                        Margin="{StaticResource yr.SectionSpacing}"
                         Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
 
                         <TextBlock
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                            Text="SESSION PROGRESS" />
+                            Style="{StaticResource yr.SubheaderStyle}"
+                            Text="Session progress" />
 
                         <!--  Status message  -->
                         <TextBlock
-                            Margin="0,10,0,0"
+                            Margin="{StaticResource yr.ItemSpacing}"
                             FontWeight="Medium"
                             Text="{Binding SessionStatusMessage}"
                             TextWrapping="Wrap" />
 
                         <!--  Delay countdown (visible during delay)  -->
                         <StackPanel
-                            Margin="0,10,0,0"
+                            Margin="{StaticResource yr.ItemSpacing}"
                             Orientation="Horizontal"
                             Visibility="{Binding IsDelayInProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
                             <mah:ProgressRing
@@ -385,16 +367,15 @@
                                 Height="20"
                                 IsActive="True" />
                             <TextBlock
-                                Margin="10,0,0,0"
+                                Margin="12,0,0,0"
                                 VerticalAlignment="Center"
-                                FontSize="14"
-                                FontWeight="Bold"
+                                Style="{StaticResource yr.BodyStrongStyle}"
                                 Foreground="{DynamicResource MahApps.Brushes.Accent}"
                                 Text="{Binding DelayCountdown, StringFormat={}{0}s}" />
                         </StackPanel>
 
                         <!--  Batch progress  -->
-                        <TextBlock Margin="0,10,0,0" FontSize="12">
+                        <TextBlock Margin="{StaticResource yr.ItemSpacing}" Style="{StaticResource yr.CaptionStyle}">
                             <Run Text="Batch: " />
                             <Run FontWeight="Bold" Text="{Binding CurrentBatchNumber, Mode=OneWay}" />
                             <Run Text=" / " />
@@ -402,7 +383,7 @@
                         </TextBlock>
 
                         <!--  Fund progress  -->
-                        <TextBlock Margin="0,5,0,0" FontSize="12">
+                        <TextBlock Margin="{StaticResource yr.CompactSpacing}" Style="{StaticResource yr.CaptionStyle}">
                             <Run Text="Funds: " />
                             <Run FontWeight="Bold" Text="{Binding FundCount, Mode=OneWay}" />
                             <Run Text=" / " />
@@ -410,14 +391,14 @@
                         </TextBlock>
 
                         <!--  Time remaining  -->
-                        <TextBlock Margin="0,5,0,0" FontSize="12">
+                        <TextBlock Margin="{StaticResource yr.CompactSpacing}" Style="{StaticResource yr.CaptionStyle}">
                             <Run Text="Time remaining: " />
                             <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
                         </TextBlock>
 
                         <!--  Progress bar  -->
                         <mah:MetroProgressBar
-                            Margin="0,10,0,0"
+                            Margin="{StaticResource yr.ItemSpacing}"
                             Maximum="{Binding TotalFundCount}"
                             Value="{Binding FundCount}" />
                     </StackPanel>
@@ -425,7 +406,7 @@
                     <!--  Scheduled Batches Section (visible when session is active, fills remaining space)  -->
                     <Grid
                         Grid.Row="4"
-                        Margin="0,20,0,0"
+                        Margin="{StaticResource yr.SectionSpacing}"
                         Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -434,14 +415,12 @@
 
                         <TextBlock
                             Grid.Row="0"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                            Text="SCHEDULED BATCHES" />
+                            Style="{StaticResource yr.SubheaderStyle}"
+                            Text="Scheduled batches" />
 
                         <ListBox
                             Grid.Row="1"
-                            Margin="0,10,0,0"
+                            Margin="{StaticResource yr.ItemSpacing}"
                             Background="Transparent"
                             BorderThickness="0"
                             ItemsSource="{Binding ScheduledBatches}"
@@ -452,7 +431,7 @@
                                 <DataTemplate>
                                     <Grid
                                         x:Name="RowGrid"
-                                        Margin="0,2"
+                                        Margin="0,4"
                                         behaviors:CompletionFlashBehavior.FlashColor="LightGreen"
                                         behaviors:CompletionFlashBehavior.FlashDuration="0:0:2"
                                         behaviors:CompletionFlashBehavior.FlashHoldDuration="0:0:5"
@@ -466,14 +445,14 @@
                                         <!--  Batch number  -->
                                         <TextBlock
                                             Grid.Column="0"
-                                            FontSize="11"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="SemiBold"
                                             Text="{Binding BatchNumber.Value, StringFormat=#{0}}" />
 
                                         <!--  Scheduled time  -->
                                         <TextBlock
                                             Grid.Column="1"
-                                            FontSize="11"
+                                            Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.ThemeForeground}"
                                             Text="{Binding ScheduledAt, StringFormat=HH:mm:ss}" />
 
@@ -489,7 +468,7 @@
                                         <DataTrigger Binding="{Binding Status}" Value="Completed">
                                             <!--  Checkmark icon (E73E) - Green for success  -->
                                             <Setter TargetName="StatusIndicator" Property="Text" Value="&#xE73E;" />
-                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="#2ECC71" />
+                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Status}" Value="InProgress">
                                             <!--  Sync icon (E895) - Accent/Blue for active  -->
@@ -499,12 +478,12 @@
                                         <DataTrigger Binding="{Binding Status}" Value="Pending">
                                             <!--  Clock icon (E823) - Orange/Amber for waiting  -->
                                             <Setter TargetName="StatusIndicator" Property="Text" Value="&#xE823;" />
-                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="#F39C12" />
+                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="{DynamicResource yr.WarningBrush}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Status}" Value="Failed">
                                             <!--  Error icon (E783) - Red for error  -->
                                             <Setter TargetName="StatusIndicator" Property="Text" Value="&#xE783;" />
-                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="#E74C3C" />
+                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -523,13 +502,13 @@
             <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock
-                        Margin="0,0,10,0"
+                        Margin="0,0,8,0"
                         VerticalAlignment="Center"
                         Text="{Binding IsLoading, StringFormat='Loading: {0}'}" />
                     <Button
                         Command="{Binding RefreshCommand}"
                         Content="Refresh"
-                        Style="{StaticResource MahApps.Styles.Button.Flat}" />
+                        Style="{StaticResource yr.ButtonFlatStyle}" />
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
