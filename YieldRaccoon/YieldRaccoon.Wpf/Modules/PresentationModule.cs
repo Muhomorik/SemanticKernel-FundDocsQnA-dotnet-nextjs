@@ -108,6 +108,13 @@ public class PresentationModule : Module
                 (pi, ctx) => LogManager.GetLogger(typeof(AboutFundPageDataCollector).FullName!)))
             .SingleInstance();
 
+        // Fund details URL builder registration
+        // Builds strongly-typed Uri instances for fund detail page navigation
+        builder.Register(ctx =>
+                new FundDetailsUrlBuilder(ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+            .As<IFundDetailsUrlBuilder>()
+            .SingleInstance();
+
         // AboutFund orchestrator registration
         // Register orchestrator for fund browsing session lifecycle and navigation
         builder.RegisterType<AboutFundOrchestrator>()
@@ -115,9 +122,6 @@ public class PresentationModule : Module
             .WithParameter(new Autofac.Core.ResolvedParameter(
                 (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
                 (pi, ctx) => LogManager.GetLogger(typeof(AboutFundOrchestrator).FullName!)))
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(string) && pi.Name == "fundDetailsUrlTemplate",
-                (pi, ctx) => ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
             .SingleInstance();
 
         // AboutFund page interactor registration

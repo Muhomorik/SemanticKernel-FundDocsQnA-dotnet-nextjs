@@ -86,13 +86,13 @@ public interface IAboutFundOrchestrator : IDisposable
     IObservable<IAboutFundEvent> Events { get; }
 
     /// <summary>
-    /// Emits a URL when the orchestrator requests navigation to a fund detail page.
+    /// Emits a <see cref="Uri"/> when the orchestrator requests navigation to a fund detail page.
     /// </summary>
     /// <remarks>
     /// The presentation layer should handle this by navigating WebView2 to the URL.
-    /// This follows the Intent Signal Pattern.
+    /// This follows the Intent Signal Pattern. Convert to string at the WebView2 boundary.
     /// </remarks>
-    IObservable<string> NavigateToUrl { get; }
+    IObservable<Uri> NavigateToUrl { get; }
 
     /// <summary>
     /// Emits countdown updates every second during auto-advance delay.

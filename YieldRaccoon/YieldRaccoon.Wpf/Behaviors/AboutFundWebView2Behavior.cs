@@ -76,7 +76,7 @@ public static class AboutFundWebView2Behavior
 
         // Subscribe to ViewModel events
         viewModel.BrowserReloadRequested += (s, e) => OnBrowserReloadRequested(webView);
-        viewModel.NavigationRequested += (s, url) => OnNavigationRequested(webView, url);
+        viewModel.NavigationRequested += (s, uri) => OnNavigationRequested(webView, uri);
 
         // Handle Loaded event for async initialization
         if (webView.IsLoaded)
@@ -139,13 +139,14 @@ public static class AboutFundWebView2Behavior
 
     /// <summary>
     /// Handles a navigation request from the ViewModel by calling <see cref="CoreWebView2.Navigate"/>.
+    /// Converts the <see cref="Uri"/> to string at the WebView2 boundary.
     /// </summary>
-    private static void OnNavigationRequested(WebView2 webView, string url)
+    private static void OnNavigationRequested(WebView2 webView, Uri uri)
     {
-        if (webView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(url))
+        if (webView.CoreWebView2 != null)
         {
-            Logger.Debug("Navigating to: {0}", url);
-            webView.CoreWebView2.Navigate(url);
+            Logger.Debug("Navigating to: {0}", uri);
+            webView.CoreWebView2.Navigate(uri.ToString());
         }
     }
 }

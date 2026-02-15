@@ -41,7 +41,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Event raised when navigation is requested.
     /// </summary>
-    public event EventHandler<string>? NavigationRequested;
+    public event EventHandler<Uri>? NavigationRequested;
 
     #region Child ViewModels
 
@@ -234,9 +234,9 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var url = _options.GetFundDetailsUrlByOrderbookId(firstFund.OrderbookId!);
+        var url = new Uri(_options.GetFundDetailsUrlByOrderbookId(firstFund.OrderbookId!));
         _logger.Info("Navigating to first fund: {0}", url);
-        BrowserUrl = url;
+        BrowserUrl = url.ToString();
         NavigationRequested?.Invoke(this, url);
     }
 
@@ -271,10 +271,10 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
                 .Subscribe(OnCountdownTick));
     }
 
-    private void OnNavigateToUrl(string url)
+    private void OnNavigateToUrl(Uri url)
     {
         _logger.Debug("Orchestrator requests navigation to: {0}", url);
-        BrowserUrl = url;
+        BrowserUrl = url.ToString();
         NavigationRequested?.Invoke(this, url);
     }
 
@@ -324,7 +324,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         if (!string.IsNullOrWhiteSpace(BrowserUrl))
         {
             _logger.Info("Navigating to: {0}", BrowserUrl);
-            NavigationRequested?.Invoke(this, BrowserUrl);
+            NavigationRequested?.Invoke(this, new Uri(BrowserUrl));
         }
     }
 

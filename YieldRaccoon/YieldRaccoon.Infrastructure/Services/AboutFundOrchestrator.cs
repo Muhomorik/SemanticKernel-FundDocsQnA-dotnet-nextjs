@@ -34,7 +34,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     private readonly IAboutFundPageInteractor _pageInteractor;
     private readonly IAboutFundPageDataCollector _collector;
     private readonly AboutFundResponseParser _responseParser;
-    private readonly string _fundDetailsUrlTemplate;
+    private readonly IFundDetailsUrlBuilder _urlBuilder;
     private readonly IScheduler _scheduler;
     private readonly CompositeDisposable _disposables = new();
 
@@ -54,7 +54,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
 
     // Subjects for events (no initial value)
     private readonly Subject<IAboutFundEvent> _events = new();
-    private readonly Subject<string> _navigateToUrl = new();
+    private readonly Subject<Uri> _navigateToUrl = new();
     private readonly Subject<int> _countdownTick = new();
 
     /// <inheritdoc/>
@@ -64,7 +64,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public IObservable<IAboutFundEvent> Events => _events.AsObservable();
 
     /// <inheritdoc/>
-    public IObservable<string> NavigateToUrl => _navigateToUrl.AsObservable();
+    public IObservable<Uri> NavigateToUrl => _navigateToUrl.AsObservable();
 
     /// <inheritdoc/>
     public IObservable<int> CountdownTick => _countdownTick.AsObservable();
@@ -77,7 +77,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// <param name="fundProfileRepository">Repository for querying fund profiles.</param>
     /// <param name="pageInteractor">Page interactor for post-navigation element clicks.</param>
     /// <param name="collector">Collector for accumulating per-fund page data.</param>
-    /// <param name="fundDetailsUrlTemplate">URL template with <c>{0}</c> placeholder for OrderbookId.</param>
+    /// <param name="urlBuilder">Builds fund detail page URLs from OrderBookId.</param>
     /// <param name="scheduler">Rx scheduler for timer operations.</param>
     public AboutFundOrchestrator(
         ILogger logger,
@@ -85,7 +85,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         IFundProfileRepository fundProfileRepository,
         IAboutFundPageInteractor pageInteractor,
         IAboutFundPageDataCollector collector,
-        string fundDetailsUrlTemplate,
+        IFundDetailsUrlBuilder urlBuilder,
         IScheduler scheduler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -94,8 +94,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
             fundProfileRepository ?? throw new ArgumentNullException(nameof(fundProfileRepository));
         _pageInteractor = pageInteractor ?? throw new ArgumentNullException(nameof(pageInteractor));
         _collector = collector ?? throw new ArgumentNullException(nameof(collector));
-        _fundDetailsUrlTemplate =
-            fundDetailsUrlTemplate ?? throw new ArgumentNullException(nameof(fundDetailsUrlTemplate));
+        _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
         _scheduler = scheduler ?? throw new ArgumentNullException(nameof(scheduler));
 
         _responseParser = new AboutFundResponseParser(logger, _collector);
@@ -295,14 +294,14 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         // Begin data collection for this fund (abandons any previous incomplete collection)
         _collector.BeginCollection(orderBookId);
 
-        var url = _fundDetailsUrlTemplate.Replace("{0}", orderBookId, StringComparison.OrdinalIgnoreCase);
+        var url = _urlBuilder.BuildUrl(orderBookId);
 
         var navStarted = AboutFundNavigationStarted.Create(
             _currentSessionId.Value,
             fund.Isin,
             orderBookId,
             index,
-            url);
+            url.ToString());
         AppendAndEmit(navStarted);
 
         RefreshState();
