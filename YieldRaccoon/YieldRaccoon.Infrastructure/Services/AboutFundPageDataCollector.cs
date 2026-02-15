@@ -49,7 +49,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
     }
 
     /// <inheritdoc />
-    public void BeginCollection(string isin, string orderbookId)
+    public void BeginCollection(string orderBookId)
     {
         AboutFundPageData? abandoned = null;
 
@@ -59,15 +59,14 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
             if (_current is { IsComplete: false })
             {
                 _logger.Warn("Abandoning incomplete collection for {0} ({1}/{2} resolved)",
-                    _current.Isin, _current.ResolvedCount, _current.TotalSlots);
+                    _current.OrderBookId, _current.ResolvedCount, _current.TotalSlots);
 
                 abandoned = AbandonCurrent();
             }
 
             _current = new AboutFundPageData
             {
-                Isin = isin,
-                OrderBookId = orderbookId
+                OrderBookId = orderBookId
             };
         }
 
@@ -76,7 +75,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
             _completed.OnNext(abandoned);
 
         _stateChanged.OnNext(_current);
-        _logger.Debug("Begin collection for {0} (OrderBookId={1})", isin, orderbookId);
+        _logger.Debug("Begin collection for OrderBookId={0}", orderBookId);
     }
 
     /// <inheritdoc />
@@ -136,7 +135,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         if (isComplete)
         {
             _logger.Info("Collection complete for {0}: {1} ({2}/{3} succeeded)",
-                snapshot.Isin,
+                snapshot.OrderBookId,
                 snapshot.IsFullySuccessful ? "all succeeded" : "partial",
                 snapshot.ResolvedCount - CountFailed(snapshot),
                 snapshot.TotalSlots);
@@ -162,9 +161,11 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         return pd;
     }
 
-    private static int CountFailed(AboutFundPageData pd) =>
-        (pd.ChartTimePeriods.Status == AboutFundFetchStatus.Failed ? 1 : 0)
-        + (pd.SekPerformance.Status == AboutFundFetchStatus.Failed ? 1 : 0);
+    private static int CountFailed(AboutFundPageData pd)
+    {
+        return (pd.ChartTimePeriods.Status == AboutFundFetchStatus.Failed ? 1 : 0)
+               + (pd.SekPerformance.Status == AboutFundFetchStatus.Failed ? 1 : 0);
+    }
 
     /// <inheritdoc />
     public void Dispose()

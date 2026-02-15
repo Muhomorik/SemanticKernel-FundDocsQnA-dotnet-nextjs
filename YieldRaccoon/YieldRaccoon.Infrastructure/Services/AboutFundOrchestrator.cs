@@ -136,13 +136,13 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         _currentIndex = 0;
 
         var firstFund = _schedule[0];
-        var firstOrderbookId = firstFund.OrderbookId ?? string.Empty;
+        var firstOrderBookId = firstFund.OrderbookId ?? string.Empty;
 
         // Publish session started event
         var sessionStarted = AboutFundSessionStarted.Create(
             _currentSessionId.Value,
             _schedule.Count,
-            firstOrderbookId);
+            firstOrderBookId);
         AppendAndEmit(sessionStarted);
 
         _logger.Info("Session {0} started with {1} funds", _currentSessionId, _schedule.Count);
@@ -293,7 +293,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         }
 
         // Begin data collection for this fund (abandons any previous incomplete collection)
-        _collector.BeginCollection(fund.Isin, orderBookId);
+        _collector.BeginCollection(orderBookId);
 
         var url = _fundDetailsUrlTemplate.Replace("{0}", orderBookId, StringComparison.OrdinalIgnoreCase);
 

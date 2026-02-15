@@ -49,9 +49,8 @@ public interface IAboutFundPageDataCollector
     /// Begins collecting data for a new fund page visit.
     /// Resets all slots to <see cref="AboutFundFetchStatus.Pending"/>.
     /// </summary>
-    /// <param name="isin">The ISIN of the fund being visited.</param>
     /// <param name="orderBookId">The OrderBookId used in the page URL.</param>
-    void BeginCollection(string isin, string orderBookId);
+    void BeginCollection(string orderBookId);
 
     /// <summary>
     /// Records a successful fetch for the <see cref="AboutFundPageData.ChartTimePeriods"/> slot.

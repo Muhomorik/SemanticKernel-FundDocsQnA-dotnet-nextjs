@@ -45,14 +45,17 @@ namespace YieldRaccoon.Application.Models;
 public sealed record AboutFundPageData
 {
     /// <summary>
-    /// Gets the ISIN identifier of the fund being visited.
-    /// </summary>
-    public required string Isin { get; init; }
-
-    /// <summary>
     /// Gets the OrderBookId used in the external URL for this fund.
     /// </summary>
     public required string OrderBookId { get; init; }
+
+    /// <summary>
+    /// Gets the ISIN identifier of the fund, extracted from the page data.
+    /// </summary>
+    /// <remarks>
+    /// Not known at construction time — populated later from intercepted response data.
+    /// </remarks>
+    public string? Isin { get; init; }
 
     // ── Fetch slots ───────────────────────────────────────────────
 
