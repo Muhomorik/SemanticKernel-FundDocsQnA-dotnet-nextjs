@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using YieldRaccoon.Application.Configuration;
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Infrastructure.Data.Context;
@@ -113,6 +114,17 @@ public class PresentationModule : Module
         // Maps Wpf-layer config to Application-layer options record at composition root
         builder.Register(ctx =>
                 new FundDetailsUrlBuilderOptions(ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+            .SingleInstance();
+
+        // Response parser options
+        // Endpoint URL patterns for mapping intercepted responses to data slots
+        // Defined here at composition root — not exposed in user-facing config
+        builder.Register(ctx => new ResponseParserOptions(new[]
+            {
+                new EndpointPattern("chart/timeperiods/", nameof(AboutFundPageData.ChartTimePeriods)),
+                // Uncomment when SEK performance endpoint pattern is discovered:
+                // new EndpointPattern("chart/sekdata/", nameof(AboutFundPageData.SekPerformance)),
+            }))
             .SingleInstance();
 
         // Fund details URL builder registration

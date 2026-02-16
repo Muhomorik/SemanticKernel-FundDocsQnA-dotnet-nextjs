@@ -3,6 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NLog;
+using YieldRaccoon.Application.Configuration;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
@@ -79,6 +80,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// <param name="collector">Collector for accumulating per-fund page data.</param>
     /// <param name="urlBuilder">Builds fund detail page URLs from OrderBookId.</param>
     /// <param name="scheduler">Rx scheduler for timer operations.</param>
+    /// <param name="parserOptions">Endpoint patterns for response routing.</param>
     public AboutFundOrchestrator(
         ILogger logger,
         IAboutFundEventStore eventStore,
@@ -86,7 +88,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         IAboutFundPageInteractor pageInteractor,
         IAboutFundPageDataCollector collector,
         IFundDetailsUrlBuilder urlBuilder,
-        IScheduler scheduler)
+        IScheduler scheduler,
+        ResponseParserOptions parserOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
@@ -97,7 +100,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
         _scheduler = scheduler ?? throw new ArgumentNullException(nameof(scheduler));
 
-        _responseParser = new AboutFundResponseParser(logger, _collector);
+        _responseParser = new AboutFundResponseParser(logger, _collector, parserOptions);
 
         _sessionState = new BehaviorSubject<AboutFundSessionState>(AboutFundSessionState.Inactive);
 

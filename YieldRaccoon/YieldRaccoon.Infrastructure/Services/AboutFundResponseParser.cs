@@ -1,4 +1,5 @@
 using NLog;
+using YieldRaccoon.Application.Configuration;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Services;
 
@@ -16,35 +17,29 @@ namespace YieldRaccoon.Infrastructure.Services;
 /// layers should not know about.
 /// </para>
 /// <para>
-/// When new data endpoints are discovered on the fund detail page, add a new pattern
-/// here and route to the appropriate collector method.
+/// When new data endpoints are discovered on the fund detail page, add a new
+/// <see cref="EndpointPattern"/> to the <see cref="ResponseParserOptions"/> registered
+/// at the composition root.
 /// </para>
 /// </remarks>
 public class AboutFundResponseParser
 {
     private readonly ILogger _logger;
     private readonly IAboutFundPageDataCollector _collector;
-
-    /// <summary>
-    /// URL patterns mapped to collector slot names.
-    /// Order matters — first match wins.
-    /// </summary>
-    private static readonly (string Pattern, string SlotName)[] EndpointPatterns =
-    {
-        ("chart/timeperiods/", nameof(AboutFundPageData.ChartTimePeriods)),
-        // TODO: Add SEK performance endpoint pattern when discovered
-        // ("chart/sekdata/", nameof(AboutFundPageData.SekPerformance)),
-    };
+    private readonly IReadOnlyList<EndpointPattern> _patterns;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundResponseParser"/> class.
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="collector">The collector to route parsed responses to.</param>
-    public AboutFundResponseParser(ILogger logger, IAboutFundPageDataCollector collector)
+    /// <param name="options">Endpoint patterns configuration.</param>
+    public AboutFundResponseParser(ILogger logger, IAboutFundPageDataCollector collector, ResponseParserOptions options)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _collector = collector ?? throw new ArgumentNullException(nameof(collector));
+        ArgumentNullException.ThrowIfNull(options);
+        _patterns = options.Patterns;
     }
 
     /// <summary>
@@ -55,29 +50,29 @@ public class AboutFundResponseParser
     /// <returns><c>true</c> if the URL matched a known pattern and was routed; <c>false</c> otherwise.</returns>
     public bool TryRoute(AboutFundInterceptedRequest request)
     {
-        foreach (var (pattern, slotName) in EndpointPatterns)
+        foreach (var endpoint in _patterns)
         {
-            if (!request.Url.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            if (!request.Url.Contains(endpoint.UrlFragment, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (request.StatusCode is < 200 or >= 300)
             {
-                _logger.Warn("Matched {0} but status {1} — marking slot failed", pattern, request.StatusCode);
-                _collector.FailSlot(slotName, $"HTTP {request.StatusCode}: {request.StatusText}");
+                _logger.Warn("Matched {0} but status {1} — marking slot failed", endpoint.UrlFragment, request.StatusCode);
+                _collector.FailSlot(endpoint.SlotName, $"HTTP {request.StatusCode}: {request.StatusText}");
                 return true;
             }
 
             if (string.IsNullOrEmpty(request.ResponsePreview))
             {
-                _logger.Warn("Matched {0} but response body is empty — marking slot failed", pattern);
-                _collector.FailSlot(slotName, "Empty response body");
+                _logger.Warn("Matched {0} but response body is empty — marking slot failed", endpoint.UrlFragment);
+                _collector.FailSlot(endpoint.SlotName, "Empty response body");
                 return true;
             }
 
-            _logger.Debug("Matched {0} → {1} ({2} chars)", pattern, slotName, request.ResponsePreview.Length);
+            _logger.Debug("Matched {0} → {1} ({2} chars)", endpoint.UrlFragment, endpoint.SlotName, request.ResponsePreview.Length);
 
             // Route to the appropriate slot
-            switch (slotName)
+            switch (endpoint.SlotName)
             {
                 case nameof(AboutFundPageData.ChartTimePeriods):
                     _collector.ReceiveChartTimePeriods(request.ResponsePreview);
