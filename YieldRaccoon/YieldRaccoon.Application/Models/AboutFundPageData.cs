@@ -57,11 +57,10 @@ public sealed record AboutFundPageData
     /// </remarks>
     public string? Isin { get; init; }
 
-    // ── Fetch slots ───────────────────────────────────────────────
+    #region Fetch slots (in call order)
 
     /// <summary>
-    /// Gets the fetch outcome for chart time-period data,
-    /// triggered by navigating to the fund detail page.
+    /// Step 1 — Chart time-period data, fetched on initial page navigation.
     /// </summary>
     /// <remarks>
     /// Populated from the <c>chart/timeperiods/{orderbookId}</c> API response
@@ -70,8 +69,7 @@ public sealed record AboutFundPageData
     public AboutFundFetchSlot ChartTimePeriods { get; init; } = AboutFundFetchSlot.Pending();
 
     /// <summary>
-    /// Gets the fetch outcome for SEK performance data,
-    /// triggered by clicking the "Utvecklingen i SEK" checkbox.
+    /// Step 2 — SEK performance data, fetched after clicking the "Utvecklingen i SEK" checkbox.
     /// </summary>
     /// <remarks>
     /// Populated from the API response intercepted after the page interactor
@@ -80,7 +78,9 @@ public sealed record AboutFundPageData
     /// </remarks>
     public AboutFundFetchSlot SekPerformance { get; init; } = AboutFundFetchSlot.Pending();
 
-    // ── Completion checks ─────────────────────────────────────────
+    #endregion
+
+    #region Completion checks
 
     /// <summary>
     /// Gets a value indicating whether all fetch slots have resolved
@@ -117,4 +117,6 @@ public sealed record AboutFundPageData
     /// Gets the total number of fetch slots tracked for this page visit.
     /// </summary>
     public int TotalSlots => 2;
+
+    #endregion
 }
