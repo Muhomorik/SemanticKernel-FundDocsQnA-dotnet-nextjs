@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
+using YieldRaccoon.Application.Configuration;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Infrastructure.Data.Context;
@@ -108,10 +109,15 @@ public class PresentationModule : Module
                 (pi, ctx) => LogManager.GetLogger(typeof(AboutFundPageDataCollector).FullName!)))
             .SingleInstance();
 
+        // Fund details URL builder options
+        // Maps Wpf-layer config to Application-layer options record at composition root
+        builder.Register(ctx =>
+                new FundDetailsUrlBuilderOptions(ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+            .SingleInstance();
+
         // Fund details URL builder registration
         // Builds strongly-typed Uri instances for fund detail page navigation
-        builder.Register(ctx =>
-                new FundDetailsUrlBuilder(ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+        builder.RegisterType<FundDetailsUrlBuilder>()
             .As<IFundDetailsUrlBuilder>()
             .SingleInstance();
 

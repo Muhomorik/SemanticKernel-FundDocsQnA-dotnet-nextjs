@@ -1,3 +1,4 @@
+using YieldRaccoon.Application.Configuration;
 using YieldRaccoon.Application.Services;
 
 namespace YieldRaccoon.Infrastructure.Services;
@@ -6,8 +7,9 @@ namespace YieldRaccoon.Infrastructure.Services;
 /// Builds fund detail page URLs by substituting an OrderBookId into a configurable template.
 /// </summary>
 /// <remarks>
-/// The URL template (e.g., <c>https://provider.com/fund/{0}</c>) is an infrastructure
-/// concern injected from configuration. This service validates the result is a well-formed URI.
+/// The URL template (e.g., <c>https://provider.com/fund/{0}</c>) is provided via
+/// <see cref="FundDetailsUrlBuilderOptions"/> from the Application layer.
+/// This service validates the result is a well-formed URI.
 /// </remarks>
 public class FundDetailsUrlBuilder : IFundDetailsUrlBuilder
 {
@@ -16,15 +18,15 @@ public class FundDetailsUrlBuilder : IFundDetailsUrlBuilder
     /// <summary>
     /// Initializes a new instance of the <see cref="FundDetailsUrlBuilder"/> class.
     /// </summary>
-    /// <param name="urlTemplate">
-    /// URL template with <c>{0}</c> placeholder for the OrderBookId.
-    /// </param>
-    public FundDetailsUrlBuilder(string urlTemplate)
+    /// <param name="options">Configuration containing the URL template.</param>
+    public FundDetailsUrlBuilder(FundDetailsUrlBuilderOptions options)
     {
-        if (string.IsNullOrWhiteSpace(urlTemplate))
-            throw new ArgumentException("URL template cannot be null or whitespace.", nameof(urlTemplate));
+        ArgumentNullException.ThrowIfNull(options);
 
-        _urlTemplate = urlTemplate;
+        if (string.IsNullOrWhiteSpace(options.UrlTemplate))
+            throw new ArgumentException("URL template cannot be null or whitespace.", nameof(options));
+
+        _urlTemplate = options.UrlTemplate;
     }
 
     /// <inheritdoc />
