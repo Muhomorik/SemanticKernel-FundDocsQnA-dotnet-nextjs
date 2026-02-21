@@ -76,10 +76,7 @@ public sealed class MyViewModel : ViewModelBase, IDisposable
 }
 ```
 
-Dispose is called when:
-- Window is closed
-- ViewModel is replaced in a navigation scenario
-- Application exits
+Dispose is triggered by `CurrentWindowService.ClosingCommand` — the ViewModel self-disposes when its window closes (see "Window Closing Lifecycle" in [SKILL.md](SKILL.md)).
 
 ## Constructor Patterns
 

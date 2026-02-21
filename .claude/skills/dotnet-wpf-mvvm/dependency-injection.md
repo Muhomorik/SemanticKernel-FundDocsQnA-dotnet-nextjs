@@ -560,25 +560,34 @@ protected override void OnExit(ExitEventArgs e)
 
 ### Dispose ViewModels on Window Close
 
+Use `CurrentWindowService.ClosingCommand` so the ViewModel self-disposes — no code-behind needed:
+
+**XAML:**
+
+```xml
+<dxmvvm:Interaction.Behaviors>
+    <dxmvvm:EventToCommand EventName="Loaded" Command="{Binding LoadedCommand}" />
+    <dxmvvm:CurrentWindowService ClosingCommand="{Binding WindowClosingCommand}" />
+</dxmvvm:Interaction.Behaviors>
+```
+
+**ViewModel:**
+
 ```csharp
-public partial class MainWindow : Window
+public ICommand WindowClosingCommand { get; }
+
+public MyWindowViewModel(ILogger logger, IScheduler uiScheduler)
 {
-    public MainWindow()
-    {
-        InitializeComponent();
-
-        Closed += OnWindowClosed;
-    }
-
-    private void OnWindowClosed(object sender, EventArgs e)
-    {
-        // Dispose ViewModel if it implements IDisposable
-        if (DataContext is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-    }
+    // ...
+    WindowClosingCommand = new DelegateCommand(() => Dispose());
 }
+```
+
+**Anti-pattern** — don't dispose ViewModels from code-behind:
+
+```csharp
+// ❌ Violates MVVM separation
+Closed += (s, e) => (DataContext as IDisposable)?.Dispose();
 ```
 
 ## Advanced Registration Patterns
