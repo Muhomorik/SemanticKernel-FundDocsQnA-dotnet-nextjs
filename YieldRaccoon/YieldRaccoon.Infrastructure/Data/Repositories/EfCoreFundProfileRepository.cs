@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Domain.Entities;
+using YieldRaccoon.Domain.ValueObjects;
 using YieldRaccoon.Infrastructure.Data.Context;
 
 namespace YieldRaccoon.Infrastructure.Data.Repositories;
@@ -49,16 +50,44 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     public async Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
         int limit = 60, CancellationToken cancellationToken = default)
     {
-        return await _context.FundProfiles
-            .Select(fp => new AboutFundScheduleItem
+        // Project and filter in SQL, then sort client-side because
+        // SQLite cannot ORDER BY DateTimeOffset expressions.
+        var rows = await _context.FundProfiles
+            .Where(fp => fp.OrderbookId != null)
+            .Select(fp => new
             {
                 Isin = fp.Id.Isin,
-                OrderbookId = fp.OrderbookId,
-                Name = fp.Name,
-                HistoryRecordCount = fp.HistoryRecords.Count
+                OrderbookId = fp.OrderbookId!,
+                fp.Name,
+                HistoryRecordCount = fp.HistoryRecords.Count,
+                fp.AboutFundLastVisitedAt
             })
-            .OrderBy(f => f.HistoryRecordCount)
-            .Take(limit)
             .ToListAsync(cancellationToken);
+
+        return rows
+            .OrderBy(f => f.AboutFundLastVisitedAt ?? DateTimeOffset.MinValue)
+            .ThenBy(f => f.HistoryRecordCount)
+            .Take(limit)
+            .Select(f => new AboutFundScheduleItem
+            {
+                Isin = f.Isin,
+                OrderBookId = OrderBookId.Create(f.OrderbookId),
+                Name = f.Name,
+                HistoryRecordCount = f.HistoryRecordCount,
+                LastVisitedAt = f.AboutFundLastVisitedAt
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken);
+        if (profile is not null)
+        {
+            profile.AboutFundLastVisitedAt = visitedAt;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 }

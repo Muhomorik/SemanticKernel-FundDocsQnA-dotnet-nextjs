@@ -1,6 +1,10 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Windows;
+using System.Windows.Media;
 using Microsoft.Web.WebView2.Wpf;
 using NLog;
+using YieldRaccoon.Wpf.Services;
 using YieldRaccoon.Wpf.ViewModels;
 
 namespace YieldRaccoon.Wpf.Behaviors;
@@ -17,6 +21,10 @@ namespace YieldRaccoon.Wpf.Behaviors;
 public static class AboutFundWebView2Behavior
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Subject<(WebView2, AboutFundWindowViewModel)> PrivacyRefreshSubject = new();
+    private static IDisposable? _privacyRefreshSubscription;
+    private static IDisposable? _periodicRefreshSubscription;
+    private static readonly SemaphoreSlim RefreshSemaphore = new(1, 1);
 
     #region ViewModel Attached Property
 
@@ -115,13 +123,75 @@ public static class AboutFundWebView2Behavior
             // Wire up navigation events for loading state
             webView.CoreWebView2.NavigationStarting += (s, e) => { viewModel.OnBrowserLoadingChanged(true); };
 
-            webView.CoreWebView2.NavigationCompleted += (s, e) => { viewModel.OnBrowserLoadingChanged(false); };
+            // Debounce privacy screenshot refresh — pages fire multiple NavigationCompleted
+            // events (subframes, XHR redirects) and capturing too early yields a gray loading page.
+            _privacyRefreshSubscription?.Dispose();
+            _privacyRefreshSubscription = PrivacyRefreshSubject
+                .Throttle(TimeSpan.FromMilliseconds(1500))
+                .ObserveOn(SynchronizationContext.Current!)
+                .Subscribe(async args => await RefreshPrivacyScreenshotAsync(args.Item1, args.Item2));
+
+            webView.CoreWebView2.NavigationCompleted += (s, e) =>
+            {
+                viewModel.OnBrowserLoadingChanged(false);
+
+                if (viewModel.IsPrivacyMode && webView.CoreWebView2 != null)
+                    PrivacyRefreshSubject.OnNext((webView, viewModel));
+            };
+
+            // Periodic refresh every 10 seconds — keeps the screenshot current when
+            // page content updates dynamically (AJAX, charts) without triggering navigation.
+            _periodicRefreshSubscription?.Dispose();
+            _periodicRefreshSubscription = Observable.Interval(TimeSpan.FromSeconds(10))
+                .ObserveOn(SynchronizationContext.Current!)
+                .Where(_ => viewModel.IsPrivacyMode && webView.CoreWebView2 != null)
+                .Subscribe(async _ => await RefreshPrivacyScreenshotAsync(webView, viewModel));
 
             Logger.Info("WebView2 initialized successfully for AboutFund");
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to initialize WebView2");
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the privacy screenshot by temporarily showing the browser off-screen.
+    /// </summary>
+    /// <remarks>
+    /// WebView2 is an HWND control — <c>CapturePreviewAsync</c> requires the control to be visible.
+    /// We move it off-screen via <see cref="TranslateTransform"/> so the user never sees live content.
+    /// </remarks>
+    private static async Task RefreshPrivacyScreenshotAsync(WebView2 webView, AboutFundWindowViewModel viewModel)
+    {
+        if (!await RefreshSemaphore.WaitAsync(0))
+            return;
+
+        try
+        {
+            // Move browser off-screen, make visible for capture
+            var originalTransform = webView.RenderTransform;
+            webView.RenderTransform = new TranslateTransform(-10000, 0);
+            webView.Visibility = Visibility.Visible;
+            await Task.Delay(50); // Allow render
+
+            viewModel.PrivacyScreenshot = await PrivacyFilterService.CaptureAndFilterAsync(
+                webView.CoreWebView2!, webView.Dispatcher);
+
+            // Restore hidden state
+            webView.Visibility = Visibility.Collapsed;
+            webView.RenderTransform = originalTransform;
+
+            Logger.Debug("Privacy screenshot refreshed after navigation");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to refresh privacy screenshot");
+            webView.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            RefreshSemaphore.Release();
         }
     }
 

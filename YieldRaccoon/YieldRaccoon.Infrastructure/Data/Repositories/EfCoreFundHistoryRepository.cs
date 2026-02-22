@@ -29,7 +29,7 @@ public class EfCoreFundHistoryRepository : IFundHistoryRepository
     public async Task AddOrUpdateAsync(FundHistoryRecord record, CancellationToken cancellationToken = default)
     {
         var existing = await _context.FundHistoryRecords
-            .FirstOrDefaultAsync(h => h.FundId == record.FundId && h.NavDate == record.NavDate, cancellationToken);
+            .FirstOrDefaultAsync(h => h.IsinId == record.IsinId && h.NavDate == record.NavDate, cancellationToken);
 
         if (existing is not null)
         {
@@ -47,6 +47,26 @@ public class EfCoreFundHistoryRepository : IFundHistoryRepository
         {
             await AddOrUpdateAsync(record, cancellationToken);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<int> AddRangeIfNotExistsAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default)
+    {
+        var insertedCount = 0;
+
+        foreach (var record in records)
+        {
+            var exists = await _context.FundHistoryRecords
+                .AnyAsync(h => h.IsinId == record.IsinId && h.NavDate == record.NavDate, cancellationToken);
+
+            if (!exists)
+            {
+                await _context.FundHistoryRecords.AddAsync(record, cancellationToken);
+                insertedCount++;
+            }
+        }
+
+        return insertedCount;
     }
 
     /// <inheritdoc />

@@ -9,7 +9,7 @@ namespace YieldRaccoon.Domain.Entities;
 /// <remarks>
 /// <para>
 /// Contains fund metadata that rarely changes: identifiers, fees, sustainability scores.
-/// Keyed by <see cref="FundId"/> (ISIN). Time-varying data is stored in <see cref="FundHistoryRecord"/>.
+/// Keyed by <see cref="IsinId"/> (ISIN). Time-varying data is stored in <see cref="FundHistoryRecord"/>.
 /// </para>
 /// </remarks>
 [DebuggerDisplay("FundProfile: {Name} ({Id})")]
@@ -18,7 +18,7 @@ public sealed class FundProfile
     /// <summary>
     /// Fund identifier (ISIN). Primary key.
     /// </summary>
-    public required FundId Id { get; init; }
+    public required IsinId Id { get; init; }
 
     /// <summary>
     /// Fund display name.
@@ -190,6 +190,12 @@ public sealed class FundProfile
     /// Used to skip re-crawling within a time window (e.g., same day).
     /// </summary>
     public DateTimeOffset? CrawlerLastUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Timestamp when this fund was last visited by the about-fund orchestrator.
+    /// Used for schedule ordering: never-visited or least-recently-visited funds are prioritized.
+    /// </summary>
+    public DateTimeOffset? AboutFundLastVisitedAt { get; set; }
 
     /// <summary>
     /// Collection of historical snapshots for this fund.

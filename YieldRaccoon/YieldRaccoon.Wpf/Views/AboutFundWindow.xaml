@@ -17,13 +17,14 @@
     MinHeight="600"
     d:DataContext="{d:DesignInstance viewModels:AboutFundWindowViewModel,
                                      IsDesignTimeCreatable=True}"
+    Icon="/Resources/YieldRaccoon.ico"
     TitleCharacterCasing="Normal"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
-    <!--  Bind Window Loaded event to ViewModel command  -->
     <dxmvvm:Interaction.Behaviors>
         <dxmvvm:EventToCommand Command="{Binding LoadedCommand}" EventName="Loaded" />
+        <dxmvvm:CurrentWindowService ClosingCommand="{Binding WindowClosingCommand}" />
     </dxmvvm:Interaction.Behaviors>
 
     <Grid Margin="16">
@@ -38,12 +39,13 @@
         <Border
             Grid.Row="0"
             Padding="12,4"
-            Style="{StaticResource yr.PanelControlStyle}"
-            CornerRadius="0">
+            CornerRadius="0"
+            Style="{StaticResource yr.PanelControlStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
@@ -62,6 +64,15 @@
                     VerticalAlignment="Center"
                     mah:TextBoxHelper.Watermark="Enter URL..."
                     Text="{Binding BrowserUrl, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.Style>
+                        <Style BasedOn="{StaticResource MahApps.Styles.TextBox}" TargetType="TextBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPrivacyMode}" Value="True">
+                                    <Setter Property="Foreground" Value="Transparent" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
                     <TextBox.InputBindings>
                         <KeyBinding Key="Return" Command="{Binding NavigateCommand}" />
                     </TextBox.InputBindings>
@@ -74,6 +85,15 @@
                     Command="{Binding NavigateCommand}"
                     Content="Go"
                     Style="{StaticResource yr.ButtonFlatStyle}" />
+
+                <!--  Privacy mode toggle  -->
+                <mah:ToggleSwitch
+                    Grid.Column="3"
+                    Margin="8,0,0,0"
+                    IsOn="{Binding IsPrivacyMode}"
+                    OffContent="Normal"
+                    OnContent="Privacy"
+                    ToolTip="Apply privacy filter to hide browser content" />
             </Grid>
         </Border>
 
@@ -96,26 +116,59 @@
             <views:AboutFundScheduleView Grid.Column="0" DataContext="{Binding FundScheduleViewModel}" />
 
             <!--  Splitter  -->
-            <GridSplitter
-                Grid.Column="1"
-                Style="{StaticResource yr.SplitterStyle}" />
+            <GridSplitter Grid.Column="1" Style="{StaticResource yr.SplitterStyle}" />
 
-            <!--  WebView2 Browser (middle)  -->
+            <!--  WebView2 Browser (middle) with privacy overlay  -->
             <Border
                 Grid.Column="2"
-                BorderBrush="{DynamicResource MahApps.Brushes.Gray7}"
+                BorderBrush="{StaticResource MahApps.Brushes.Gray7}"
                 BorderThickness="1"
                 CornerRadius="8">
-                <wv2:WebView2
-                    x:Name="Browser"
-                    behaviors:AboutFundWebView2Behavior.ViewModel="{Binding}"
-                    Source="{Binding BrowserUrl, Mode=OneWay}" />
+                <Grid>
+                    <!--  Browser (always present — toggled Collapsed by code-behind when privacy active)  -->
+                    <wv2:WebView2
+                        x:Name="Browser"
+                        behaviors:AboutFundWebView2Behavior.ViewModel="{Binding}"
+                        Source="{Binding BrowserUrl, Mode=OneWay}" />
+
+                    <!--  Privacy overlay (covers browser when active)  -->
+                    <Grid Background="Black" Visibility="{Binding IsPrivacyMode, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                        <Image
+                            RenderOptions.BitmapScalingMode="NearestNeighbor"
+                            Source="{Binding PrivacyScreenshot}"
+                            Stretch="Fill" />
+
+                        <!--  Privacy mode indicator  -->
+                        <Border Background="{StaticResource yr.OverlayBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!--  Shield icon  -->
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontFamily="Segoe Fluent Icons"
+                                    FontSize="48"
+                                    Foreground="White"
+                                    Text="&#xED1A;" />
+                                <TextBlock
+                                    Margin="0,12,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Text="Privacy mode" />
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    HorizontalAlignment="Center"
+                                    Foreground="White"
+                                    Style="{StaticResource yr.BodyStyle}"
+                                    Text="Browser content hidden" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
             </Border>
 
             <!--  Splitter  -->
-            <GridSplitter
-                Grid.Column="3"
-                Style="{StaticResource yr.SplitterStyle}" />
+            <GridSplitter Grid.Column="3" Style="{StaticResource yr.SplitterStyle}" />
 
             <!--  Control Panel (right panel)  -->
             <views:AboutFundControlPanelView Grid.Column="4" DataContext="{Binding ControlPanelViewModel}" />

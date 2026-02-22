@@ -18,16 +18,14 @@
 
         <!--  Header  -->
         <StackPanel Grid.Row="0">
-            <TextBlock
-                Style="{StaticResource yr.TitleStyle}"
-                Text="Fund Schedule" />
+            <TextBlock Style="{StaticResource yr.TitleStyle}" Text="Fund Schedule" />
             <TextBlock
                 Margin="{StaticResource yr.CompactSpacing}"
-                Style="{StaticResource yr.CaptionStyle}"
-                Foreground="{DynamicResource MahApps.Brushes.Gray1}">
+                Foreground="{DynamicResource MahApps.Brushes.Gray1}"
+                Style="{StaticResource yr.CaptionStyle}">
                 <Run Text="Showing: " />
                 <Run FontWeight="Bold" Text="{Binding TotalFunds, Mode=OneWay}" />
-                <Run Text=" funds (by history count)" />
+                <Run Text=" funds (by last visited)" />
             </TextBlock>
         </StackPanel>
 
@@ -65,18 +63,23 @@
                                 Text="{Binding Name}"
                                 TextTrimming="CharacterEllipsis" />
                             <TextBlock
-                                Style="{StaticResource yr.SmallStyle}"
+                                x:Name="FundDetails"
                                 Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                                Text="{Binding Isin}" />
+                                Style="{StaticResource yr.SmallStyle}">
+                                <Run Text="{Binding Isin, Mode=OneWay}" />
+                                <Run Text=" · " />
+                                <Run Text="{Binding LastVisitedDisplay, Mode=OneWay}" />
+                            </TextBlock>
                         </StackPanel>
 
                         <!--  History count  -->
                         <TextBlock
+                            x:Name="RecordCount"
                             Grid.Column="2"
                             Margin="8,0,4,0"
                             VerticalAlignment="Center"
-                            Style="{StaticResource yr.SmallStyle}"
                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                            Style="{StaticResource yr.SmallStyle}"
                             Text="{Binding HistoryRecordCount, StringFormat={}{0} rec}" />
                     </Grid>
 
@@ -93,6 +96,13 @@
                             <Setter TargetName="StatusIcon" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}" />
                             <Setter TargetName="FundName" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}" />
                             <Setter TargetName="FundName" Property="FontWeight" Value="Bold" />
+                        </DataTrigger>
+                        <!--  Selected item: all text to selected foreground for contrast on accent background  -->
+                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                            <Setter TargetName="FundName" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                            <Setter TargetName="FundDetails" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                            <Setter TargetName="RecordCount" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                            <Setter TargetName="StatusIcon" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
                         </DataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>

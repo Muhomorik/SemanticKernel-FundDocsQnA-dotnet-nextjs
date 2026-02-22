@@ -1,3 +1,5 @@
+using YieldRaccoon.Domain.ValueObjects;
+
 namespace YieldRaccoon.Application.Services;
 
 /// <summary>
@@ -15,8 +17,5 @@ public interface IFundDetailsUrlBuilder
     /// </summary>
     /// <param name="orderBookId">The fund's OrderBookId used in the external URL.</param>
     /// <returns>A validated <see cref="Uri"/> for the fund detail page.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="orderBookId"/> is null or whitespace.
-    /// </exception>
-    Uri BuildUrl(string orderBookId);
+    Uri BuildUrl(OrderBookId orderBookId);
 }

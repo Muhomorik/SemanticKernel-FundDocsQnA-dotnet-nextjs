@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using DevExpress.Mvvm;
 using NLog;
 using YieldRaccoon.Application.Models;
+using YieldRaccoon.Domain.ValueObjects;
 
 namespace YieldRaccoon.Wpf.ViewModels;
 
@@ -97,32 +98,42 @@ public class AboutFundScheduleViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Marks the fund at the given index as the current fund.
+    /// Marks the fund with the given <see cref="OrderBookId"/> as the current fund.
     /// </summary>
-    /// <param name="index">Zero-based index of the current fund.</param>
-    public void MarkCurrentFund(int index)
+    public void MarkCurrentFund(OrderBookId orderBookId)
     {
         // Reset previous current
         if (CurrentFund != null)
             CurrentFund.IsCurrentFund = false;
 
-        if (index >= 0 && index < Funds.Count)
+        var fund = FindFund(orderBookId);
+        if (fund != null)
         {
-            CurrentFund = Funds[index];
+            CurrentFund = fund;
             CurrentFund.IsCurrentFund = true;
-            CurrentIndex = index;
+            CurrentIndex = Funds.IndexOf(fund);
         }
     }
 
     /// <summary>
-    /// Marks the fund at the given index as completed.
+    /// Marks the fund with the given <see cref="OrderBookId"/> as completed.
     /// </summary>
-    /// <param name="index">Zero-based index of the completed fund.</param>
-    public void MarkCompleted(int index)
+    public void MarkCompleted(OrderBookId orderBookId)
     {
-        if (index >= 0 && index < Funds.Count)
+        var fund = FindFund(orderBookId);
+        if (fund != null)
+            fund.IsCompleted = true;
+    }
+
+    private AboutFundScheduleItemViewModel? FindFund(OrderBookId orderBookId)
+    {
+        var value = orderBookId.Value;
+        foreach (var fund in Funds)
         {
-            Funds[index].IsCompleted = true;
+            if (fund.OrderBookId == value)
+                return fund;
         }
+
+        return null;
     }
 }

@@ -15,7 +15,7 @@ namespace YieldRaccoon.Domain.Entities;
 /// Unique constraint: one record per fund per NAV date (FundId + NavDate).
 /// </para>
 /// </remarks>
-[DebuggerDisplay("FundHistoryRecord: {FundId} (Id: {Id})")]
+[DebuggerDisplay("FundHistoryRecord: {IsinId} (Id: {Id})")]
 public sealed class FundHistoryRecord
 {
     /// <summary>
@@ -26,7 +26,7 @@ public sealed class FundHistoryRecord
     /// <summary>
     /// Fund identifier (ISIN). Foreign key to <see cref="FundProfile"/>.
     /// </summary>
-    public required FundId FundId { get; init; }
+    public required IsinId IsinId { get; init; }
 
     /// <summary>
     /// Net asset value per share at the time of recording.
@@ -69,5 +69,5 @@ public sealed class FundHistoryRecord
     public FundProfile? FundProfile { get; init; }
 
     /// <inheritdoc />
-    public override string ToString() => $"Record {Id} for {FundId}";
+    public override string ToString() => $"Record {Id} for {IsinId}";
 }

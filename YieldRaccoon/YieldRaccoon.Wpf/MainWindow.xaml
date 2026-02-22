@@ -12,6 +12,7 @@
     Title="{Binding Title}"
     Width="1768"
     Height="1128"
+    Icon="/Resources/YieldRaccoon.ico"
     TitleCharacterCasing="Normal"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
@@ -101,17 +102,24 @@
                         ItemsSource="{Binding Funds}"
                         behaviors:ListBoxAutoScrollBehavior.AutoScrollToEnd="True"
                         behaviors:ListBoxAutoScrollBehavior.AnimationDuration="0:0:3">
+                        <ListBox.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource MahApps.Styles.ListBoxItem}" TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="0,4,0,8">
                                     <!--  Fund Name  -->
                                     <TextBlock
+                                        x:Name="FundNameText"
                                         FontWeight="SemiBold"
                                         Text="{Binding Name}"
                                         TextWrapping="Wrap" />
 
                                     <!--  ISIN  -->
                                     <TextBlock
+                                        x:Name="IsinText"
                                         Style="{StaticResource yr.SmallStyle}"
                                         Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                         Text="{Binding Isin}" />
@@ -119,21 +127,25 @@
                                     <!--  NAV, Currency, and Date  -->
                                     <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
                                         <TextBlock
+                                            x:Name="NavLabelText"
                                             Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="Medium"
                                             Foreground="{DynamicResource MahApps.Brushes.Accent}"
                                             Text="NAV: " />
                                         <TextBlock
+                                            x:Name="NavValueText"
                                             Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="Medium"
                                             Foreground="{DynamicResource MahApps.Brushes.Accent}"
                                             Text="{Binding Nav, StringFormat={}{0:N2}}" />
                                         <TextBlock
+                                            x:Name="CurrencyText"
                                             Margin="4,0,0,0"
                                             Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                                             Text="{Binding CurrencyCode}" />
                                         <TextBlock
+                                            x:Name="BulletText"
                                             Margin="8,0,0,0"
                                             Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
@@ -149,10 +161,12 @@
                                     <!--  Number of Owners  -->
                                     <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
                                         <TextBlock
+                                            x:Name="OwnersLabelText"
                                             Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                             Text="Owners: " />
                                         <TextBlock
+                                            x:Name="OwnersValueText"
                                             Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.Gray3}"
                                             Text="{Binding NumberOfOwners, StringFormat={}{0:N0}}" />
@@ -162,6 +176,18 @@
                                     <DataTrigger Binding="{Binding IsNavDateToday}" Value="True">
                                         <Setter TargetName="NavDateText" Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
                                         <Setter TargetName="NavDateText" Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                    <!--  Selected item: all text to selected foreground for contrast on accent background  -->
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                        <Setter TargetName="FundNameText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="IsinText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="NavLabelText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="NavValueText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="CurrencyText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="BulletText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="NavDateText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="OwnersLabelText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                        <Setter TargetName="OwnersValueText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
@@ -444,6 +470,7 @@
 
                                         <!--  Batch number  -->
                                         <TextBlock
+                                            x:Name="BatchNumberText"
                                             Grid.Column="0"
                                             Style="{StaticResource yr.SmallStyle}"
                                             FontWeight="SemiBold"
@@ -451,6 +478,7 @@
 
                                         <!--  Scheduled time  -->
                                         <TextBlock
+                                            x:Name="ScheduledAtText"
                                             Grid.Column="1"
                                             Style="{StaticResource yr.SmallStyle}"
                                             Foreground="{DynamicResource MahApps.Brushes.ThemeForeground}"
@@ -484,6 +512,12 @@
                                             <!--  Error icon (E783) - Red for error  -->
                                             <Setter TargetName="StatusIndicator" Property="Text" Value="&#xE783;" />
                                             <Setter TargetName="StatusIndicator" Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
+                                        </DataTrigger>
+                                        <!--  Selected item: all text to selected foreground for contrast on accent background  -->
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                            <Setter TargetName="BatchNumberText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                            <Setter TargetName="ScheduledAtText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
+                                            <Setter TargetName="StatusIndicator" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}" />
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>

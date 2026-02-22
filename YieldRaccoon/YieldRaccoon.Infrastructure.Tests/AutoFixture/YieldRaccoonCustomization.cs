@@ -14,5 +14,6 @@ public class YieldRaccoonCustomization : ICustomization
         fixture.Customizations.Add(new FundHistoryRecordIdBuilder());
         fixture.Customizations.Add(new FundProfileBuilder());
         fixture.Customizations.Add(new FundHistoryRecordBuilder());
+        fixture.Customizations.Add(new OrderBookIdBuilder());
     }
 }

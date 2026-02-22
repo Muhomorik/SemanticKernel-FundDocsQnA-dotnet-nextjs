@@ -18,11 +18,11 @@ public class FundHistoryRecordBuilder : ISpecimenBuilder
             return new NoSpecimen();
         }
 
-        var fundId = (FundId)context.Resolve(typeof(FundId));
+        var fundId = (IsinId)context.Resolve(typeof(IsinId));
 
         return new FundHistoryRecord
         {
-            FundId = fundId,
+            IsinId = fundId,
             Nav = Math.Round((decimal)(Random.NextDouble() * 1000), 4),
             NavDate = DateOnly.FromDateTime(DateTime.UtcNow)
         };

@@ -4,7 +4,7 @@ using YieldRaccoon.Domain.ValueObjects;
 namespace YieldRaccoon.Infrastructure.Tests.AutoFixture.Builders;
 
 /// <summary>
-/// Specimen builder that generates valid <see cref="FundId"/> instances.
+/// Specimen builder that generates valid <see cref="IsinId"/> instances.
 /// </summary>
 public class FundIdBuilder : ISpecimenBuilder
 {
@@ -13,7 +13,7 @@ public class FundIdBuilder : ISpecimenBuilder
 
     public object Create(object request, ISpecimenContext context)
     {
-        if (request is not Type type || type != typeof(FundId))
+        if (request is not Type type || type != typeof(IsinId))
         {
             return new NoSpecimen();
         }
@@ -26,6 +26,6 @@ public class FundIdBuilder : ISpecimenBuilder
         var checkDigit = Random.Next(0, 10);
         var isin = $"SE{middle}{checkDigit}";
 
-        return FundId.Create(isin);
+        return IsinId.Create(isin);
     }
 }

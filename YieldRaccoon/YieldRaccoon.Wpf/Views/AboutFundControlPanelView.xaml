@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     d:DataContext="{d:DesignInstance viewModels:AboutFundControlPanelViewModel,
-                                     IsDesignTimeCreatable=False}"
+                                     IsDesignTimeCreatable=True}"
     mc:Ignorable="d">
 
     <Grid Margin="16">
@@ -19,9 +19,9 @@
             <RowDefinition Height="Auto" />
             <!--  Session Control  -->
             <RowDefinition Height="Auto" />
-            <!--  Progress  -->
+            <!--  Session Progress  -->
             <RowDefinition Height="Auto" />
-            <!--  Events list (fills remaining space)  -->
+            <!--  Current Activity (phase-adaptive, fills remaining)  -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -29,7 +29,7 @@
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource yr.TitleStyle}"
-            Text="Overview Control" />
+            Text="Overview control" />
 
         <!--  Options  -->
         <StackPanel Grid.Row="1" Margin="{StaticResource yr.SubsectionSpacing}">
@@ -61,7 +61,7 @@
                 <Button
                     Grid.Column="0"
                     Command="{Binding StartOverviewCommand}"
-                    Content="Start Overview"
+                    Content="Start overview"
                     Style="{StaticResource yr.ButtonAccentStyle}" />
                 <Button
                     Grid.Column="2"
@@ -73,7 +73,7 @@
             <Button
                 Margin="{StaticResource yr.ItemSpacing}"
                 Command="{Binding NextFundCommand}"
-                Content="Next Fund"
+                Content="Next fund"
                 Style="{StaticResource yr.ButtonStyle}" />
         </StackPanel>
 
@@ -83,119 +83,319 @@
             Margin="{StaticResource yr.SectionSpacing}"
             Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
 
-            <TextBlock
-                Style="{StaticResource yr.SubheaderStyle}"
-                Text="Session progress" />
+            <TextBlock Style="{StaticResource yr.SubheaderStyle}" Text="Session progress" />
 
             <!--  Status message  -->
             <TextBlock
                 Margin="{StaticResource yr.ItemSpacing}"
-                FontWeight="Medium"
+                Style="{StaticResource yr.BodyStrongStyle}"
                 Text="{Binding StatusMessage}"
                 TextWrapping="Wrap" />
 
-            <!--  Delay countdown with ProgressRing (visible during delay)  -->
-            <StackPanel
-                Margin="{StaticResource yr.ItemSpacing}"
-                Orientation="Horizontal"
-                Visibility="{Binding IsDelayInProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
-                <mah:ProgressRing
-                    Width="20"
-                    Height="20"
-                    IsActive="True" />
+            <!--  Fund progress + ETA  -->
+            <Grid Margin="{StaticResource yr.CompactSpacing}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Style="{StaticResource yr.CaptionStyle}">
+                    <Run Text="Fund " />
+                    <Run FontWeight="Bold" Text="{Binding CurrentIndex, Mode=OneWay}" />
+                    <Run Text=" / " />
+                    <Run Text="{Binding TotalFunds, Mode=OneWay}" />
+                </TextBlock>
+
                 <TextBlock
-                    Margin="12,0,0,0"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource yr.BodyStrongStyle}"
-                    Foreground="{DynamicResource MahApps.Brushes.Accent}"
-                    Text="{Binding DelayCountdown, StringFormat={}{0}s}" />
-            </StackPanel>
-
-            <!--  Fund progress  -->
-            <TextBlock Margin="{StaticResource yr.ItemSpacing}" Style="{StaticResource yr.CaptionStyle}">
-                <Run Text="Fund: " />
-                <Run FontWeight="Bold" Text="{Binding CurrentIndex, Mode=OneWay, StringFormat={}{0}}" />
-                <Run Text=" / " />
-                <Run Text="{Binding TotalFunds, Mode=OneWay}" />
-            </TextBlock>
-
-            <!--  Time remaining  -->
-            <TextBlock Margin="{StaticResource yr.CompactSpacing}" Style="{StaticResource yr.CaptionStyle}">
-                <Run Text="Time remaining: " />
-                <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
-            </TextBlock>
+                    Grid.Column="2"
+                    Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                    Style="{StaticResource yr.CaptionStyle}">
+                    <Run Text="ETA " />
+                    <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
+                </TextBlock>
+            </Grid>
 
             <!--  Progress bar  -->
             <mah:MetroProgressBar
-                Margin="{StaticResource yr.ItemSpacing}"
+                Margin="{StaticResource yr.CompactSpacing}"
                 Maximum="{Binding TotalFunds}"
                 Value="{Binding CurrentIndex}" />
         </StackPanel>
 
-        <!--  Events list  -->
+        <!--  Current Activity (phase-adaptive zone)  -->
         <Grid Grid.Row="4" Margin="{StaticResource yr.SubsectionSpacing}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
 
+            <!--  IDLE STATE: session not active  -->
             <TextBlock
-                Grid.Row="0"
-                Style="{StaticResource yr.SubheaderStyle}"
-                Text="Event log" />
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                Style="{StaticResource yr.CaptionStyle}"
+                Text="Ready. Click Start overview to begin."
+                Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}" />
 
-            <ListBox
-                Grid.Row="1"
-                Margin="{StaticResource yr.CompactSpacing}"
-                Background="Transparent"
-                BorderThickness="0"
-                ItemsSource="{Binding Events}"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                VirtualizingPanel.IsVirtualizing="True"
-                VirtualizingPanel.VirtualizationMode="Recycling">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+            <!--  DELAY STATE: waiting before next fund  -->
+            <StackPanel
+                Visibility="{Binding IsDelayInProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                    <mah:ProgressRing
+                        Width="20"
+                        Height="20"
+                        IsActive="True" />
+                    <TextBlock
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource yr.BodyStyle}"
+                        Text="Waiting before next fund..." />
+                </StackPanel>
 
-                            <!--  Event icon  -->
-                            <TextBlock
-                                Grid.Column="0"
-                                Margin="0,0,8,0"
-                                VerticalAlignment="Center"
-                                FontFamily="Segoe Fluent Icons"
-                                FontSize="12"
-                                Foreground="{Binding IconColor}"
-                                Text="{Binding Icon}" />
+                <TextBlock
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Foreground="{DynamicResource MahApps.Brushes.Accent}"
+                    Text="{Binding DelayCountdown, StringFormat={}{0}s}" />
 
-                            <!--  Event description  -->
-                            <StackPanel Grid.Column="1">
-                                <TextBlock
-                                    Style="{StaticResource yr.SmallStyle}"
-                                    FontWeight="SemiBold"
-                                    Text="{Binding EventType}" />
-                                <TextBlock
-                                    Style="{StaticResource yr.SmallStyle}"
-                                    Foreground="{DynamicResource MahApps.Brushes.Gray2}"
-                                    Text="{Binding Description}"
-                                    TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
+                <TextBlock
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                    Style="{StaticResource yr.CaptionStyle}"
+                    Text="{Binding CurrentFundName, StringFormat=Next: {0}}"
+                    TextTrimming="CharacterEllipsis" />
+            </StackPanel>
 
-                            <!--  Timestamp  -->
-                            <TextBlock
-                                Grid.Column="2"
-                                VerticalAlignment="Center"
-                                Style="{StaticResource yr.SmallStyle}"
-                                Foreground="{DynamicResource MahApps.Brushes.Gray3}"
-                                Text="{Binding Timestamp, StringFormat=HH:mm:ss}" />
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <!--  COLLECTING STATE: active page interaction  -->
+            <Grid
+                Visibility="{Binding IsCollecting, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!--  Current fund identity  -->
+                    <TextBlock
+                        Grid.Row="0"
+                        Style="{StaticResource yr.BodyStrongStyle}"
+                        Text="{Binding CurrentFundName}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Margin="{StaticResource yr.CompactSpacing}"
+                        Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                        Style="{StaticResource yr.CaptionStyle}">
+                        <Run Text="{Binding CurrentIsin, Mode=OneWay}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding CurrentOrderBookId, Mode=OneWay}" />
+                    </TextBlock>
+
+                    <!--  Interactions header + progress  -->
+                    <Grid Grid.Row="2" Margin="{StaticResource yr.SubsectionSpacing}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Style="{StaticResource yr.SubheaderStyle}" Text="Interactions" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                            Style="{StaticResource yr.CaptionStyle}">
+                            <Run FontWeight="Bold" Text="{Binding CompletedStepsCount, Mode=OneWay}" />
+                            <Run Text="/" />
+                            <Run Text="{Binding TotalStepsCount, Mode=OneWay}" />
+                        </TextBlock>
+                    </Grid>
+
+                    <!--  Steps progress bar + list  -->
+                    <StackPanel Grid.Row="3">
+                        <mah:MetroProgressBar
+                            Height="3"
+                            Maximum="{Binding TotalStepsCount}"
+                            Value="{Binding CompletedStepsCount}" />
+
+                        <ItemsControl
+                            Margin="{StaticResource yr.CompactSpacing}"
+                            ItemsSource="{Binding CollectionSteps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--  Status icon  -->
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            FontFamily="Segoe Fluent Icons"
+                                            FontSize="10"
+                                            Text="{Binding StatusIcon, Mode=OneWay}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Gray5}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                            <Setter Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                            <Setter Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!--  Step name  -->
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding DisplayName}"
+                                            TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style BasedOn="{StaticResource yr.SmallStyle}" TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Gray3}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                            <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Gray1}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!--  Delay  -->
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Foreground="{DynamicResource MahApps.Brushes.Gray4}"
+                                            Style="{StaticResource yr.SmallStyle}"
+                                            Text="{Binding DelayText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!--  Data slots header + progress  -->
+                    <Grid Grid.Row="4" Margin="{StaticResource yr.SubsectionSpacing}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Style="{StaticResource yr.SubheaderStyle}" Text="Data slots" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                            Style="{StaticResource yr.CaptionStyle}">
+                            <Run FontWeight="Bold" Text="{Binding ResolvedSlotsCount, Mode=OneWay}" />
+                            <Run Text="/" />
+                            <Run Text="{Binding TotalSlotsCount, Mode=OneWay}" />
+                        </TextBlock>
+                    </Grid>
+
+                    <!--  Slot chips + progress bar  -->
+                    <StackPanel Grid.Row="5">
+                        <mah:MetroProgressBar
+                            Height="3"
+                            Maximum="{Binding TotalSlotsCount}"
+                            Value="{Binding ResolvedSlotsCount}" />
+
+                        <ItemsControl
+                            Margin="{StaticResource yr.CompactSpacing}"
+                            ItemsSource="{Binding DataSlots}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Margin="2"
+                                        Padding="4,3"
+                                        CornerRadius="4"
+                                        SnapsToDevicePixels="True">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.Gray8}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Succeeded">
+                                                        <Setter Property="Background" Value="{DynamicResource yr.SuccessBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                        <Setter Property="Background" Value="{DynamicResource yr.ErrorBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding Label}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Gray2}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Succeeded">
+                                                            <Setter Property="Foreground" Value="White" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                            <Setter Property="Foreground" Value="White" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!--  Timing footer  -->
+                    <Grid Grid.Row="6" Margin="{StaticResource yr.ItemSpacing}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                            Style="{StaticResource yr.CaptionStyle}">
+                            <Run Text="Elapsed: " />
+                            <Run FontWeight="Bold" Text="{Binding CollectionElapsed, Mode=OneWay, StringFormat=s\\.f\\s}" />
+                        </TextBlock>
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                            Style="{StaticResource yr.CaptionStyle}">
+                            <Run Text="Remaining: " />
+                            <Run FontWeight="Bold" Text="{Binding CollectionRemaining, Mode=OneWay, StringFormat=s\\.f\\s}" />
+                        </TextBlock>
+                    </Grid>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

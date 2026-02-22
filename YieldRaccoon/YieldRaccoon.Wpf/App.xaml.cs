@@ -63,8 +63,11 @@ public partial class App
         Logger.Info($"Database provider: {databaseOptions.Provider}");
         Logger.Info($"Database connection: {databaseOptions.ConnectionString}");
 
+        // Auto-inject NLog.ILogger into all components (must be registered before other modules)
+        builder.RegisterModule<NLogModule>();
+
         // Register presentation module (ViewModels, Views, Logging infrastructure)
-        builder.RegisterModule(new PresentationModule(databaseOptions));
+        builder.RegisterModule(new PresentationModule(databaseOptions, options));
 
         // Build container and create app-level lifetime scope
         _container = builder.Build();

@@ -6,7 +6,7 @@ namespace YieldRaccoon.Domain.Events.AboutFund;
 /// <summary>
 /// Event published when the browser begins navigating to a fund detail page.
 /// </summary>
-[DebuggerDisplay("AboutFundNavigationStarted: Session={SessionId}, Isin={Isin}, Index={Index}, Url={Url} at {OccurredAt}")]
+[DebuggerDisplay("AboutFundNavigationStarted: Session={SessionId}, Isin={Isin}, OrderbookId={OrderbookId}, Url={Url} at {OccurredAt}")]
 public sealed record AboutFundNavigationStarted : IAboutFundEvent
 {
     /// <summary>
@@ -22,12 +22,7 @@ public sealed record AboutFundNavigationStarted : IAboutFundEvent
     /// <summary>
     /// Gets the OrderbookId used in the URL.
     /// </summary>
-    public required string OrderbookId { get; init; }
-
-    /// <summary>
-    /// Gets the zero-based index of this fund in the browsing schedule.
-    /// </summary>
-    public required int Index { get; init; }
+    public required OrderBookId OrderbookId { get; init; }
 
     /// <summary>
     /// Gets the full URL being navigated to.
@@ -45,8 +40,7 @@ public sealed record AboutFundNavigationStarted : IAboutFundEvent
     public static AboutFundNavigationStarted Create(
         AboutFundSessionId sessionId,
         string isin,
-        string orderbookId,
-        int index,
+        OrderBookId orderbookId,
         string url)
     {
         return new AboutFundNavigationStarted
@@ -54,7 +48,6 @@ public sealed record AboutFundNavigationStarted : IAboutFundEvent
             SessionId = sessionId,
             Isin = isin,
             OrderbookId = orderbookId,
-            Index = index,
             Url = url,
             OccurredAt = DateTimeOffset.UtcNow
         };

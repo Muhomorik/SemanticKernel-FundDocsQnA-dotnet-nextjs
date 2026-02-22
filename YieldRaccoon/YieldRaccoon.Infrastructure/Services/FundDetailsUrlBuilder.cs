@@ -1,5 +1,6 @@
 using YieldRaccoon.Application.Configuration;
 using YieldRaccoon.Application.Services;
+using YieldRaccoon.Domain.ValueObjects;
 
 namespace YieldRaccoon.Infrastructure.Services;
 
@@ -30,12 +31,9 @@ public class FundDetailsUrlBuilder : IFundDetailsUrlBuilder
     }
 
     /// <inheritdoc />
-    public Uri BuildUrl(string orderBookId)
+    public Uri BuildUrl(OrderBookId orderBookId)
     {
-        if (string.IsNullOrWhiteSpace(orderBookId))
-            throw new ArgumentException("OrderBookId cannot be null or whitespace.", nameof(orderBookId));
-
-        var url = _urlTemplate.Replace("{0}", orderBookId, StringComparison.OrdinalIgnoreCase);
+        var url = _urlTemplate.Replace("{0}", orderBookId.Value, StringComparison.OrdinalIgnoreCase);
         return new Uri(url, UriKind.Absolute);
     }
 }

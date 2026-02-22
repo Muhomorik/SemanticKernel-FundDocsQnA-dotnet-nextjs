@@ -9,37 +9,32 @@ using YieldRaccoon.Application.Services;
 namespace YieldRaccoon.Wpf.Services;
 
 /// <summary>
-/// Intercepts WebView2 network responses matching fund API URL patterns
-/// and forwards captured data to the <see cref="IAboutFundOrchestrator"/>.
+/// Intercepts all text-based WebView2 network responses
+/// and forwards captured data to the <see cref="IAboutFundPageDataCollector"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service bridges the Presentation layer (WebView2) with the Application layer (orchestrator)
-/// following DDD dependency direction: Infrastructure/Presentation → Application.
+/// This service bridges the Presentation layer (WebView2) with the Application layer (collector)
+/// following DDD dependency direction: Presentation → Application.
 /// </para>
 /// <para>
-/// On each matching response:
+/// On each text-based response:
 /// <list type="number">
 ///   <item>Raises <see cref="RequestIntercepted"/> for UI consumers (e.g., network inspector panel)</item>
-///   <item>Calls <see cref="IAboutFundOrchestrator.NotifyResponseCaptured"/> directly</item>
+///   <item>Calls <see cref="IAboutFundPageDataCollector.NotifyResponseCaptured"/> directly</item>
 /// </list>
 /// </para>
 /// <para>
-/// The <see cref="RequestIntercepted"/> event handler and <see cref="IAboutFundOrchestrator.NotifyResponseCaptured"/>
+/// The <see cref="RequestIntercepted"/> event handler and <see cref="IAboutFundPageDataCollector.NotifyResponseCaptured"/>
 /// may be called from a WebView2 background thread — subscribers requiring UI thread access must marshal accordingly.
 /// </para>
 /// </remarks>
 public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
 {
     private readonly ILogger _logger;
-    private readonly IAboutFundOrchestrator _orchestrator;
+    private readonly IAboutFundPageDataCollector _collector;
     private WebView2? _webView;
     private bool _disposed;
-
-    /// <summary>
-    /// Maximum response content preview size in characters.
-    /// </summary>
-    private const int MaxPreviewLength = 2048;
 
     /// <inheritdoc />
     public event EventHandler<AboutFundInterceptedRequest>? RequestIntercepted;
@@ -48,11 +43,11 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
     /// Initializes a new instance of the <see cref="AboutFundResponseInterceptor"/> class.
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
-    /// <param name="orchestrator">The orchestrator for processing intercepted responses.</param>
-    public AboutFundResponseInterceptor(ILogger logger, IAboutFundOrchestrator orchestrator)
+    /// <param name="collector">The collector for routing intercepted responses to data slots.</param>
+    public AboutFundResponseInterceptor(ILogger logger, IAboutFundPageDataCollector collector)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+        _collector = collector ?? throw new ArgumentNullException(nameof(collector));
     }
 
     /// <inheritdoc />
@@ -73,7 +68,7 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
     }
 
     /// <summary>
-    /// Handles web resource response received events, filtering for relevant fund API responses.
+    /// Handles web resource response received events, forwarding text-based responses to the collector.
     /// </summary>
     private async void OnWebResourceResponseReceived(
         object? sender,
@@ -81,7 +76,7 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
     {
         try
         {
-            if (!ShouldInterceptResponse(e.Request.Uri))
+            if (ShouldSkipRequest(e.Request.Uri))
                 return;
 
             _logger.Trace("Response received: {0} {1} - Status: {2}",
@@ -96,32 +91,18 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
     }
 
     /// <summary>
-    /// Determines whether a response URL matches the fund API patterns worth intercepting.
-    /// </summary>
-    private static bool ShouldInterceptResponse(string uri)
-    {
-        var patterns = new[]
-        {
-            "chart/timeperiods/"
-            // Add fund detail page API endpoints here
-        };
-
-        return patterns.Any(p => uri.Contains(p, StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <summary>
     /// Processes the intercepted response and creates an InterceptedRequest model.
+    /// Skips responses that have no text-based content.
     /// </summary>
     private async Task ProcessResponseAsync(CoreWebView2WebResourceResponseReceivedEventArgs e)
     {
-        string? responsePreview = null;
+        string? responseBody = null;
 
         try
         {
-            // Try to extract response content preview for JSON/text responses
             var contentType = GetHeader(e.Response.Headers, "Content-Type") ?? string.Empty;
 
-            if (IsTextBasedContent(contentType)) responsePreview = await ExtractResponsePreviewAsync(e);
+            if (IsTextBasedContent(contentType)) responseBody = await ExtractResponseBodyAsync(e);
         }
         catch (COMException ex)
         {
@@ -129,33 +110,36 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
         }
         catch (Exception ex)
         {
-            _logger.Trace(ex, "Error extracting response preview");
+            _logger.Trace(ex, "Error extracting response body");
         }
 
-        // Create intercepted request model
+        // Only create intercepted request models for responses with content
+        if (string.IsNullOrEmpty(responseBody))
+            return;
+
         var interceptedRequest = new AboutFundInterceptedRequest
         {
             Timestamp = DateTime.Now,
             Method = e.Request.Method,
-            Url = e.Request.Uri,
+            Url = new Uri(e.Request.Uri),
             StatusCode = e.Response.StatusCode,
             StatusText = e.Response.ReasonPhrase,
             ContentType = GetHeader(e.Response.Headers, "Content-Type") ?? string.Empty,
             ContentLength = ParseContentLength(GetHeader(e.Response.Headers, "Content-Length")),
-            ResponsePreview = responsePreview
+            ResponseBody = responseBody
         };
 
         // Raise event for UI consumers
         RequestIntercepted?.Invoke(this, interceptedRequest);
 
-        // Notify orchestrator about captured response
-        _orchestrator.NotifyResponseCaptured(interceptedRequest);
+        // Route captured response to collector for slot matching
+        _collector.NotifyResponseCaptured(interceptedRequest);
     }
 
     /// <summary>
-    /// Extracts a preview of the response content (up to MaxPreviewLength characters).
+    /// Reads the full response body as a string.
     /// </summary>
-    private async Task<string?> ExtractResponsePreviewAsync(CoreWebView2WebResourceResponseReceivedEventArgs e)
+    private static async Task<string?> ExtractResponseBodyAsync(CoreWebView2WebResourceResponseReceivedEventArgs e)
     {
         var contentStream = await e.Response.GetContentAsync();
 
@@ -163,18 +147,42 @@ public class AboutFundResponseInterceptor : IAboutFundResponseInterceptor
             return null;
 
         using var reader = new StreamReader(contentStream);
-        var buffer = new char[MaxPreviewLength];
-        var charsRead = await reader.ReadAsync(buffer, 0, MaxPreviewLength);
+        var content = await reader.ReadToEndAsync();
 
-        if (charsRead == 0)
-            return null;
+        return content.Length == 0 ? null : content;
+    }
 
-        var content = new string(buffer, 0, charsRead);
+    /// <summary>
+    /// Returns <c>true</c> for requests that should be silently ignored —
+    /// data URIs and common image/font/media assets that are irrelevant to data collection.
+    /// </summary>
+    private static bool ShouldSkipRequest(string uri)
+    {
+        if (uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return true;
 
-        // Indicate if content was truncated
-        if (charsRead == MaxPreviewLength && !reader.EndOfStream) content += "...";
+        // Strip query string / fragment before checking extension
+        var path = uri.AsSpan();
+        var queryIndex = path.IndexOfAny('?', '#');
+        if (queryIndex >= 0)
+            path = path[..queryIndex];
 
-        return content;
+        return path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".mjs", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".woff", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".eot", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".webm", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

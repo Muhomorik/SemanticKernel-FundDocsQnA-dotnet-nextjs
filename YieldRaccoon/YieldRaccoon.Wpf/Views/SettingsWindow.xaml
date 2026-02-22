@@ -9,6 +9,7 @@
     Title="Settings"
     Width="550"
     Height="280"
+    Icon="/Resources/YieldRaccoon.ico"
     MinWidth="450"
     MinHeight="250"
     ResizeMode="NoResize"

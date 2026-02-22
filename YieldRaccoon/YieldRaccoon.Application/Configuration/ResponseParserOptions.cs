@@ -6,18 +6,17 @@ namespace YieldRaccoon.Application.Configuration;
 /// Defines a URL pattern that maps an intercepted HTTP response to a named
 /// data slot on <see cref="AboutFundPageData"/>.
 /// </summary>
-/// <param name="UrlFragment">
-/// A substring to match against the intercepted request URL
-/// (e.g., <c>"chart/timeperiods/"</c>). Matching is case-insensitive.
+/// <param name="UrlFragments">
+/// Substrings that must all be present in the intercepted request URL
+/// for this pattern to match. Matching is case-insensitive.
 /// </param>
-/// <param name="SlotName">
-/// The <see cref="AboutFundPageData"/> property name this pattern targets
-/// (e.g., <c>nameof(AboutFundPageData.ChartTimePeriods)</c>).
+/// <param name="Slot">
+/// The <see cref="AboutFundPageData"/> slot this pattern targets.
 /// </param>
-public record EndpointPattern(string UrlFragment, string SlotName);
+public record EndpointPattern(IReadOnlyList<string> UrlFragments, AboutFundDataSlot Slot);
 
 /// <summary>
-/// Configuration for <c>AboutFundResponseParser</c> — maps URL patterns to
+/// Configuration for response routing — maps URL patterns to
 /// data collection slots. Registered at the composition root, not exposed
 /// in user-facing configuration files.
 /// </summary>

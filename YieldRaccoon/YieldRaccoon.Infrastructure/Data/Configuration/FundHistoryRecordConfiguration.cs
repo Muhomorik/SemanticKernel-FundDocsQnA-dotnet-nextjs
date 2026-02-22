@@ -39,8 +39,9 @@ public class FundHistoryRecordConfiguration : IEntityTypeConfiguration<FundHisto
             .ValueGeneratedOnAdd();
 
         // Foreign key to FundProfile (ISIN, 12-character fixed length)
-        builder.Property(h => h.FundId)
+        builder.Property(h => h.IsinId)
             .HasConversion<FundIdConverter>()
+            .HasColumnName("FundId")
             .HasMaxLength(12)
             .IsFixedLength()
             .IsRequired();
@@ -68,13 +69,13 @@ public class FundHistoryRecordConfiguration : IEntityTypeConfiguration<FundHisto
 
         // Composite index for time-range queries: "Get fund X history between dates Y and Z"
         // Ordered DESC on NavDate for efficient "latest records" queries
-        builder.HasIndex(h => new { h.FundId, h.NavDate })
+        builder.HasIndex(h => new { FundId = h.IsinId, h.NavDate })
             .HasDatabaseName("IX_FundHistoryRecords_FundId_NavDate")
             .IsDescending(false, true);
 
         // Unique constraint: only one record per fund per NAV date
         // Prevents duplicate snapshots from multiple crawler runs
-        builder.HasIndex(h => new { h.FundId, h.NavDate })
+        builder.HasIndex(h => new { FundId = h.IsinId, h.NavDate })
             .HasDatabaseName("UX_FundHistoryRecords_FundId_NavDate")
             .IsUnique();
     }

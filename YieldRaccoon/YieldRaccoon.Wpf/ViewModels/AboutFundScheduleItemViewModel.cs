@@ -45,6 +45,21 @@ public class AboutFundScheduleItemViewModel : BindableBase
     }
 
     /// <summary>
+    /// Gets or sets the timestamp when this fund was last visited by the orchestrator, or null if never visited.
+    /// </summary>
+    public DateTimeOffset? LastVisitedAt
+    {
+        get => GetProperty(() => LastVisitedAt);
+        set => SetProperty(() => LastVisitedAt, value, () => RaisePropertyChanged(nameof(LastVisitedDisplay)));
+    }
+
+    /// <summary>
+    /// Gets a display string for the last visited timestamp: formatted date or "Never".
+    /// </summary>
+    public string LastVisitedDisplay =>
+        LastVisitedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "Never";
+
+    /// <summary>
     /// Gets or sets whether this is the currently active fund in the browsing session.
     /// </summary>
     public bool IsCurrentFund
@@ -70,9 +85,10 @@ public class AboutFundScheduleItemViewModel : BindableBase
         return new AboutFundScheduleItemViewModel
         {
             Isin = item.Isin,
-            OrderBookId = item.OrderbookId,
+            OrderBookId = item.OrderBookId.Value,
             Name = item.Name,
             HistoryRecordCount = item.HistoryRecordCount,
+            LastVisitedAt = item.LastVisitedAt,
             IsCurrentFund = false,
             IsCompleted = false
         };

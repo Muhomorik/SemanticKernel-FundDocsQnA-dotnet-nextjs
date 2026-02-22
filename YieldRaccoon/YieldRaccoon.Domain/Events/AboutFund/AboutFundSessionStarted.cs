@@ -28,7 +28,7 @@ public sealed record AboutFundSessionStarted : IAboutFundEvent
     /// <summary>
     /// Gets the OrderbookId of the first fund to be browsed.
     /// </summary>
-    public required string FirstOrderbookId { get; init; }
+    public required OrderBookId FirstOrderbookId { get; init; }
 
     /// <summary>
     /// Gets the UTC timestamp when this event occurred.
@@ -41,7 +41,7 @@ public sealed record AboutFundSessionStarted : IAboutFundEvent
     public static AboutFundSessionStarted Create(
         AboutFundSessionId sessionId,
         int totalFunds,
-        string firstOrderbookId)
+        OrderBookId firstOrderbookId)
     {
         return new AboutFundSessionStarted
         {

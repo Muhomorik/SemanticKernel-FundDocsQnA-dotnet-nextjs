@@ -18,17 +18,17 @@ namespace YieldRaccoon.Domain.ValueObjects;
 /// without identifier conflicts.
 /// </remarks>
 [DebuggerDisplay("ISIN: {Isin}")]
-public readonly record struct FundId(string Isin)
+public readonly record struct IsinId(string Isin)
 {
     private static readonly Regex IsinPattern = new(@"^[A-Z]{2}[A-Z0-9]{9}[0-9]$", RegexOptions.Compiled);
 
     /// <summary>
-    /// Creates a new <see cref="FundId"/> with ISIN validation.
+    /// Creates a new <see cref="IsinId"/> with ISIN validation.
     /// </summary>
     /// <param name="isin">The ISIN code (12 characters: 2 letters + 9 alphanumeric + 1 digit).</param>
-    /// <returns>A validated <see cref="FundId"/>.</returns>
+    /// <returns>A validated <see cref="IsinId"/>.</returns>
     /// <exception cref="ArgumentException">Thrown if ISIN format is invalid.</exception>
-    public static FundId Create(string isin)
+    public static IsinId Create(string isin)
     {
         if (string.IsNullOrWhiteSpace(isin))
         {
@@ -42,14 +42,14 @@ public readonly record struct FundId(string Isin)
                 nameof(isin));
         }
 
-        return new FundId(isin);
+        return new IsinId(isin);
     }
 
     /// <summary>
-    /// Parses a string into a <see cref="FundId"/> with validation.
+    /// Parses a string into a <see cref="IsinId"/> with validation.
     /// </summary>
     /// <param name="value">The ISIN string to parse.</param>
-    /// <returns>A validated <see cref="FundId"/>.</returns>
+    /// <returns>A validated <see cref="IsinId"/>.</returns>
     /// <exception cref="ArgumentException">Thrown if ISIN format is invalid.</exception>
-    public static FundId Parse(string value) => Create(value);
+    public static IsinId Parse(string value) => Create(value);
 }

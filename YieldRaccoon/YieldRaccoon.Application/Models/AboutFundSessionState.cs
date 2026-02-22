@@ -12,7 +12,7 @@ namespace YieldRaccoon.Application.Models;
 /// and emitted via observable stream for presentation layer consumption.
 /// </para>
 /// </remarks>
-[DebuggerDisplay("AboutFund Session: Active={IsActive}, Index={CurrentIndex}/{TotalFunds}, Fund={CurrentFundName}")]
+[DebuggerDisplay("AboutFund Session: Active={IsActive}, OrderBookId={CurrentOrderBookId}, Fund={CurrentFundName}")]
 public sealed record AboutFundSessionState
 {
     /// <summary>
@@ -26,9 +26,9 @@ public sealed record AboutFundSessionState
     public AboutFundSessionId? SessionId { get; init; }
 
     /// <summary>
-    /// Gets the zero-based index of the current fund in the schedule.
+    /// Gets the <see cref="OrderBookId"/> of the fund currently being visited, or null if idle.
     /// </summary>
-    public int CurrentIndex { get; init; }
+    public OrderBookId? CurrentOrderBookId { get; init; }
 
     /// <summary>
     /// Gets the total number of funds in the schedule.
@@ -67,19 +67,26 @@ public sealed record AboutFundSessionState
     public TimeSpan EstimatedTimeRemaining { get; init; }
 
     /// <summary>
+    /// Gets the per-page collection progress from the collector,
+    /// or null when no collection is in progress (idle or delay phase).
+    /// </summary>
+    public AboutFundCollectionProgress? CollectionProgress { get; init; }
+
+    /// <summary>
     /// Gets an inactive session state instance.
     /// </summary>
     public static AboutFundSessionState Inactive => new()
     {
         IsActive = false,
         SessionId = null,
-        CurrentIndex = 0,
+        CurrentOrderBookId = null,
         TotalFunds = 0,
         CurrentIsin = null,
         CurrentFundName = null,
         StatusMessage = string.Empty,
         IsDelayInProgress = false,
         DelayCountdown = 0,
-        EstimatedTimeRemaining = TimeSpan.Zero
+        EstimatedTimeRemaining = TimeSpan.Zero,
+        CollectionProgress = null
     };
 }

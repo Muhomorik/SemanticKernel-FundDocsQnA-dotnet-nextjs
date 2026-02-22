@@ -29,6 +29,16 @@ public class YieldRaccoonOptions
     public bool AutoStartOverview { get; set; } = false;
 
     /// <summary>
+    /// Gets or sets whether to use minimal delays for page interactions and browsing pauses.
+    /// </summary>
+    /// <remarks>
+    /// When true, uses short delays (3-7s clicks, 2s panel animations, 3-8s between pages)
+    /// instead of the normal human-like timings. Useful for development and testing.
+    /// Default: false.
+    /// </remarks>
+    public bool FastMode { get; set; } = false;
+
+    /// <summary>
     /// Gets the fund details URL for a specific ISIN.
     /// </summary>
     /// <param name="isin">The fund's ISIN code.</param>

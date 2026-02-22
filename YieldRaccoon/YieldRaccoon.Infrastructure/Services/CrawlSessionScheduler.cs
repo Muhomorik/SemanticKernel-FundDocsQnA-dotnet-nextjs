@@ -22,12 +22,12 @@ public class CrawlSessionScheduler : ICrawlSessionScheduler
     /// <summary>
     /// Minimum delay in seconds between batch loads.
     /// </summary>
-    public const int MinDelaySeconds = 10;
+    public const int MinDelaySeconds = 15;
 
     /// <summary>
     /// Maximum delay in seconds between batch loads.
     /// </summary>
-    public const int MaxDelaySeconds = 20;
+    public const int MaxDelaySeconds = 45;
 
     /// <summary>
     /// Default expected number of batches (empirical value based on typical fund list size).

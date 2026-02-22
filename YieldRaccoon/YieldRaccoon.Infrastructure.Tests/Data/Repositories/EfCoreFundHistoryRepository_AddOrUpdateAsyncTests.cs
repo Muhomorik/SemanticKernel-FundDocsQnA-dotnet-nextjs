@@ -38,9 +38,9 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         _context.Dispose();
     }
 
-    private async Task<FundProfile> CreateAndSaveFundProfileAsync(FundId? fundId = null)
+    private async Task<FundProfile> CreateAndSaveFundProfileAsync(IsinId? fundId = null)
     {
-        fundId ??= _fixture.Create<FundId>();
+        fundId ??= _fixture.Create<IsinId>();
         var profile = new FundProfile
         {
             Id = fundId.Value,
@@ -59,7 +59,7 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         var profile = await CreateAndSaveFundProfileAsync();
         var record = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 100.0m,
             NavDate = new DateOnly(2024, 1, 15)
         };
@@ -80,13 +80,13 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         var profile = await CreateAndSaveFundProfileAsync();
         var record1 = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 100.0m,
             NavDate = new DateOnly(2024, 1, 15)
         };
         var record2 = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 105.0m,  // Different NAV
             NavDate = new DateOnly(2024, 1, 15)  // Same NavDate
         };
@@ -113,13 +113,13 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         var profile = await CreateAndSaveFundProfileAsync();
         var record1 = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 100.0m,
             NavDate = new DateOnly(2024, 1, 15)
         };
         var record2 = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 101.0m,
             NavDate = new DateOnly(2024, 1, 16)  // Different NavDate
         };
@@ -145,7 +145,7 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         // Pre-add a record
         var existingRecord = new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 100.0m,
             NavDate = new DateOnly(2024, 1, 15)
         };
@@ -155,9 +155,9 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         // Prepare batch: one update (same NavDate) and two new
         var records = new[]
         {
-            new FundHistoryRecord { FundId = profile.Id, Nav = 105.0m, NavDate = new DateOnly(2024, 1, 15) },  // Update existing
-            new FundHistoryRecord { FundId = profile.Id, Nav = 101.0m, NavDate = new DateOnly(2024, 1, 16) },  // New
-            new FundHistoryRecord { FundId = profile.Id, Nav = 102.0m, NavDate = new DateOnly(2024, 1, 17) }   // New
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 105.0m, NavDate = new DateOnly(2024, 1, 15) },  // Update existing
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 101.0m, NavDate = new DateOnly(2024, 1, 16) },  // New
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 102.0m, NavDate = new DateOnly(2024, 1, 17) }   // New
         };
 
         // Act
@@ -180,9 +180,9 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         var profile = await CreateAndSaveFundProfileAsync();
         var records = new[]
         {
-            new FundHistoryRecord { FundId = profile.Id, Nav = 100.0m, NavDate = new DateOnly(2024, 1, 15) },
-            new FundHistoryRecord { FundId = profile.Id, Nav = 101.0m, NavDate = new DateOnly(2024, 1, 16) },
-            new FundHistoryRecord { FundId = profile.Id, Nav = 102.0m, NavDate = new DateOnly(2024, 1, 17) }
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 100.0m, NavDate = new DateOnly(2024, 1, 15) },
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 101.0m, NavDate = new DateOnly(2024, 1, 16) },
+            new FundHistoryRecord { IsinId = profile.Id, Nav = 102.0m, NavDate = new DateOnly(2024, 1, 17) }
         };
 
         // Act
@@ -203,7 +203,7 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
         // Act - update same NavDate multiple times
         await _sut.AddOrUpdateAsync(new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 100.0m,
             NavDate = new DateOnly(2024, 1, 15)
         });
@@ -211,7 +211,7 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
 
         await _sut.AddOrUpdateAsync(new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 105.0m,
             NavDate = new DateOnly(2024, 1, 15)
         });
@@ -219,7 +219,7 @@ public class EfCoreFundHistoryRepository_AddOrUpdateAsyncTests
 
         await _sut.AddOrUpdateAsync(new FundHistoryRecord
         {
-            FundId = profile.Id,
+            IsinId = profile.Id,
             Nav = 110.0m,
             NavDate = new DateOnly(2024, 1, 15)
         });
