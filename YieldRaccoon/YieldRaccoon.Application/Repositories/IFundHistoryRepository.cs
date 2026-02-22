@@ -30,6 +30,15 @@ public interface IFundHistoryRepository
     Task AddOrUpdateRangeAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Adds records that do not already exist based on FundId + NavDate composite key.
+    /// Existing records are silently skipped (never overwritten).
+    /// </summary>
+    /// <param name="records">The history records to insert if not already present.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of records actually inserted.</returns>
+    Task<int> AddRangeIfNotExistsAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves all pending changes to the database asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

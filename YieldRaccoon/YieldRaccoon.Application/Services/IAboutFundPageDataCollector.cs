@@ -1,5 +1,4 @@
 using YieldRaccoon.Application.Models;
-using YieldRaccoon.Domain.ValueObjects;
 
 namespace YieldRaccoon.Application.Services;
 
@@ -11,84 +10,63 @@ namespace YieldRaccoon.Application.Services;
 /// <para><strong>Responsibility:</strong></para>
 /// <para>
 /// Owns the in-flight <see cref="AboutFundPageData"/> for the fund currently being visited.
-/// Receives typed data slices (or failure notifications) from the infrastructure layer
-/// and updates the corresponding <see cref="AboutFundFetchSlot"/>. When every slot
-/// has resolved, emits on <see cref="Completed"/> so the orchestrator can persist
-/// the result and advance to the next fund.
+/// Internally handles response routing, page interactions, slot accumulation,
+/// and completion detection. External callers only need to start a collection
+/// and forward intercepted HTTP responses.
 /// </para>
 ///
-/// <para><strong>Why a separate interface?</strong></para>
+/// <para><strong>Scheduling:</strong></para>
 /// <para>
-/// Extracting collection from <see cref="IAboutFundOrchestrator"/> keeps each service
-/// focused on a single concern:
-/// <list type="bullet">
-///   <item>The <em>orchestrator</em> manages session lifecycle, navigation sequencing, and timers.</item>
-///   <item>The <em>collector</em> manages slot accumulation and completion detection.</item>
-/// </list>
-/// The orchestrator wires the two together — it calls <see cref="BeginCollection"/>
-/// when navigating to a fund and subscribes to <see cref="Completed"/> for persistence.
-/// </para>
-///
-/// <para><strong>Failure semantics:</strong></para>
-/// <para>
-/// Call <see cref="FailSlot"/> when a page interaction fails (e.g., "Inställningar"
-/// button not found). The slot is marked <see cref="AboutFundFetchStatus.Failed"/>
-/// and still counts toward completion — the page visit finishes even when
-/// individual fetches fail.
+/// Step timings are pre-calculated by the orchestrator and passed via
+/// <see cref="AboutFundCollectionSchedule"/>. The collector schedules timers at the
+/// prescribed absolute times — it does not calculate delays itself.
 /// </para>
 ///
 /// <para><strong>Thread safety:</strong></para>
 /// <para>
 /// Implementations should be safe to call from both the UI thread
-/// (page interactor failures) and background threads (intercepted responses).
+/// and background threads (intercepted responses).
 /// </para>
 /// </remarks>
 public interface IAboutFundPageDataCollector
 {
     /// <summary>
-    /// Begins collecting data for a new fund page visit.
-    /// Resets all slots to <see cref="AboutFundFetchStatus.Pending"/>.
-    /// </summary>
-    /// <param name="isin">The ISIN of the fund being visited.</param>
-    /// <param name="orderBookId">The OrderBookId used in the page URL.</param>
-    void BeginCollection(string isin, string orderBookId);
-
-    /// <summary>
-    /// Records a successful fetch for the <see cref="AboutFundPageData.ChartTimePeriods"/> slot.
-    /// </summary>
-    /// <param name="data">The raw JSON response payload.</param>
-    void ReceiveChartTimePeriods(string data);
-
-    /// <summary>
-    /// Records a successful fetch for the <see cref="AboutFundPageData.SekPerformance"/> slot.
-    /// </summary>
-    /// <param name="data">The raw JSON response payload.</param>
-    void ReceiveSekPerformance(string data);
-
-    /// <summary>
-    /// Marks a named slot as failed, recording the reason.
-    /// </summary>
-    /// <param name="slotName">
-    /// The slot to fail — must match a property name on <see cref="AboutFundPageData"/>
-    /// (e.g., <c>nameof(AboutFundPageData.ChartTimePeriods)</c>).
-    /// </param>
-    /// <param name="reason">Human-readable failure description.</param>
-    void FailSlot(string slotName, string reason);
-
-    /// <summary>
-    /// Emits the completed <see cref="AboutFundPageData"/> when every slot has resolved
-    /// (each either succeeded or failed).
+    /// Emits the completed <see cref="AboutFundPageData"/> when the page visit finishes
+    /// (after all interactions and data captures are done).
     /// </summary>
     /// <remarks>
     /// Fires exactly once per <see cref="BeginCollection"/> call.
-    /// The orchestrator subscribes to this to trigger a single database write
-    /// and advance to the next fund.
     /// </remarks>
     IObservable<AboutFundPageData> Completed { get; }
 
     /// <summary>
-    /// Emits the current <see cref="AboutFundPageData"/> snapshot whenever any slot changes,
-    /// for UI progress display.
+    /// Emits live progress every second during the collection, including step statuses,
+    /// elapsed/remaining time, and current slot data.
     /// </summary>
-    IObservable<AboutFundPageData> StateChanged { get; }
+    IObservable<AboutFundCollectionProgress> StateChanged { get; }
+
+    /// <summary>
+    /// Begins collecting data for a new fund page visit using pre-calculated step timings.
+    /// Schedules interaction timers at the prescribed absolute times and starts execution.
+    /// </summary>
+    /// <param name="schedule">
+    /// Pre-calculated schedule with step timings, start/stop times, and fund identity.
+    /// Built by the orchestrator which owns all scheduling policy.
+    /// </param>
+    /// <returns>The initial progress snapshot with step statuses and timing data.</returns>
+    AboutFundCollectionProgress BeginCollection(AboutFundCollectionSchedule schedule);
+
+    /// <summary>
+    /// Routes an intercepted HTTP response to the appropriate data slot
+    /// by matching URL patterns. Triggers completion when in the
+    /// <see cref="CollectionPhase.Draining"/> phase (all interactions have fired).
+    /// </summary>
+    /// <param name="request">The intercepted HTTP request/response data.</param>
+    void NotifyResponseCaptured(AboutFundInterceptedRequest request);
+
+    /// <summary>
+    /// Cancels the active collection, disposing all scheduled interaction timers
+    /// and resetting internal state. No-op if no collection is active.
+    /// </summary>
+    void CancelCollection();
 }

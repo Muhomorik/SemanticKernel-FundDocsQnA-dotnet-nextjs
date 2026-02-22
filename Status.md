@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-09 (YieldRaccoon Fluent v2 theme system: created YieldRaccoonTheme.xaml with all yr.* design tokens, RuntimeThemeGenerator for system accent color, migrated all 6 views to use yr.* tokens)
+Last Updated: 2026-02-22 (YieldRaccoon README.md major update: Rewrote sections for 7-slot/8-step collection architecture, three-tier scheduling, chart ingestion pipeline, IsinId/OrderBookId value objects, updated schema and diagrams)
 
 **Tech Stack:**
 
@@ -58,7 +58,7 @@ Last Updated: 2026-02-09 (YieldRaccoon Fluent v2 theme system: created YieldRacc
 | Cosmos DB Upload | ✅ | HTTP-based upload to backend API with rate limiting |
 | Rate Limiting & Backoff | ✅ | **NEW 2026-01-11**: 8000ms default delay between batches (~290 RU/s avg, safe under 400 RU/s limit), exponential backoff for 429 throttling |
 | Unit Tests | ✅ | NUnit + AutoFixture + AutoMoq tests for services and extraction (56 tests passing) |
-| AI Evaluation Tests | ✅ | **NEW 2026-02-02**: `ExampleQueriesAIEvaluatedTests` - evaluates frontend queries for answerability against PRIIP/KID documents, generates markdown report with categories (single_doc_answerable, multi_doc_answerable, context_dependent, info_missing) and suggested rephrases. Requires OpenAI API key, marked `[Explicit]`. |
+| AI Evaluation Tests | ✅ | `ExampleQueriesAIEvaluatedTests` - evaluates frontend queries for answerability against PRIIP/KID documents, generates markdown report with categories (single_doc_answerable, multi_doc_answerable, context_dependent, info_missing) and suggested rephrases. Requires OpenAI API key, marked `[Explicit]`. |
 | Documentation | ✅ | README with usage examples and architecture documentation |
 
 ### Planned Features
@@ -640,6 +640,17 @@ Refactored the AboutFund window from a 2-column layout (WebView2 + Network Inspe
 - Session cancellation on window close or Stop button
 - Event log panel showing real-time browsing events with icons
 - URL template uses OrderbookId externally (`{0}` placeholder), ISIN internally
+
+### Chart Data Ingestion Pipeline ✅ COMPLETED (2026-02-19)
+
+Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a dedicated pipeline that deserializes raw chart JSON from the 7 time-period slots collected by `AboutFundPageDataCollector`, merges overlapping time series with deduplication by NAV date, maps to `FundHistoryRecord` entities (Nav + NavDate only), and persists via `IFundHistoryRepository`. Wired into `AboutFundOrchestrator.OnPageDataCollected` as fire-and-forget with full error handling — persistence failures never break the browsing session.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IAboutFundChartIngestionService` interface | ✅ |
+| **Infrastructure** | `AboutFundChartIngestionService` (JSON deserialization, merge, dedup, persist) | ✅ |
+| **Orchestrator** | `PersistChartDataAsync` in `AboutFundOrchestrator` (async void, resolves ISIN from schedule) | ✅ |
+| **DI** | Autofac registration in `PresentationModule` with NLog logger | ✅ |
 
 ### Future Enhancements (Planned)
 

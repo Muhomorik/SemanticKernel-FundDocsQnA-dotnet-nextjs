@@ -113,111 +113,14 @@ namespace MyApp.ViewModels
 
 ## ViewModel Patterns
 
-### Core Structure
+ViewModels inherit from `DevExpress.Mvvm.ViewModelBase`, implement `IDisposable`, and follow this structure:
 
-ViewModels inherit from `DevExpress.Mvvm.ViewModelBase` and implement `IDisposable`:
+- **Field order**: `ILogger` → `IScheduler` → `CompositeDisposable` → backing fields
+- **Two constructors**: runtime (DI with null-checks) + design-time (parameterless, safe defaults)
+- **Properties**: use `SetProperty(ref _field, value, nameof(Prop))` for change notification
+- **Subscriptions**: always `ObserveOn(_uiScheduler)` before updating UI-bound properties, always `.DisposeWith(_disposables)`
 
-```csharp
-public sealed class MyViewModel : ViewModelBase, IDisposable
-{
-    // 1. ILogger first (convention)
-    private readonly ILogger _logger;
-
-    // 2. IScheduler for UI thread marshalling
-    private readonly IScheduler _uiScheduler;
-
-    // 3. Subscription management
-    private readonly CompositeDisposable _disposables = new();
-
-    // 4. Backing fields for properties
-    private string _status = "Ready";
-
-    // Runtime constructor with dependencies
-    public MyViewModel(ILogger logger, IScheduler uiScheduler, /* other services */)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
-
-        // Initialize commands
-        LoadedCommand = new DelegateCommand(OnLoaded);
-        SaveCommand = new AsyncCommand(SaveAsync);
-    }
-
-    // Design-time constructor
-    public MyViewModel()
-    {
-        _logger = LogManager.GetCurrentClassLogger();
-        _uiScheduler = DispatcherScheduler.Current;
-
-        LoadedCommand = new DelegateCommand(() => { });
-        SaveCommand = new AsyncCommand(async () => { });
-    }
-
-    public void Dispose() => _disposables.Dispose();
-}
-```
-
-### Property Change Notification
-
-Use `SetProperty` from `ViewModelBase` for automatic `INotifyPropertyChanged`:
-
-```csharp
-private string _status;
-
-public string Status
-{
-    get => _status;
-    set => SetProperty(ref _status, value, nameof(Status));
-}
-```
-
-The `SetProperty` method:
-
-- Compares new value with current value
-- Sets the field if different
-- Raises `PropertyChanged` event automatically
-
-### Subscription Management
-
-Use `CompositeDisposable` to manage Rx.NET subscriptions:
-
-```csharp
-private void OnLoaded()
-{
-    // Create observable subscription
-    var subscription = Observable
-        .Interval(TimeSpan.FromSeconds(1))
-        .ObserveOn(_uiScheduler)  // Marshal to UI thread
-        .Subscribe(tick =>
-        {
-            Status = $"Tick {tick}";  // Safe to update UI properties
-        });
-
-    // Add to disposables for automatic cleanup
-    _disposables.Add(subscription);
-}
-```
-
-When `Dispose()` is called, all subscriptions in `_disposables` are automatically disposed.
-
-### UI Thread Marshalling
-
-Always use `ObserveOn(_uiScheduler)` before updating UI-bound properties:
-
-```csharp
-// Background observable
-Observable
-    .Return(LoadDataAsync())
-    .SelectMany(x => x)
-    .ObserveOn(_uiScheduler)  // Switch to UI thread
-    .Subscribe(data =>
-    {
-        DataItems = data;  // Safe: now on UI thread
-    })
-    .DisposeWith(_disposables);
-```
-
-**For complete ViewModel patterns, lifecycle management, and testing strategies, see [viewmodel-patterns.md](viewmodel-patterns.md).**
+**For complete patterns, lifecycle management, and testing strategies, see [viewmodel-patterns.md](viewmodel-patterns.md).**
 
 ## Commands
 
@@ -324,6 +227,50 @@ private void OnLoaded()
 </Window>
 ```
 
+### Window Closing Lifecycle
+
+Use `CurrentWindowService` to handle window closing at the ViewModel level — no code-behind needed for disposal.
+
+**XAML** — add alongside `EventToCommand`:
+
+```xml
+<dxmvvm:Interaction.Behaviors>
+    <dxmvvm:EventToCommand EventName="Loaded" Command="{Binding LoadedCommand}" />
+    <dxmvvm:CurrentWindowService ClosingCommand="{Binding WindowClosingCommand}" />
+</dxmvvm:Interaction.Behaviors>
+```
+
+**ViewModel** — self-disposes on close, programmatic close via service:
+
+```csharp
+public ICommand WindowClosingCommand { get; }
+
+protected ICurrentWindowService CurrentWindowService => GetService<ICurrentWindowService>();
+
+public MyWindowViewModel(ILogger logger, IScheduler uiScheduler)
+{
+    // ...
+    WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
+}
+
+private void ExecuteWindowClosing()
+{
+    Dispose();
+}
+
+// Call from a command when the ViewModel needs to close its own window
+private void ExecuteClose()
+{
+    CurrentWindowService?.Close();
+}
+```
+
+**Key points:**
+
+- `ClosingCommand` fires on `Window.Closing` (before close) — receives `CancelEventArgs` if you need to cancel
+- `ICurrentWindowService.Close()` replaces `CloseRequested` events for ViewModel→View close requests
+- Code-behind `OnClosed` should only handle view-owned resources (e.g., native control disposal, HWND cleanup)
+
 ## ViewModel→View Communication
 
 When ViewModel needs to trigger View-specific operations (WebView2 control, HWND manipulation, screenshots):
@@ -414,410 +361,28 @@ Convert XAML events to ViewModel commands:
 <Button Content="Save" Command="{Binding SaveCommand}" />
 ```
 
-### MahApps.Metro MetroWindow
-
-Convert standard WPF Window to MetroWindow for modern UI:
-
-#### Step 1: Update App.xaml with resources
-
-```xml
-<Application x:Class="MyApp.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <!-- MahApps.Metro resources (file names are Case Sensitive!) -->
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Application.Resources>
-</Application>
-```
-
-#### Step 2: Convert Window to MetroWindow
-
-```xml
-<mah:MetroWindow x:Class="MyApp.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Title="My Application" Height="450" Width="800">
-    <Grid>
-        <!-- Content -->
-    </Grid>
-</mah:MetroWindow>
-```
-
-#### Step 3: Update code-behind (optional)
-
-```csharp
-// Option 1: Remove base class (partial class inherits from XAML)
-public partial class MainWindow
-{
-    public MainWindow()
-    {
-        InitializeComponent();
-    }
-}
-
-// Option 2: Explicitly inherit from MetroWindow
-public partial class MainWindow : MetroWindow
-{
-    public MainWindow()
-    {
-        InitializeComponent();
-    }
-}
-```
-
-**For advanced UI patterns including attached behaviors and visual tree navigation, see [ui-patterns.md](ui-patterns.md).**
+**For MahApps.Metro MetroWindow conversion, attached behaviors, and visual tree navigation, see [ui-patterns.md](ui-patterns.md).**
 
 ## Dependency Injection
 
-### Complete PresentationModule Pattern
+Uses Autofac with one module per layer. Key conventions:
 
-Register ViewModels, logging infrastructure, and views in a dedicated Autofac module:
+- **PresentationModule** registers ViewModels (convention-based), Views, logging, and UI scheduler
+- **Type-aware NLog.ILogger** injection via `ResolvedParameter` — each ViewModel gets logger named after its type
+- **IScheduler** injection — `DispatcherScheduler.Current` for UI thread marshalling
+- **App.xaml.cs** builds container, resolves MainWindow + ViewModel, assigns DataContext, disposes on exit
+- **ViewModel disposal on window close** via `CurrentWindowService.ClosingCommand` (not code-behind)
 
-```csharp
-using Autofac;
-using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Extensions.Logging;
-using System.Reactive.Concurrency;
-
-namespace MyApp.Wpf.Modules;
-
-/// <summary>
-/// Autofac module for registering presentation layer components (ViewModels, Views, etc.).
-/// </summary>
-public class PresentationModule : Module
-{
-    protected override void Load(ContainerBuilder builder)
-    {
-        // ===== LOGGING INFRASTRUCTURE =====
-
-        // Register Microsoft.Extensions.Logging.ILoggerFactory backed by NLog
-        // This allows services to use ILogger<T> while logging through NLog
-        builder.Register<ILoggerFactory>(ctx => new NLogLoggerFactory())
-            .As<ILoggerFactory>()
-            .SingleInstance();
-
-        // Register generic ILogger<T> using the ILoggerFactory
-        // Ensures all ILogger<T> dependencies resolve to real loggers
-        builder.RegisterGeneric(typeof(Logger<>))
-            .As(typeof(ILogger<>))
-            .SingleInstance();
-
-        // ===== VIEWMODEL REGISTRATION =====
-
-        // Register all ViewModels with type-aware NLog.ILogger and UI scheduler injection
-        builder.RegisterAssemblyTypes(typeof(PresentationModule).Assembly)
-            .Where(t => t.Name.EndsWith("ViewModel"))
-            .AsSelf()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(pi.Member.DeclaringType?.FullName ?? "Unknown")))
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(IScheduler),
-                (pi, ctx) => DispatcherScheduler.Current))
-            .InstancePerDependency();
-
-        // ===== VIEW REGISTRATION =====
-
-        // Register MainWindow
-        builder.RegisterType<MainWindow>()
-            .AsSelf()
-            .InstancePerDependency();
-
-        // Register other views/windows (if needed)
-        builder.RegisterAssemblyTypes(typeof(PresentationModule).Assembly)
-            .Where(t => (t.Name.EndsWith("View") || t.Name.EndsWith("Window"))
-                     && t != typeof(MainWindow))
-            .AsSelf()
-            .InstancePerDependency();
-    }
-}
-```
-
-**Key Points:**
-
-1. **NLog.ILogger Injection**: Each ViewModel receives `NLog.ILogger` with its type name for better log filtering
-2. **IScheduler Injection**: `DispatcherScheduler.Current` is injected for UI thread marshalling
-3. **Type-Aware Logging**: `LogManager.GetLogger(pi.Member.DeclaringType?.FullName)` creates logger with ViewModel's full type name
-4. **ILoggerFactory**: Supports both `NLog.ILogger` and `Microsoft.Extensions.Logging.ILogger<T>` in the same app
-
-### NLog Configuration
-
-Create `NLog.config` in your WPF project root with `CopyToOutputDirectory=PreserveNewest`:
-
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      autoReload="true"
-      throwConfigExceptions="true">
-
-  <targets>
-    <!-- Debugger output target (Visual Studio Output window) -->
-    <target xsi:type="Debugger"
-            name="debugger"
-            layout="${longdate} [${level:uppercase=true}] ${logger:shortName=true} - ${message} ${exception:format=tostring}" />
-
-    <!-- File output target (optional) -->
-    <target xsi:type="File"
-            name="logfile"
-            fileName="${basedir}/logs/${shortdate}.log"
-            layout="${longdate} [${level:uppercase=true}] ${logger} - ${message} ${exception:format=tostring}" />
-  </targets>
-
-  <rules>
-    <!-- All loggers (NLog.ILogger and Microsoft.Extensions.Logging.ILogger<T>) -->
-    <logger name="*" minlevel="Debug" writeTo="debugger" />
-    <logger name="*" minlevel="Info" writeTo="logfile" />
-  </rules>
-</nlog>
-```
-
-**Update .csproj to copy NLog.config:**
-
-```xml
-<ItemGroup>
-  <Content Include="NLog.config">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </Content>
-</ItemGroup>
-```
-
-### App Startup (App.xaml.cs)
-
-Configure container, register modules, and launch main window:
-
-```csharp
-using System;
-using System.Linq;
-using System.Windows;
-using Autofac;
-using MyApp.Wpf.Modules;
-using MyApp.Wpf.ViewModels;
-
-namespace MyApp.Wpf;
-
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
-{
-    private IContainer? _container;
-    private ILifetimeScope? _appScope;
-
-    /// <summary>
-    /// Handles application startup, configures DI container, and launches main window.
-    /// </summary>
-    protected override void OnStartup(StartupEventArgs e)
-    {
-        base.OnStartup(e);
-
-        // Build DI container
-        var builder = new ContainerBuilder();
-
-        // Register presentation module explicitly
-        builder.RegisterModule<PresentationModule>();
-
-        // Auto-discover and register modules from other assemblies (Infrastructure, Application, Domain layers)
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => a.FullName?.StartsWith("MyApp") == true
-                     && !a.FullName.Contains("Wpf"))  // Exclude Wpf assembly (already registered above)
-            .ToArray();
-
-        builder.RegisterAssemblyModules(assemblies);
-
-        _container = builder.Build();
-        _appScope = _container.BeginLifetimeScope();
-
-        // Create window and ViewModel
-        var mainWindow = _appScope.Resolve<MainWindow>();
-        var mainViewModel = _appScope.Resolve<MainViewModel>();
-
-        mainWindow.DataContext = mainViewModel;
-        mainWindow.Show();
-    }
-
-    /// <summary>
-    /// Handles application exit, disposes DI container.
-    /// </summary>
-    protected override void OnExit(ExitEventArgs e)
-    {
-        _appScope?.Dispose();
-        _container?.Dispose();
-        base.OnExit(e);
-    }
-}
-```
-
-**Key Points:**
-
-1. **Explicit PresentationModule Registration**: Register the presentation module first before auto-discovery
-2. **Assembly Filtering**: Exclude the Wpf assembly from auto-discovery (already registered via PresentationModule)
-3. **Lifetime Scope**: Create app-level lifetime scope for proper disposal hierarchy
-4. **Manual DataContext Assignment**: Resolve window and ViewModel separately, then assign DataContext
-5. **Proper Disposal**: Dispose both lifetime scope and container on exit
-
-**For complete DI setup including window providers, background schedulers, and advanced registration patterns, see [dependency-injection.md](dependency-injection.md).**
+**For complete setup (PresentationModule, NLog config, App.xaml.cs, window providers, advanced patterns), see [dependency-injection.md](dependency-injection.md).**
 
 ## Best Practices
 
-### 1. ILogger First Parameter Convention
-
-Always make `ILogger` the first constructor parameter:
-
-```csharp
-public MyViewModel(
-    ILogger logger,              // First
-    IScheduler uiScheduler,      // Second
-    IDataService dataService,    // Other dependencies
-    IEventAggregator events)
-{
-    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    // ...
-}
-```
-
-This convention:
-
-- Makes logging dependency explicit
-- Consistent across all ViewModels
-- Simplifies automated logger injection
-
-### 2. Always Use UI Scheduler for Property Updates
-
-When updating UI-bound properties from background observables:
-
-```csharp
-// ✓ CORRECT: ObserveOn before updating properties
-Observable
-    .Timer(TimeSpan.FromSeconds(1))
-    .ObserveOn(_uiScheduler)
-    .Subscribe(_ => Status = "Updated")
-    .DisposeWith(_disposables);
-
-// ✗ WRONG: Updating UI property from background thread
-Observable
-    .Timer(TimeSpan.FromSeconds(1))
-    .Subscribe(_ => Status = "Updated")  // Cross-thread exception!
-    .DisposeWith(_disposables);
-```
-
-### 3. Dispose Subscriptions with CompositeDisposable
-
-Always add subscriptions to `CompositeDisposable`:
-
-```csharp
-private readonly CompositeDisposable _disposables = new();
-
-private void OnLoaded()
-{
-    var sub1 = _observable1.Subscribe(x => HandleData(x));
-    _disposables.Add(sub1);
-
-    // Or use DisposeWith extension
-    _observable2
-        .Subscribe(x => HandleMore(x))
-        .DisposeWith(_disposables);
-}
-
-public void Dispose()
-{
-    _disposables.Dispose();  // Disposes all subscriptions
-}
-```
-
-Prevents memory leaks from undisposed subscriptions.
-
-### 4. Avoid Code-Behind Logic
-
-Keep Views declarative, move logic to ViewModels:
-
-```csharp
-// ✗ WRONG: Logic in code-behind
-private void Button_Click(object sender, RoutedEventArgs e)
-{
-    var result = CalculateSomething();
-    TextBlock.Text = result.ToString();
-}
-
-// ✓ CORRECT: Use commands and binding
-// XAML: <Button Command="{Binding CalculateCommand}" />
-// XAML: <TextBlock Text="{Binding Result}" />
-
-// ViewModel:
-public ICommand CalculateCommand { get; }
-
-private void OnCalculate()
-{
-    Result = CalculateSomething().ToString();
-}
-```
-
-### 5. Keep ViewModels Testable
-
-Design ViewModels for testability:
-
-```csharp
-// ✓ Testable: Dependencies injected
-public class MainViewModel : ViewModelBase
-{
-    private readonly IDataService _dataService;
-
-    public MainViewModel(ILogger logger, IScheduler scheduler, IDataService dataService)
-    {
-        _dataService = dataService;
-        // ...
-    }
-
-    public async Task LoadDataAsync()
-    {
-        var data = await _dataService.GetDataAsync();
-        Items = data;
-    }
-}
-
-// Test:
-var mockService = new Mock<IDataService>();
-mockService.Setup(x => x.GetDataAsync()).ReturnsAsync(testData);
-
-var vm = new MainViewModel(logger, TestScheduler.Default, mockService.Object);
-await vm.LoadDataAsync();
-
-Assert.That(vm.Items, Is.EqualTo(testData));
-```
-
-### 6. Use Design-Time Constructors
-
-Always provide parameterless constructor for designer support:
-
-```csharp
-// Runtime constructor (used at runtime via DI)
-public MainViewModel(ILogger logger, IScheduler uiScheduler)
-{
-    _logger = logger;
-    _uiScheduler = uiScheduler;
-}
-
-// Design-time constructor (used by Visual Studio designer)
-public MainViewModel()
-{
-    _logger = LogManager.GetCurrentClassLogger();
-    _uiScheduler = DispatcherScheduler.Current;
-}
-```
-
-Enables XAML designer to create ViewModel instance for preview.
+1. **ILogger first parameter** — convention across all ViewModels, enables automated logger injection
+2. **ObserveOn before UI updates** — always `ObserveOn(_uiScheduler)` before setting UI-bound properties
+3. **DisposeWith for all subscriptions** — every `.Subscribe()` must end with `.DisposeWith(_disposables)`
+4. **No logic in code-behind** — use commands and bindings; code-behind only for view-owned resources (HWND, native controls)
+5. **Testable ViewModels** — inject all dependencies, use `TestScheduler` in tests
+6. **Design-time constructors** — parameterless constructor with safe defaults for XAML designer
 
 ## Checklist
 
@@ -832,6 +397,7 @@ Enables XAML designer to create ViewModel instance for preview.
 - [ ] `ObservableCollection<T>` items inherit `BindableBase`
 - [ ] Commands initialized in constructor
 - [ ] No logic in code-behind (use commands and bindings)
+- [ ] `CurrentWindowService` with `ClosingCommand` for ViewModel disposal on window close
 - [ ] `d:DataContext` set for design-time IntelliSense
 
 ## Additional Resources
@@ -847,3 +413,4 @@ Cross-cutting concerns are in separate skills for better auto-loading:
 - **`dotnet-nlog-logging`** - NLog.ILogger conventions
 - **`dotnet-reactive-patterns`** - Rx.NET, CompositeDisposable, event publishing
 - **`dotnet-documentation`** - XML docs, DebuggerDisplay attributes
+- **`wpf-fluent-design`** — Fluent v2 design tokens, MahApps theming, XAML styling patterns

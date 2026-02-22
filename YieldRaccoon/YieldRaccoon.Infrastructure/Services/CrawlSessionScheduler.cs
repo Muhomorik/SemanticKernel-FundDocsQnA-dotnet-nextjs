@@ -22,12 +22,12 @@ public class CrawlSessionScheduler : ICrawlSessionScheduler
     /// <summary>
     /// Minimum delay in seconds between batch loads.
     /// </summary>
-    public const int MinDelaySeconds = 20;
+    public const int MinDelaySeconds = 15;
 
     /// <summary>
     /// Maximum delay in seconds between batch loads.
     /// </summary>
-    public const int MaxDelaySeconds = 60;
+    public const int MaxDelaySeconds = 45;
 
     /// <summary>
     /// Default expected number of batches (empirical value based on typical fund list size).
@@ -47,12 +47,10 @@ public class CrawlSessionScheduler : ICrawlSessionScheduler
     public CrawlSessionId ScheduleSession(int expectedBatchCount)
     {
         if (expectedBatchCount <= 0)
-        {
             throw new ArgumentOutOfRangeException(
                 nameof(expectedBatchCount),
                 expectedBatchCount,
                 "Expected batch count must be positive.");
-        }
 
         var sessionId = CrawlSessionId.NewId();
         var totalSeconds = 0;
@@ -75,8 +73,8 @@ public class CrawlSessionScheduler : ICrawlSessionScheduler
         // Append session started event
         _eventStore.Append(CrawlSessionStarted.Create(
             sessionId,
-            totalFundCount: 0,      // Unknown upfront
-            currentlyLoaded: 0,     // Unknown upfront
+            0, // Unknown upfront
+            0, // Unknown upfront
             expectedBatchCount,
             totalSeconds));
 

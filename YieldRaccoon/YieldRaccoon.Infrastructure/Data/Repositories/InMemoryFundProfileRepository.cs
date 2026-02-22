@@ -20,7 +20,7 @@ namespace YieldRaccoon.Infrastructure.Data.Repositories;
 /// </remarks>
 public class InMemoryFundProfileRepository : IFundProfileRepository
 {
-    private readonly ConcurrentDictionary<FundId, FundProfile> _profiles = new();
+    private readonly ConcurrentDictionary<IsinId, FundProfile> _profiles = new();
 
     /// <inheritdoc />
     public Task AddOrUpdateAsync(FundProfile fundProfile, CancellationToken cancellationToken = default)
@@ -43,17 +43,32 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
         // In-memory implementation returns all profiles with zero history count
         // since history records are tracked in a separate in-memory repository.
         var items = _profiles.Values
+            .Where(fp => !string.IsNullOrWhiteSpace(fp.OrderbookId))
             .Select(fp => new AboutFundScheduleItem
             {
                 Isin = fp.Id.Isin,
-                OrderbookId = fp.OrderbookId,
+                OrderBookId = OrderBookId.Create(fp.OrderbookId!),
                 Name = fp.Name,
-                HistoryRecordCount = 0
+                HistoryRecordCount = 0,
+                LastVisitedAt = fp.AboutFundLastVisitedAt
             })
-            .OrderBy(f => f.Name)
+            .OrderBy(f => f.LastVisitedAt)
+            .ThenBy(f => f.Name)
             .Take(limit)
             .ToList();
 
         return Task.FromResult<IReadOnlyList<AboutFundScheduleItem>>(items);
+    }
+
+    /// <inheritdoc />
+    public Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
+        CancellationToken cancellationToken = default)
+    {
+        if (_profiles.TryGetValue(isinId, out var profile))
+        {
+            profile.AboutFundLastVisitedAt = visitedAt;
+        }
+
+        return Task.CompletedTask;
     }
 }

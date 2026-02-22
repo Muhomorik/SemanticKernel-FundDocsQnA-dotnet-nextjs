@@ -52,7 +52,7 @@ public class FundIngestionService : IFundIngestionService
                 continue;
             }
 
-            var fundId = FundId.Create(fundData.Isin);
+            var fundId = IsinId.Create(fundData.Isin);
 
             // AddOrUpdate profile (repository handles the logic)
             var profile = CreateProfile(fundData, fundId, now);
@@ -74,11 +74,11 @@ public class FundIngestionService : IFundIngestionService
         return successCount;
     }
 
-    private static FundProfile CreateProfile(FundDataDto dto, FundId fundId, DateTimeOffset now)
+    private static FundProfile CreateProfile(FundDataDto dto, IsinId isinId, DateTimeOffset now)
     {
         return new FundProfile
         {
-            Id = fundId,
+            Id = isinId,
             Name = dto.Name!,
             OrderbookId = dto.OrderbookId,
             Category = dto.Category,
@@ -116,11 +116,11 @@ public class FundIngestionService : IFundIngestionService
         };
     }
 
-    private static FundHistoryRecord CreateHistoryRecord(FundDataDto dto, FundId fundId)
+    private static FundHistoryRecord CreateHistoryRecord(FundDataDto dto, IsinId isinId)
     {
         return new FundHistoryRecord
         {
-            FundId = fundId,
+            IsinId = isinId,
             Nav = dto.Nav,
             NavDate = ParseDateOnly(dto.NavDate),
             Capital = dto.Capital,

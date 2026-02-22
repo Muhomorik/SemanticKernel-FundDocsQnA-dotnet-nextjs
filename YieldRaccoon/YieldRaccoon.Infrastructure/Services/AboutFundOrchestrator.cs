@@ -19,11 +19,15 @@ namespace YieldRaccoon.Infrastructure.Services;
 /// This service manages the workflow of navigating through fund detail pages:
 /// <list type="bullet">
 ///   <item>Session lifecycle (start, cancel, complete)</item>
-///   <item>Fund navigation sequencing</item>
-///   <item>Auto-advance timer management using Rx.NET</item>
+///   <item>Delegates schedule calculation to <see cref="IAboutFundScheduleCalculator"/></item>
+///   <item>Schedules all fund visit timers upfront in <see cref="StartSessionAsync"/></item>
 ///   <item>Event publishing to about-fund event store</item>
-///   <item>State projection from events to observable streams</item>
+///   <item>State projection from events and collector progress to observable streams</item>
 /// </list>
+/// </para>
+/// <para>
+/// <strong>Phase lifecycle:</strong>
+/// <c>Idle → DelayBeforeNavigation → Collecting → DelayBeforeNavigation → … → Idle</c>.
 /// </para>
 /// </remarks>
 public class AboutFundOrchestrator : IAboutFundOrchestrator
@@ -31,80 +35,119 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     private readonly ILogger _logger;
     private readonly IAboutFundEventStore _eventStore;
     private readonly IFundProfileRepository _fundProfileRepository;
-    private readonly IAboutFundPageInteractor _pageInteractor;
     private readonly IAboutFundPageDataCollector _collector;
-    private readonly AboutFundResponseParser _responseParser;
-    private readonly string _fundDetailsUrlTemplate;
+    private readonly IAboutFundChartIngestionService _chartIngestionService;
+    private readonly IFundDetailsUrlBuilder _urlBuilder;
+    private readonly IAboutFundPageInteractor _pageInteractor;
+    private readonly IAboutFundScheduleCalculator _scheduleCalculator;
+
     private readonly IScheduler _scheduler;
     private readonly CompositeDisposable _disposables = new();
 
-    // Current session tracking
+    #region Session state
+
+    /// <summary>Unique correlation ID for the active session.</summary>
     private AboutFundSessionId? _currentSessionId;
+
+    /// <summary>
+    /// Ordered list of funds to visit in this session (for metadata like Name).
+    /// </summary>
     private IReadOnlyList<AboutFundScheduleItem> _schedule = Array.Empty<AboutFundScheduleItem>();
-    private int _currentIndex;
+
+    /// <summary>
+    /// Pre-calculated timing for every fund in the session (ordered).
+    /// </summary>
+    private List<AboutFundCollectionSchedule> _fundSchedules = [];
+
+    /// <summary>
+    /// Per-fund visit status — authoritative state for skip/advance logic.
+    /// </summary>
+    private readonly Dictionary<OrderBookId, FundVisitStatus> _visitStatuses = new();
+
+    /// <summary>
+    /// Explicit lifecycle phase — replaces implicit boolean flags.
+    /// </summary>
+    private AboutFundSessionPhase _phase;
+
+    /// <summary>
+    /// Identity of the fund currently being visited (or about to be visited after delay).
+    /// </summary>
+    private OrderBookId? _currentOrderBookId;
+
+    /// <summary>
+    /// Controls whether the next fund is auto-scheduled after a collection completes.
+    /// </summary>
     private bool _autoAdvanceEnabled;
-    private IDisposable? _autoAdvanceSubscription;
+
+    /// <summary>
+    /// All scheduled fund visit timers + 1s ticker.
+    /// Disposed on cancel, advance, or auto-advance toggle.
+    /// </summary>
+    private CompositeDisposable? _scheduledVisits;
+
+    /// <summary>
+    /// Latest progress from the collector's <see cref="IAboutFundPageDataCollector.StateChanged"/>.
+    /// Merged into <see cref="ProjectState"/> during the <see cref="AboutFundSessionPhase.Collecting"/> phase.
+    /// </summary>
+    private AboutFundCollectionProgress? _latestCollectionProgress;
+
     private bool _disposed;
 
-    // Auto-advance delay in seconds
-    private const int AutoAdvanceDelaySeconds = 22;
+    #endregion
+
 
     // BehaviorSubjects for state (emit current value to new subscribers)
     private readonly BehaviorSubject<AboutFundSessionState> _sessionState;
 
-    // Subjects for events (no initial value)
-    private readonly Subject<IAboutFundEvent> _events = new();
-    private readonly Subject<string> _navigateToUrl = new();
-    private readonly Subject<int> _countdownTick = new();
-
     /// <inheritdoc/>
     public IObservable<AboutFundSessionState> SessionState => _sessionState.AsObservable();
+
+    // Subjects for events (no initial value)
+    private readonly Subject<IAboutFundEvent> _events = new();
 
     /// <inheritdoc/>
     public IObservable<IAboutFundEvent> Events => _events.AsObservable();
 
-    /// <inheritdoc/>
-    public IObservable<string> NavigateToUrl => _navigateToUrl.AsObservable();
+    private readonly Subject<Uri> _navigateToUrl = new();
 
     /// <inheritdoc/>
-    public IObservable<int> CountdownTick => _countdownTick.AsObservable();
+    public IObservable<Uri> NavigateToUrl => _navigateToUrl.AsObservable();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundOrchestrator"/> class.
     /// </summary>
-    /// <param name="logger">Logger for diagnostic output.</param>
-    /// <param name="eventStore">Event store for browsing session events.</param>
-    /// <param name="fundProfileRepository">Repository for querying fund profiles.</param>
-    /// <param name="pageInteractor">Page interactor for post-navigation element clicks.</param>
-    /// <param name="collector">Collector for accumulating per-fund page data.</param>
-    /// <param name="fundDetailsUrlTemplate">URL template with <c>{0}</c> placeholder for OrderbookId.</param>
-    /// <param name="scheduler">Rx scheduler for timer operations.</param>
-    public AboutFundOrchestrator(
-        ILogger logger,
-        IAboutFundEventStore eventStore,
-        IFundProfileRepository fundProfileRepository,
+    public AboutFundOrchestrator(ILogger logger,
+        IScheduler scheduler,
+        IFundDetailsUrlBuilder urlBuilder,
         IAboutFundPageInteractor pageInteractor,
         IAboutFundPageDataCollector collector,
-        string fundDetailsUrlTemplate,
-        IScheduler scheduler)
+        IAboutFundChartIngestionService chartIngestionService,
+        IAboutFundEventStore eventStore,
+        IFundProfileRepository fundProfileRepository,
+        IAboutFundScheduleCalculator scheduleCalculator)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
         _fundProfileRepository =
             fundProfileRepository ?? throw new ArgumentNullException(nameof(fundProfileRepository));
-        _pageInteractor = pageInteractor ?? throw new ArgumentNullException(nameof(pageInteractor));
         _collector = collector ?? throw new ArgumentNullException(nameof(collector));
-        _fundDetailsUrlTemplate =
-            fundDetailsUrlTemplate ?? throw new ArgumentNullException(nameof(fundDetailsUrlTemplate));
+        _chartIngestionService = chartIngestionService ?? throw new ArgumentNullException(nameof(chartIngestionService));
+        _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
+        _pageInteractor = pageInteractor ?? throw new ArgumentNullException(nameof(pageInteractor));
+        _scheduleCalculator = scheduleCalculator ?? throw new ArgumentNullException(nameof(scheduleCalculator));
         _scheduler = scheduler ?? throw new ArgumentNullException(nameof(scheduler));
 
-        _responseParser = new AboutFundResponseParser(logger, _collector);
+        _phase = AboutFundSessionPhase.Idle;
 
         _sessionState = new BehaviorSubject<AboutFundSessionState>(AboutFundSessionState.Inactive);
 
         // Subscribe to collector completion — single DB write point
         _disposables.Add(
             _collector.Completed.Subscribe(OnPageDataCollected));
+
+        // Subscribe to collector progress — merge into session state every second
+        _disposables.Add(
+            _collector.StateChanged.Subscribe(OnCollectionStateChanged));
 
         _logger.Debug("AboutFundOrchestrator initialized");
     }
@@ -113,7 +156,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync()
     {
         _logger.Info("Loading fund schedule from database");
-        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(60);
+        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(20);
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;
     }
@@ -133,22 +176,35 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         }
 
         _currentSessionId = AboutFundSessionId.NewId();
-        _currentIndex = 0;
-
-        var firstFund = _schedule[0];
-        var firstOrderbookId = firstFund.OrderbookId ?? string.Empty;
 
         // Publish session started event
         var sessionStarted = AboutFundSessionStarted.Create(
             _currentSessionId.Value,
             _schedule.Count,
-            firstOrderbookId);
+            _schedule[0].OrderBookId);
         AppendAndEmit(sessionStarted);
 
         _logger.Info("Session {0} started with {1} funds", _currentSessionId, _schedule.Count);
 
-        // Navigate to first fund
-        NavigateToFund(0);
+        // Pre-calculate the full session schedule
+        _fundSchedules = _scheduleCalculator.CalculateSessionSchedule(
+            _schedule,
+            _scheduler.Now + TimeSpan.FromSeconds(15),
+            _pageInteractor.GetMinimumDelay);
+
+        // Initialize all funds as NotVisited
+        _visitStatuses.Clear();
+        foreach (var fs in _fundSchedules)
+            _visitStatuses[fs.OrderBookId] = FundVisitStatus.NotVisited;
+
+        // Set initial state — first fund is about to be visited after its delay
+        _phase = AboutFundSessionPhase.DelayBeforeNavigation;
+        _currentOrderBookId = _schedule[0].OrderBookId;
+
+        // Schedule ALL fund visit timers upfront
+        ScheduleVisits(_schedule[0].OrderBookId);
+
+        RefreshState();
 
         return _currentSessionId.Value;
     }
@@ -164,7 +220,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
 
         _logger.Info("Cancelling session {0}: {1}", _currentSessionId, reason);
 
-        StopAutoAdvanceTimer();
+        CancelScheduledVisits();
+        _collector.CancelCollection();
 
         var fundsVisited = _eventStore.GetCompletedNavigationCount(_currentSessionId.Value);
 
@@ -175,56 +232,15 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         AppendAndEmit(cancelled);
 
         _logger.Info("Session {0} cancelled after visiting {1} funds", _currentSessionId, fundsVisited);
+
         _currentSessionId = null;
+        _currentOrderBookId = null;
+        _latestCollectionProgress = null;
+        _fundSchedules = [];
+        _visitStatuses.Clear();
+        _phase = AboutFundSessionPhase.Idle;
 
         RefreshState();
-    }
-
-    /// <inheritdoc/>
-    public void NotifyNavigationCompleted()
-    {
-        // Post-navigation: wait for page to render, then click "Utvecklingen i SEK" checkbox.
-        // If the click fails, mark the SekPerformance slot as failed so collection can complete.
-        var postNavSubscription = Observable
-            .Timer(TimeSpan.FromSeconds(15), _scheduler)
-            .SelectMany(_ => Observable.FromAsync(() => _pageInteractor.ActivateSekViewAsync()))
-            .Subscribe(
-                clicked =>
-                {
-                    _logger.Debug("Post-nav interaction: {0}", clicked ? "checkbox clicked" : "skipped");
-                    if (!clicked)
-                        _collector.FailSlot(
-                            nameof(AboutFundPageData.SekPerformance),
-                            "Page interaction failed — settings button or checkbox not found");
-                },
-                ex =>
-                {
-                    _logger.Warn(ex, "Post-nav interaction failed");
-                    _collector.FailSlot(
-                        nameof(AboutFundPageData.SekPerformance),
-                        $"Page interaction exception: {ex.Message}");
-                });
-        _disposables.Add(postNavSubscription);
-
-        if (_currentSessionId == null || _currentIndex >= _schedule.Count)
-            return;
-
-        var fund = _schedule[_currentIndex];
-
-        var completed = AboutFundNavigationCompleted.Create(
-            _currentSessionId.Value,
-            fund.Isin,
-            fund.OrderbookId ?? string.Empty,
-            _currentIndex);
-        AppendAndEmit(completed);
-
-        _logger.Debug("Navigation completed for fund {0} ({1}) at index {2}",
-            fund.Name, fund.Isin, _currentIndex);
-
-        RefreshState();
-
-        // If auto-advance is enabled, start the timer
-        if (_autoAdvanceEnabled) StartAutoAdvanceTimer();
     }
 
     /// <inheritdoc/>
@@ -236,22 +252,30 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
             return;
         }
 
-        StopAutoAdvanceTimer();
+        CancelScheduledVisits();
 
-        // Mark current as completed if not already
-        var completedCount = _eventStore.GetCompletedNavigationCount(_currentSessionId.Value);
-        if (completedCount <= _currentIndex) NotifyNavigationCompleted();
-
-        var nextIndex = _currentIndex + 1;
-
-        if (nextIndex >= _schedule.Count)
+        var nextSchedule = GetNextUnvisitedSchedule(_currentOrderBookId);
+        if (nextSchedule == null)
         {
-            // All funds visited - complete session
             CompleteSession();
             return;
         }
 
-        NavigateToFund(nextIndex);
+        // Skip delay — immediately visit the next fund
+        ExecuteFundVisit(nextSchedule);
+
+        // Only reschedule remaining funds when auto-advance is enabled;
+        // in manual mode the user controls the pace.
+        if (_autoAdvanceEnabled)
+        {
+            var afterNext = GetNextUnvisitedSchedule(nextSchedule.OrderBookId);
+            if (afterNext != null)
+            {
+                _fundSchedules = _scheduleCalculator.RecalculateRemainingSchedule(
+                    _fundSchedules, afterNext.OrderBookId, nextSchedule.StopTime, _visitStatuses);
+                ScheduleVisits(afterNext.OrderBookId);
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -259,59 +283,96 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     {
         _autoAdvanceEnabled = enabled;
         _logger.Info("Auto-advance {0}", enabled ? "enabled" : "disabled");
+    }
 
-        if (!enabled) StopAutoAdvanceTimer();
+    #region Navigation scheduling
+
+    /// <summary>
+    /// Schedules <see cref="Observable.Timer"/> for each unvisited fund starting from
+    /// <paramref name="fromOrderBookId"/> at the pre-calculated start times.
+    /// Includes a 1-second ticker for UI progress.
+    /// </summary>
+    private void ScheduleVisits(OrderBookId fromOrderBookId)
+    {
+        CancelScheduledVisits();
+
+        var disposables = new CompositeDisposable();
+        var now = _scheduler.Now;
+        var startIndex = GetFundScheduleIndex(fromOrderBookId);
+
+        for (var i = startIndex; i < _fundSchedules.Count; i++)
+        {
+            var entry = _fundSchedules[i];
+
+            // Skip already visited or in-progress funds
+            if (_visitStatuses.TryGetValue(entry.OrderBookId, out var status)
+                && status != FundVisitStatus.NotVisited)
+                continue;
+
+            var delay = entry.StartTime - now;
+            if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
+
+            var capturedEntry = entry;
+            disposables.Add(Observable.Timer(delay, _scheduler)
+                .Subscribe(_ => ExecuteFundVisit(capturedEntry)));
+        }
+
+        // 1-second ticker for delay countdown and progress display
+        disposables.Add(Observable.Interval(TimeSpan.FromSeconds(1), _scheduler)
+            .Subscribe(_ => RefreshState()));
+
+        _scheduledVisits = disposables;
     }
 
     /// <summary>
-    /// Navigates to a fund at the given index in the schedule.
+    /// Immediately navigates to a fund detail page and begins data collection
+    /// using the pre-calculated step timings.
     /// </summary>
-    private void NavigateToFund(int index)
+    private void ExecuteFundVisit(AboutFundCollectionSchedule fundSchedule)
     {
-        if (index >= _schedule.Count || _currentSessionId == null) return;
+        if (_currentSessionId == null) return;
 
-        _currentIndex = index;
-        var fund = _schedule[index];
-        var orderBookId = fund.OrderbookId;
+        _phase = AboutFundSessionPhase.Collecting;
+        _currentOrderBookId = fundSchedule.OrderBookId;
+        _visitStatuses[fundSchedule.OrderBookId] = FundVisitStatus.Collecting;
+        _latestCollectionProgress = null;
 
-        if (string.IsNullOrWhiteSpace(orderBookId))
-        {
-            _logger.Warn("Fund {0} ({1}) has no OrderbookId - skipping", fund.Name, fund.Isin);
-            var failed = AboutFundNavigationFailed.Create(
-                _currentSessionId.Value,
-                fund.Isin,
-                "No OrderBookId available");
-            AppendAndEmit(failed);
+        // Begin data collection with pre-calculated step timings
+        var progressSnapshot = _collector.BeginCollection(fundSchedule);
+        _latestCollectionProgress = progressSnapshot;
 
-            // Skip to next
-            var nextIndex = index + 1;
-            if (nextIndex < _schedule.Count)
-                NavigateToFund(nextIndex);
-            else
-                CompleteSession();
-            return;
-        }
-
-        // Begin data collection for this fund (abandons any previous incomplete collection)
-        _collector.BeginCollection(fund.Isin, orderBookId);
-
-        var url = _fundDetailsUrlTemplate.Replace("{0}", orderBookId, StringComparison.OrdinalIgnoreCase);
+        var url = _urlBuilder.BuildUrl(fundSchedule.OrderBookId);
+        var index = GetScheduleIndex(fundSchedule.OrderBookId);
+        var isin = index >= 0 ? _schedule[index].Isin : string.Empty;
 
         var navStarted = AboutFundNavigationStarted.Create(
             _currentSessionId.Value,
-            fund.Isin,
-            orderBookId,
-            index,
-            url);
+            isin,
+            fundSchedule.OrderBookId,
+            url.ToString());
         AppendAndEmit(navStarted);
 
         RefreshState();
 
+        var fundName = index >= 0 ? _schedule[index].Name : isin;
         _logger.Info("Navigating to fund {0}/{1}: {2} ({3})",
-            index + 1, _schedule.Count, fund.Name, url);
+            index + 1, _schedule.Count, fundName, url);
 
         _navigateToUrl.OnNext(url);
     }
+
+    /// <summary>
+    /// Cancels all pending fund visit timers and the progress ticker.
+    /// </summary>
+    private void CancelScheduledVisits()
+    {
+        _scheduledVisits?.Dispose();
+        _scheduledVisits = null;
+    }
+
+    #endregion
+
+    #region Session lifecycle
 
     /// <summary>
     /// Completes the current session.
@@ -320,7 +381,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     {
         if (_currentSessionId == null) return;
 
-        StopAutoAdvanceTimer();
+        CancelScheduledVisits();
+        _collector.CancelCollection();
 
         var sessionId = _currentSessionId.Value;
         var fundsVisited = _eventStore.GetCompletedNavigationCount(sessionId);
@@ -331,62 +393,131 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         AppendAndEmit(completed);
 
         _logger.Info("Session {0} completed - visited {1} funds", sessionId, fundsVisited);
+
         _currentSessionId = null;
+        _currentOrderBookId = null;
+        _latestCollectionProgress = null;
+        _fundSchedules = [];
+        _visitStatuses.Clear();
+        _phase = AboutFundSessionPhase.Idle;
+
+        RefreshState();
+    }
+
+    #endregion
+
+    #region Collector event handlers
+
+    /// <summary>
+    /// Called when the collector has all slots resolved for a fund page visit.
+    /// Persists chart data via <see cref="IAboutFundChartIngestionService"/>,
+    /// publishes <see cref="AboutFundNavigationCompleted"/>, and transitions to
+    /// delay phase for the next fund (its timer is already scheduled).
+    /// </summary>
+    private void OnPageDataCollected(AboutFundPageData pageData)
+    {
+        _logger.Info("Page data collected for {0}: {1} (succeeded={2}, total={3})",
+            pageData.OrderBookId,
+            pageData.IsFullySuccessful ? "full" : "partial",
+            pageData.ResolvedCount - (pageData.IsFullySuccessful ? 0 : 1),
+            pageData.TotalSlots);
+
+        PersistChartDataAsync(pageData);
+
+        if (_currentSessionId == null)
+            return;
+
+        // Only act on the currently active fund.
+        // Force-completed previous funds (from BeginCollection) should not trigger advance.
+        if (pageData.OrderBookId != _currentOrderBookId)
+            return;
+
+        var index = GetScheduleIndex(pageData.OrderBookId);
+        var fund = index >= 0 ? _schedule[index] : null;
+
+        _visitStatuses[pageData.OrderBookId] = FundVisitStatus.Completed;
+
+        var navigationCompleted = AboutFundNavigationCompleted.Create(
+            _currentSessionId.Value,
+            fund?.Isin ?? string.Empty,
+            pageData.OrderBookId);
+        AppendAndEmit(navigationCompleted);
+
+        _latestCollectionProgress = null;
+
+        var nextSchedule = GetNextUnvisitedSchedule(pageData.OrderBookId);
+        if (nextSchedule == null)
+        {
+            CompleteSession();
+            return;
+        }
+
+        // Transition to delay phase — the next fund's timer is already scheduled
+        _phase = AboutFundSessionPhase.DelayBeforeNavigation;
+        _currentOrderBookId = nextSchedule.OrderBookId;
 
         RefreshState();
     }
 
     /// <summary>
-    /// Starts the auto-advance countdown timer, emitting countdown ticks every second.
+    /// Called every second by the collector with updated progress.
+    /// Merges the collection schedule into the session state stream.
     /// </summary>
-    private void StartAutoAdvanceTimer()
+    private void OnCollectionStateChanged(AboutFundCollectionProgress progress)
     {
-        StopAutoAdvanceTimer();
-
-        _logger.Debug("Starting auto-advance countdown ({0}s)", AutoAdvanceDelaySeconds);
-
-        _autoAdvanceSubscription = Observable
-            .Interval(TimeSpan.FromSeconds(1), _scheduler)
-            .Take(AutoAdvanceDelaySeconds)
-            .Subscribe(
-                tick =>
-                {
-                    var remaining = AutoAdvanceDelaySeconds - (int)tick - 1;
-                    _countdownTick.OnNext(remaining);
-                    EmitDelayState(remaining);
-                },
-                () =>
-                {
-                    _logger.Debug("Auto-advance countdown complete - advancing to next fund");
-                    AdvanceToNextFund();
-                });
-
-        _disposables.Add(_autoAdvanceSubscription);
+        _latestCollectionProgress = progress;
+        RefreshState();
     }
 
     /// <summary>
-    /// Emits session state with delay-in-progress flag and countdown value.
+    /// Persists chart data from a completed page visit via the chart ingestion service.
+    /// Resolves the fund's ISIN from the session schedule and delegates to
+    /// <see cref="IAboutFundChartIngestionService"/>.
     /// </summary>
-    private void EmitDelayState(int secondsRemaining)
+    /// <remarks>
+    /// Called fire-and-forget from the synchronous Rx callback.
+    /// Errors are caught and logged — a persistence failure must not break the browsing session.
+    /// </remarks>
+    private async void PersistChartDataAsync(AboutFundPageData pageData)
     {
-        var baseState = ProjectState();
-        var state = baseState with
+        try
         {
-            IsDelayInProgress = true,
-            DelayCountdown = secondsRemaining,
-            StatusMessage = $"Next fund in {secondsRemaining}s..."
-        };
-        _sessionState.OnNext(state);
+            var index = GetScheduleIndex(pageData.OrderBookId);
+            if (index < 0)
+            {
+                _logger.Warn("Cannot persist chart data for {0}: not found in schedule",
+                    pageData.OrderBookId);
+                return;
+            }
+
+            var isinString = _schedule[index].Isin;
+            if (string.IsNullOrWhiteSpace(isinString))
+            {
+                _logger.Warn("Cannot persist chart data for {0}: ISIN is empty",
+                    pageData.OrderBookId);
+                return;
+            }
+
+            var isinId = IsinId.Create(isinString);
+            var count = await _chartIngestionService.IngestChartDataAsync(pageData, isinId);
+
+            _logger.Info("Chart ingestion complete for {0}: {1} records persisted",
+                pageData.OrderBookId, count);
+
+            // Update the "last visited" timestamp on the fund profile
+            await _fundProfileRepository.UpdateLastVisitedAtAsync(isinId, DateTimeOffset.UtcNow);
+            _logger.Debug("Updated AboutFundLastVisitedAt for {0} (ISIN: {1})",
+                pageData.OrderBookId, isinId.Isin);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to persist chart data for {0}", pageData.OrderBookId);
+        }
     }
 
-    /// <summary>
-    /// Stops the auto-advance timer.
-    /// </summary>
-    private void StopAutoAdvanceTimer()
-    {
-        _autoAdvanceSubscription?.Dispose();
-        _autoAdvanceSubscription = null;
-    }
+    #endregion
+
+    #region State projection
 
     /// <summary>
     /// Appends an event to the store and emits it on the Events observable.
@@ -407,60 +538,142 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     }
 
     /// <summary>
-    /// Projects current session state from tracking fields.
+    /// Projects current session state from tracking fields, pre-calculated schedule,
+    /// and collector progress.
     /// </summary>
     private AboutFundSessionState ProjectState()
     {
-        if (_currentSessionId == null)
+        if (_currentSessionId == null || _phase == AboutFundSessionPhase.Idle)
             return AboutFundSessionState.Inactive;
 
         var sessionId = _currentSessionId.Value;
         var completedCount = _eventStore.GetCompletedNavigationCount(sessionId);
-        var currentFund = _currentIndex < _schedule.Count ? _schedule[_currentIndex] : null;
+        var currentIndex = _currentOrderBookId.HasValue
+            ? GetScheduleIndex(_currentOrderBookId.Value)
+            : -1;
+        var currentFundName = currentIndex >= 0 ? _schedule[currentIndex].Name : null;
 
-        var statusMessage = currentFund != null
-            ? $"Viewing {_currentIndex + 1}/{_schedule.Count}: {currentFund.Name}"
+        var statusMessage = currentFundName != null
+            ? $"Viewing {currentIndex + 1}/{_schedule.Count}: {currentFundName}"
             : $"Completed {completedCount}/{_schedule.Count} funds";
 
-        var remainingFunds = Math.Max(0, _schedule.Count - _currentIndex - 1);
-        var estimatedTimeRemaining = TimeSpan.FromSeconds(remainingFunds * AutoAdvanceDelaySeconds);
+        // Delay countdown from a pre-calculated schedule
+        var delayCountdown = 0;
+        if (_phase == AboutFundSessionPhase.DelayBeforeNavigation
+            && _currentOrderBookId.HasValue)
+        {
+            var scheduleEntry = GetFundScheduleByOrderBookId(_currentOrderBookId.Value);
+            if (scheduleEntry != null)
+            {
+                var remaining = scheduleEntry.StartTime - _scheduler.Now;
+                delayCountdown = Math.Max(0, (int)remaining.TotalSeconds);
+                statusMessage = $"Next fund in {delayCountdown}s...";
+            }
+        }
+
+        // Accurate ETA from pre-calculated session schedule
+        var estimatedTimeRemaining = TimeSpan.Zero;
+        if (currentIndex >= 0)
+        {
+            // Remaining time for the current fund
+            if (_phase == AboutFundSessionPhase.Collecting && _latestCollectionProgress != null)
+                estimatedTimeRemaining += _latestCollectionProgress.Remaining;
+            else if (_phase == AboutFundSessionPhase.DelayBeforeNavigation
+                     && currentIndex < _fundSchedules.Count)
+                estimatedTimeRemaining += _fundSchedules[currentIndex].TotalDuration;
+
+            // Sum remaining unvisited funds' delays + collection durations
+            for (var i = currentIndex + 1; i < _fundSchedules.Count; i++)
+            {
+                if (_visitStatuses.TryGetValue(_fundSchedules[i].OrderBookId, out var s)
+                    && s == FundVisitStatus.Completed)
+                    continue;
+                estimatedTimeRemaining += _fundSchedules[i].InterPageDelay
+                                          + _fundSchedules[i].TotalDuration;
+            }
+        }
 
         return new AboutFundSessionState
         {
-            IsActive = true,
+            IsActive = _phase is AboutFundSessionPhase.DelayBeforeNavigation
+                or AboutFundSessionPhase.Collecting,
             SessionId = sessionId,
-            CurrentIndex = _currentIndex,
+            CurrentOrderBookId = _currentOrderBookId,
             TotalFunds = _schedule.Count,
-            CurrentIsin = currentFund?.Isin,
-            CurrentFundName = currentFund?.Name,
+            CurrentIsin = currentIndex >= 0 ? _schedule[currentIndex].Isin : null,
+            CurrentFundName = currentFundName,
             StatusMessage = statusMessage,
-            IsDelayInProgress = false,
-            DelayCountdown = 0,
-            EstimatedTimeRemaining = estimatedTimeRemaining
+            IsDelayInProgress = _phase == AboutFundSessionPhase.DelayBeforeNavigation,
+            DelayCountdown = delayCountdown,
+            EstimatedTimeRemaining = estimatedTimeRemaining,
+            CollectionProgress = _latestCollectionProgress
         };
     }
 
-    /// <inheritdoc/>
-    public void NotifyResponseCaptured(AboutFundInterceptedRequest request)
+    #endregion
+
+    #region Schedule helpers
+
+    /// <summary>
+    /// Returns zero-based position of an <see cref="OrderBookId"/> in the fund schedule, or <c>-1</c>.
+    /// </summary>
+    private int GetScheduleIndex(OrderBookId orderBookId)
     {
-        _logger.Trace("Response captured: {0} {1} -> {2}", request.Method, request.Url, request.StatusCode);
-        _responseParser.TryRoute(request);
+        for (var i = 0; i < _schedule.Count; i++)
+        {
+            if (_schedule[i].OrderBookId == orderBookId)
+                return i;
+        }
+
+        return -1;
     }
 
     /// <summary>
-    /// Called when the collector has all slots resolved for a fund page visit.
-    /// This is the single write point — persist the collected data here.
+    /// Returns zero-based position of an <see cref="OrderBookId"/> in the pre-calculated fund schedules.
     /// </summary>
-    private void OnPageDataCollected(AboutFundPageData pageData)
+    private int GetFundScheduleIndex(OrderBookId orderBookId)
     {
-        _logger.Info("Page data collected for {0}: {1} (succeeded={2}, total={3})",
-            pageData.Isin,
-            pageData.IsFullySuccessful ? "full" : "partial",
-            pageData.ResolvedCount - (pageData.IsFullySuccessful ? 0 : 1),
-            pageData.TotalSlots);
+        for (var i = 0; i < _fundSchedules.Count; i++)
+        {
+            if (_fundSchedules[i].OrderBookId == orderBookId)
+                return i;
+        }
 
-        // TODO: Single DB write — persist pageData to repository
+        return -1;
     }
+
+    /// <summary>
+    /// Returns the <see cref="AboutFundCollectionSchedule"/> for the given OrderBookId, or null.
+    /// </summary>
+    private AboutFundCollectionSchedule? GetFundScheduleByOrderBookId(OrderBookId orderBookId)
+    {
+        var index = GetFundScheduleIndex(orderBookId);
+        return index >= 0 ? _fundSchedules[index] : null;
+    }
+
+    /// <summary>
+    /// Returns the next <see cref="AboutFundCollectionSchedule"/> after the given one
+    /// that has <see cref="FundVisitStatus.NotVisited"/> status, or null if none remain.
+    /// </summary>
+    private AboutFundCollectionSchedule? GetNextUnvisitedSchedule(OrderBookId? orderBookId)
+    {
+        if (!orderBookId.HasValue) return null;
+
+        var index = GetFundScheduleIndex(orderBookId.Value);
+        if (index < 0) return null;
+
+        for (var i = index + 1; i < _fundSchedules.Count; i++)
+        {
+            var id = _fundSchedules[i].OrderBookId;
+            if (!_visitStatuses.TryGetValue(id, out var status)
+                || status == FundVisitStatus.NotVisited)
+                return _fundSchedules[i];
+        }
+
+        return null;
+    }
+
+    #endregion
 
     /// <inheritdoc/>
     public void Dispose()
@@ -469,13 +682,14 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
 
         _logger.Debug("AboutFundOrchestrator disposing");
 
-        StopAutoAdvanceTimer();
+        CancelScheduledVisits();
+        _collector.CancelCollection();
         _disposables.Dispose();
         _sessionState.Dispose();
         _events.Dispose();
         _navigateToUrl.Dispose();
-        _countdownTick.Dispose();
 
+        _phase = AboutFundSessionPhase.Idle;
         _disposed = true;
     }
 }

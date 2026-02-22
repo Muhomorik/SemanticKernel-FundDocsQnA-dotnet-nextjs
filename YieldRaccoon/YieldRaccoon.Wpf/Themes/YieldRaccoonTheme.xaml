@@ -4,26 +4,31 @@
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         YieldRaccoon Design System — Fluent v2 tokens
-         Reference: DESIGN-GUIDELINES.md
-         ═══════════════════════════════════════════════════════════════ -->
+    <!--
+        ═══════════════════════════════════════════════════════════════
+        YieldRaccoon Design System — Fluent v2 tokens
+        Reference: DESIGN-GUIDELINES.md
+        ═══════════════════════════════════════════════════════════════
+    -->
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Semantic Status Brushes
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Semantic Status Brushes
+        ───────────────────────────────────────────────────────────────
+    -->
     <SolidColorBrush x:Key="yr.SuccessBrush" Color="#2ECC71" />
     <SolidColorBrush x:Key="yr.WarningBrush" Color="#F39C12" />
     <SolidColorBrush x:Key="yr.ErrorBrush" Color="#E74C3C" />
     <SolidColorBrush x:Key="yr.InfoBrush" Color="#3498DB" />
     <SolidColorBrush x:Key="yr.MutedBrush" Color="#95A5A6" />
-    <SolidColorBrush x:Key="yr.StreamingBrush" Color="#FF4444" />
     <SolidColorBrush x:Key="yr.OverlayBrush" Color="#44000000" />
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Spacing — Double tokens (for programmatic use)
-         All values are multiples of the 4px base unit.
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Spacing — Double tokens (for programmatic use)
+        All values are multiples of the 4px base unit.
+        ───────────────────────────────────────────────────────────────
+    -->
     <sys:Double x:Key="yr.SpacingXS">4</sys:Double>
     <sys:Double x:Key="yr.SpacingS">8</sys:Double>
     <sys:Double x:Key="yr.SpacingM">12</sys:Double>
@@ -31,19 +36,23 @@
     <sys:Double x:Key="yr.SpacingXL">24</sys:Double>
     <sys:Double x:Key="yr.PanelPadding">16</sys:Double>
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Spacing — Thickness tokens (for XAML Margin bindings)
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Spacing — Thickness tokens (for XAML Margin bindings)
+        ───────────────────────────────────────────────────────────────
+    -->
     <Thickness x:Key="yr.SectionSpacing">0,24,0,0</Thickness>
     <Thickness x:Key="yr.SubsectionSpacing">0,16,0,0</Thickness>
     <Thickness x:Key="yr.ItemSpacing">0,8,0,0</Thickness>
     <Thickness x:Key="yr.LabelSpacing">0,0,0,8</Thickness>
     <Thickness x:Key="yr.CompactSpacing">0,4,0,0</Thickness>
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Typography — Fluent v2 type ramp
-         Font: Segoe UI Variable (via MahApps default)
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Typography — Fluent v2 type ramp
+        Font: Segoe UI Variable (via MahApps default)
+        ───────────────────────────────────────────────────────────────
+    -->
     <Style x:Key="yr.TitleStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="20" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -76,11 +85,13 @@
         <Setter Property="FontSize" Value="11" />
     </Style>
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Elevation — Two-tier panel hierarchy
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Elevation — Two-tier panel hierarchy
+        ───────────────────────────────────────────────────────────────
+    -->
 
-    <!-- Card Level: top-level containers, panels, standalone cards -->
+    <!--  Card Level: top-level containers, panels, standalone cards  -->
     <Style x:Key="yr.PanelStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.Gray10}" />
         <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Gray7}" />
@@ -98,7 +109,7 @@
         </Setter>
     </Style>
 
-    <!-- Control Level: toolbars, nested containers, response previews -->
+    <!--  Control Level: toolbars, nested containers, response previews  -->
     <Style x:Key="yr.PanelControlStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.Gray9}" />
         <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Gray7}" />
@@ -116,9 +127,11 @@
         </Setter>
     </Style>
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Button Styles — Fluent v2 with 4px corner radius
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Button Styles — Fluent v2 with 4px corner radius
+        ───────────────────────────────────────────────────────────────
+    -->
     <Style
         x:Key="yr.ButtonAccentStyle"
         BasedOn="{StaticResource MahApps.Styles.Button.Square.Accent}"
@@ -140,10 +153,12 @@
         <Setter Property="mah:ControlsHelper.CornerRadius" Value="4" />
     </Style>
 
-    <!-- ───────────────────────────────────────────────────────────────
-         Splitter Style — refined Fluent v2 splitter
-         Hit target: 6px via GridSplitter layout; visual: 3px line
-         ─────────────────────────────────────────────────────────────── -->
+    <!--
+        ───────────────────────────────────────────────────────────────
+        Splitter Style — refined Fluent v2 splitter
+        Hit target: 6px via GridSplitter layout; visual: 3px line
+        ───────────────────────────────────────────────────────────────
+    -->
     <Style x:Key="yr.SplitterStyle" TargetType="GridSplitter">
         <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.Gray8}" />
         <Setter Property="HorizontalAlignment" Value="Center" />

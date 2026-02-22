@@ -14,13 +14,13 @@ namespace YieldRaccoon.Wpf.Views;
 /// Code-behind is intentionally minimal (UI plumbing only):
 /// <list type="bullet">
 ///   <item>Initializes <see cref="IAboutFundResponseInterceptor"/> when CoreWebView2 is ready</item>
-///   <item>Forwards <see cref="AboutFundWindowViewModel.CloseRequested"/> to <see cref="MetroWindow.Close"/></item>
-///   <item>Disposes interceptor and ViewModel on window close</item>
+///   <item>Captures/clears privacy screenshot on mode toggle (HWND airspace workaround)</item>
+///   <item>Disposes the view-owned interceptor on window close</item>
 /// </list>
 /// </para>
 /// <para>
-/// The interceptor notifies <see cref="IAboutFundOrchestrator"/> directly —
-/// this window has no application-layer dependencies by design.
+/// ViewModel lifecycle is managed via <see cref="DevExpress.Mvvm.UI.CurrentWindowService.ClosingCommand"/>
+/// — the ViewModel disposes itself when the window closes, no code-behind involvement.
 /// </para>
 /// </remarks>
 public partial class AboutFundWindow : MetroWindow
@@ -52,8 +52,7 @@ public partial class AboutFundWindow : MetroWindow
 
         DataContext = viewModel;
 
-        // Subscribe to close request from ViewModel
-        viewModel.CloseRequested += OnCloseRequested;
+        viewModel.PrivacyModeChanged += OnPrivacyModeChanged;
 
         // Initialize interceptor when WebView2 CoreWebView2 is ready
         Browser.CoreWebView2InitializationCompleted += OnCoreWebView2InitializationCompleted;
@@ -75,21 +74,40 @@ public partial class AboutFundWindow : MetroWindow
         }
     }
 
-    private void OnCloseRequested(object? sender, EventArgs e)
+    /// <summary>
+    /// Handles privacy mode toggle — captures screenshot before hiding WebView2 (HWND airspace).
+    /// </summary>
+    private async void OnPrivacyModeChanged(object? sender, EventArgs e)
     {
-        _logger.Debug("Close requested");
-        Close();
+        if (_viewModel.IsPrivacyMode)
+        {
+            if (Browser.CoreWebView2 == null)
+            {
+                _logger.Warn("Cannot capture privacy screenshot: CoreWebView2 not initialized");
+                return;
+            }
+
+            // Capture screenshot BEFORE hiding browser (HWND must be visible to capture)
+            _viewModel.PrivacyScreenshot = await PrivacyFilterService.CaptureAndFilterAsync(
+                Browser.CoreWebView2, Dispatcher);
+
+            // Now hide browser so WPF overlay becomes visible
+            Browser.Visibility = System.Windows.Visibility.Collapsed;
+        }
+        else
+        {
+            Browser.Visibility = System.Windows.Visibility.Visible;
+            _viewModel.PrivacyScreenshot = null;
+        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
 
-        // Cleanup subscriptions
-        _viewModel.CloseRequested -= OnCloseRequested;
+        _viewModel.PrivacyModeChanged -= OnPrivacyModeChanged;
         _interceptor.Dispose();
-        _viewModel.Dispose();
 
-        _logger.Debug("AboutFundWindow closed and disposed");
+        _logger.Debug("AboutFundWindow closed");
     }
 }

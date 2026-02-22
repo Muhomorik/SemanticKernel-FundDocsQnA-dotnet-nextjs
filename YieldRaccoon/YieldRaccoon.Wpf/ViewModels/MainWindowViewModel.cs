@@ -207,33 +207,33 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     #endregion
 
-    #region Streaming Mode Properties
+    #region Privacy Mode Properties
 
     /// <summary>
-    /// Gets or sets whether streaming mode is enabled (applies privacy filter to browser content).
+    /// Gets or sets whether privacy mode is enabled (applies privacy filter to browser content).
     /// </summary>
-    public bool IsStreamingMode
+    public bool IsPrivacyMode
     {
-        get => GetProperty(() => IsStreamingMode);
+        get => GetProperty(() => IsPrivacyMode);
         set
         {
-            SetProperty(() => IsStreamingMode, value, () => { StreamingModeChanged?.Invoke(this, EventArgs.Empty); });
+            SetProperty(() => IsPrivacyMode, value, () => { PrivacyModeChanged?.Invoke(this, EventArgs.Empty); });
         }
     }
 
     /// <summary>
     /// Gets or sets the captured browser screenshot with privacy filter applied.
     /// </summary>
-    public ImageSource? StreamingScreenshot
+    public ImageSource? PrivacyScreenshot
     {
-        get => GetProperty(() => StreamingScreenshot);
-        set => SetProperty(() => StreamingScreenshot, value);
+        get => GetProperty(() => PrivacyScreenshot);
+        set => SetProperty(() => PrivacyScreenshot, value);
     }
 
     /// <summary>
-    /// Event raised when streaming mode is toggled and a screenshot needs to be captured.
+    /// Event raised when privacy mode is toggled and a screenshot needs to be captured.
     /// </summary>
-    public event EventHandler? StreamingModeChanged;
+    public event EventHandler? PrivacyModeChanged;
 
     #endregion
 
@@ -350,7 +350,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         EstimatedTimeRemaining = TimeSpan.Zero;
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
-        IsStreamingMode = false;
+        IsPrivacyMode = false;
 
         // Initialize commands with CommandManager integration enabled
         RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
@@ -398,7 +398,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         EstimatedTimeRemaining = TimeSpan.Zero;
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
-        IsStreamingMode = false;
+        IsPrivacyMode = false;
 
         RefreshCommand = new DelegateCommand(() => { });
         ReloadBrowserCommand = new DelegateCommand(() => { });
@@ -568,7 +568,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteRefresh()
     {
         var canExecute = IsWebView2Ready;
-        _logger.Trace("CanExecuteRefresh: IsWebView2Ready={0}, returning {1}", IsWebView2Ready, canExecute);
         return canExecute;
     }
 
@@ -589,8 +588,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteReloadBrowser()
     {
         var canExecute = !string.IsNullOrWhiteSpace(BrowserUrl) && IsWebView2Ready;
-        _logger.Trace("CanExecuteReloadBrowser: BrowserUrl={0}, IsWebView2Ready={1}, returning {2}",
-            BrowserUrl, IsWebView2Ready, canExecute);
         return canExecute;
     }
 
@@ -611,9 +608,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteLoadNextBatch()
     {
         var canExecute = IsWebView2Ready && FundCount > 0 && !IsPaginationInProgress && TotalFundCount > FundCount;
-        _logger.Trace(
-            "CanExecuteLoadNextBatch: WebView2Ready={0}, FundCount={1}, InProgress={2}, Total={3}, returning {4}",
-            IsWebView2Ready, FundCount, IsPaginationInProgress, TotalFundCount, canExecute);
         return canExecute;
     }
 
@@ -633,9 +627,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private bool CanExecuteStartSession()
     {
         var canExecute = IsWebView2Ready && FundCount > 0 && !IsSessionActive && TotalFundCount > FundCount;
-        _logger.Trace(
-            "CanExecuteStartSession: WebView2Ready={0}, FundCount={1}, SessionActive={2}, Total={3}, returning {4}",
-            IsWebView2Ready, FundCount, IsSessionActive, TotalFundCount, canExecute);
         return canExecute;
     }
 
@@ -856,19 +847,4 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     #endregion
-}
-
-/// <summary>
-/// Extension methods for IDisposable.
-/// </summary>
-internal static class DisposableExtensions
-{
-    /// <summary>
-    /// Adds the disposable to a CompositeDisposable for lifecycle management.
-    /// </summary>
-    public static T DisposeWith<T>(this T disposable, CompositeDisposable composite) where T : IDisposable
-    {
-        composite.Add(disposable);
-        return disposable;
-    }
 }

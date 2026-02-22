@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
+using YieldRaccoon.Application.Configuration;
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Infrastructure.Data.Context;
@@ -21,14 +23,17 @@ namespace YieldRaccoon.Wpf.Modules;
 public class PresentationModule : Module
 {
     private readonly DatabaseOptions _databaseOptions;
+    private readonly YieldRaccoonOptions _yieldRaccoonOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PresentationModule"/> class.
     /// </summary>
     /// <param name="databaseOptions">Database configuration options.</param>
-    public PresentationModule(DatabaseOptions databaseOptions)
+    /// <param name="yieldRaccoonOptions">Application-wide configuration options.</param>
+    public PresentationModule(DatabaseOptions databaseOptions, YieldRaccoonOptions yieldRaccoonOptions)
     {
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
+        _yieldRaccoonOptions = yieldRaccoonOptions ?? throw new ArgumentNullException(nameof(yieldRaccoonOptions));
     }
 
     protected override void Load(ContainerBuilder builder)
@@ -61,27 +66,18 @@ public class PresentationModule : Module
         // Register settings service for persisting user preferences
         builder.RegisterType<UserSettingsService>()
             .As<IUserSettingsService>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(UserSettingsService).FullName!)))
             .SingleInstance();
 
         // Settings dialog service registration
         // Register dialog service for showing settings window from ViewModels
         builder.RegisterType<SettingsDialogService>()
             .As<ISettingsDialogService>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(SettingsDialogService).FullName!)))
             .InstancePerDependency();
 
         // AboutFund window service registration
         // Register window service for showing AboutFund browser window from ViewModels
         builder.RegisterType<AboutFundWindowService>()
             .As<IAboutFundWindowService>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundWindowService).FullName!)))
             .SingleInstance();
 
         // Session scheduler registration
@@ -94,30 +90,72 @@ public class PresentationModule : Module
         // Register orchestrator for session lifecycle, batch workflow, and timer management
         builder.RegisterType<CrawlSessionOrchestrator>()
             .As<ICrawlSessionOrchestrator>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(CrawlSessionOrchestrator).FullName!)))
             .SingleInstance();
 
         // AboutFund page data collector registration
         // Accumulates per-fund page data from multiple fetch steps, signals when complete
         builder.RegisterType<AboutFundPageDataCollector>()
             .As<IAboutFundPageDataCollector>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundPageDataCollector).FullName!)))
+            .SingleInstance();
+
+        // Fund details URL builder options
+        // Maps Wpf-layer config to Application-layer options record at composition root
+        builder.Register(ctx =>
+                new FundDetailsUrlBuilderOptions(ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
+            .SingleInstance();
+
+        // Response parser options
+        // Endpoint URL patterns for mapping intercepted responses to data slots
+        // Defined here at composition root — not exposed in user-facing config
+        builder.Register(ctx => new ResponseParserOptions(
+            [
+                new EndpointPattern(["_api/fund-guide/chart/", "/one_month?raw=true"], AboutFundDataSlot.Chart1Month),
+                new EndpointPattern(["_api/fund-guide/chart/", "/three_months?raw=true"],
+                    AboutFundDataSlot.Chart3Months),
+                new EndpointPattern(["_api/fund-guide/chart/", "/this_year?raw=true"],
+                    AboutFundDataSlot.ChartYearToDate),
+                new EndpointPattern(["_api/fund-guide/chart/", "/one_year?raw=true"], AboutFundDataSlot.Chart1Year),
+                new EndpointPattern(["_api/fund-guide/chart/", "/three_years?raw=true"], AboutFundDataSlot.Chart3Years),
+                new EndpointPattern(["_api/fund-guide/chart/", "/five_years?raw=true"], AboutFundDataSlot.Chart5Years),
+                new EndpointPattern(["_api/fund-guide/chart/", "/infinity?raw=true"], AboutFundDataSlot.ChartMax)
+            ]))
+            .SingleInstance();
+
+        // Delay options — minimal timings when FastMode is enabled, normal otherwise
+        var fastMode = _yieldRaccoonOptions.FastMode;
+
+        builder.Register(ctx => fastMode
+                ? new RandomDelayProviderOptions(MinDelaySeconds: 3, MaxDelaySeconds: 8)
+                : new RandomDelayProviderOptions(MinDelaySeconds: 10, MaxDelaySeconds: 25))
+            .SingleInstance();
+
+        builder.Register(ctx => fastMode
+                ? new PageInteractorOptions(MinDelayMs: 1_000, PanelOpenDelayMs: 2_000)
+                : new PageInteractorOptions(MinDelayMs: 4_000, PanelOpenDelayMs: 7_000))
+            .SingleInstance();
+
+        // Random delay provider
+        // Generates randomized delays between page interactions to simulate human browsing
+        builder.RegisterType<RandomDelayProvider>()
+            .As<IRandomDelayProvider>()
+            .SingleInstance();
+
+        // Fund details URL builder registration
+        // Builds strongly-typed Uri instances for fund detail page navigation
+        builder.RegisterType<FundDetailsUrlBuilder>()
+            .As<IFundDetailsUrlBuilder>()
+            .SingleInstance();
+
+        // AboutFund schedule calculator registration
+        // Pure computation: builds session schedules with randomized delays
+        builder.RegisterType<AboutFundScheduleCalculator>()
+            .As<IAboutFundScheduleCalculator>()
             .SingleInstance();
 
         // AboutFund orchestrator registration
         // Register orchestrator for fund browsing session lifecycle and navigation
         builder.RegisterType<AboutFundOrchestrator>()
             .As<IAboutFundOrchestrator>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundOrchestrator).FullName!)))
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(string) && pi.Name == "fundDetailsUrlTemplate",
-                (pi, ctx) => ctx.Resolve<YieldRaccoonOptions>().FundDetailsPageUrlTemplate))
             .SingleInstance();
 
         // AboutFund page interactor registration
@@ -125,18 +163,12 @@ public class PresentationModule : Module
         builder.RegisterType<WebView2AboutFundPageInteractor>()
             .As<IAboutFundPageInteractor>()
             .AsSelf()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(WebView2AboutFundPageInteractor).FullName!)))
             .SingleInstance();
 
         // AboutFund response interceptor registration
         // Captures ALL network traffic from AboutFund WebView2 browser for debugging
         builder.RegisterType<AboutFundResponseInterceptor>()
             .As<IAboutFundResponseInterceptor>()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(typeof(AboutFundResponseInterceptor).FullName!)))
             .InstancePerDependency();
 
         // Database provider registration
@@ -149,36 +181,27 @@ public class PresentationModule : Module
             .SingleInstance();
 
         // ViewModel registration
-        // Register all ViewModels with type-aware NLog.ILogger and UI scheduler injection
+        // Register all ViewModels with UI scheduler injection
         // Convention: All classes ending with "ViewModel" in this assembly
         builder.RegisterAssemblyTypes(typeof(PresentationModule).Assembly)
             .Where(t => t.Name.EndsWith("ViewModel"))
             .AsSelf()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(pi.Member.DeclaringType?.FullName ?? "Unknown")))
             .WithParameter(new Autofac.Core.ResolvedParameter(
                 (pi, ctx) => pi.ParameterType == typeof(IScheduler),
                 (pi, ctx) => ctx.Resolve<IScheduler>()))
             .InstancePerDependency();
 
         // View registration
-        // Register MainWindow with logger injection
+        // Register MainWindow
         builder.RegisterType<MainWindow>()
             .AsSelf()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(pi.Member.DeclaringType?.FullName ?? "Unknown")))
             .InstancePerDependency();
 
-        // Register other views/windows with logger injection (if needed)
+        // Register other views/windows
         builder.RegisterAssemblyTypes(typeof(PresentationModule).Assembly)
             .Where(t => (t.Name.EndsWith("View") || t.Name.EndsWith("Window"))
-                     && t != typeof(MainWindow))
+                        && t != typeof(MainWindow))
             .AsSelf()
-            .WithParameter(new Autofac.Core.ResolvedParameter(
-                (pi, ctx) => pi.ParameterType == typeof(NLog.ILogger),
-                (pi, ctx) => LogManager.GetLogger(pi.Member.DeclaringType?.FullName ?? "Unknown")))
             .InstancePerDependency();
     }
 
@@ -223,6 +246,11 @@ public class PresentationModule : Module
         // Register ingestion service (works with both provider types via interfaces)
         builder.RegisterType<FundIngestionService>()
             .As<IFundIngestionService>()
+            .InstancePerDependency();
+
+        // Register chart ingestion service for about-fund page data persistence
+        builder.RegisterType<AboutFundChartIngestionService>()
+            .As<IAboutFundChartIngestionService>()
             .InstancePerDependency();
     }
 }

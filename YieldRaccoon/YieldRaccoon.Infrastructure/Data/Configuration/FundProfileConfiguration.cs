@@ -133,7 +133,7 @@ public class FundProfileConfiguration : IEntityTypeConfiguration<FundProfile>
         // One-to-many relationship with historical snapshots
         builder.HasMany(f => f.HistoryRecords)
             .WithOne(h => h.FundProfile)
-            .HasForeignKey(h => h.FundId)
+            .HasForeignKey(h => h.IsinId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

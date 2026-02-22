@@ -1,5 +1,6 @@
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Domain.Entities;
+using YieldRaccoon.Domain.ValueObjects;
 
 namespace YieldRaccoon.Application.Repositories;
 
@@ -39,4 +40,16 @@ public interface IFundProfileRepository
     /// <returns>Funds with their history record counts, ordered ascending.</returns>
     Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
         int limit = 60, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.
+    /// </summary>
+    /// <remarks>
+    /// Performs a targeted single-column update without loading the full entity graph.
+    /// Called by the about-fund orchestrator when a fund page visit completes.
+    /// </remarks>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="visitedAt">The timestamp of the visit.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt, CancellationToken cancellationToken = default);
 }

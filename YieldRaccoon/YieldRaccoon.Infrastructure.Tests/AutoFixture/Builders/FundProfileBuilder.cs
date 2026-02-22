@@ -16,7 +16,7 @@ public class FundProfileBuilder : ISpecimenBuilder
             return new NoSpecimen();
         }
 
-        var fundId = (FundId)context.Resolve(typeof(FundId));
+        var fundId = (IsinId)context.Resolve(typeof(IsinId));
 
         return new FundProfile
         {

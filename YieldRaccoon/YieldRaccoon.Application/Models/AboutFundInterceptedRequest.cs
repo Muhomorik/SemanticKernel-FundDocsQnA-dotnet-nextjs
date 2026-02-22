@@ -1,8 +1,12 @@
+using System.Diagnostics;
+
 namespace YieldRaccoon.Application.Models;
 
 /// <summary>
 /// Model representing an intercepted HTTP request/response pair from the AboutFund browser.
+/// Only created for responses that contain a text-based body.
 /// </summary>
+[DebuggerDisplay("{Url} → {StatusCode}")]
 public class AboutFundInterceptedRequest
 {
     /// <summary>
@@ -23,7 +27,7 @@ public class AboutFundInterceptedRequest
     /// <summary>
     /// Gets the request URL.
     /// </summary>
-    public string Url { get; init; } = string.Empty;
+    public required Uri Url { get; init; }
 
     /// <summary>
     /// Gets the HTTP status code of the response.
@@ -46,7 +50,7 @@ public class AboutFundInterceptedRequest
     public long ContentLength { get; init; }
 
     /// <summary>
-    /// Gets a preview of the response content (first 2KB for JSON/text responses).
+    /// Gets the full response body content.
     /// </summary>
-    public string? ResponsePreview { get; init; }
+    public required string ResponseBody { get; init; }
 }

@@ -2,6 +2,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
 using DevExpress.Mvvm;
 using NLog;
 using YieldRaccoon.Application.Services;
@@ -29,11 +30,6 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Event raised when the window should close.
-    /// </summary>
-    public event EventHandler? CloseRequested;
-
-    /// <summary>
     /// Event raised when browser reload is requested.
     /// </summary>
     public event EventHandler? BrowserReloadRequested;
@@ -41,7 +37,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Event raised when navigation is requested.
     /// </summary>
-    public event EventHandler<string>? NavigationRequested;
+    public event EventHandler<Uri>? NavigationRequested;
 
     #region Child ViewModels
 
@@ -86,6 +82,29 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         set => SetProperty(() => IsLoading, value);
     }
 
+    /// <summary>
+    /// Gets or sets whether privacy mode is enabled (hides browser content with a charcoal filter).
+    /// </summary>
+    public bool IsPrivacyMode
+    {
+        get => GetProperty(() => IsPrivacyMode);
+        set => SetProperty(() => IsPrivacyMode, value, () => PrivacyModeChanged?.Invoke(this, EventArgs.Empty));
+    }
+
+    /// <summary>
+    /// Gets or sets the captured browser screenshot with privacy filter applied.
+    /// </summary>
+    public ImageSource? PrivacyScreenshot
+    {
+        get => GetProperty(() => PrivacyScreenshot);
+        set => SetProperty(() => PrivacyScreenshot, value);
+    }
+
+    /// <summary>
+    /// Event raised when privacy mode is toggled and the View must capture/clear a screenshot.
+    /// </summary>
+    public event EventHandler? PrivacyModeChanged;
+
     #endregion
 
     #region Commands
@@ -101,7 +120,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     public ICommand ReloadCommand { get; }
 
     /// <summary>
-    /// Gets the command to close the window.
+    /// Gets the command to close the window via <see cref="ICurrentWindowService"/>.
     /// </summary>
     public ICommand CloseCommand { get; }
 
@@ -110,7 +129,20 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ICommand LoadedCommand { get; }
 
+    /// <summary>
+    /// Gets the command executed by <see cref="DevExpress.Mvvm.UI.CurrentWindowService"/>
+    /// when the window is closing. Disposes the ViewModel and stops all operations.
+    /// </summary>
+    public ICommand WindowClosingCommand { get; }
+
     #endregion
+
+    /// <summary>
+    /// Gets the <see cref="ICurrentWindowService"/> for programmatic window control.
+    /// Resolved automatically by DevExpress MVVM from the <see cref="DevExpress.Mvvm.UI.CurrentWindowService"/>
+    /// behavior attached in XAML.
+    /// </summary>
+    protected ICurrentWindowService CurrentWindowService => GetService<ICurrentWindowService>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundWindowViewModel"/> class.
@@ -143,6 +175,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         ReloadCommand = new DelegateCommand(ExecuteReload);
         CloseCommand = new DelegateCommand(ExecuteClose);
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
+        WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
 
         // Wire control panel events to orchestrator
         ControlPanelViewModel.StartOverviewRequested += OnStartOverviewRequested;
@@ -176,6 +209,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         ReloadCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         LoadedCommand = new DelegateCommand(() => { });
+        WindowClosingCommand = new DelegateCommand(() => { });
     }
 
     #region Initialization
@@ -223,20 +257,19 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Navigates to the first fund in the schedule that has an OrderbookId.
+    /// Navigates to the first fund in the schedule.
     /// </summary>
     private void NavigateToFirstFund(IReadOnlyList<Application.Models.AboutFundScheduleItem> schedule)
     {
-        var firstFund = schedule.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f.OrderbookId));
-        if (firstFund == null)
+        if (schedule.Count == 0)
         {
-            _logger.Warn("No funds with OrderbookId in schedule");
+            _logger.Warn("Schedule is empty — nothing to navigate to");
             return;
         }
 
-        var url = _options.GetFundDetailsUrlByOrderbookId(firstFund.OrderbookId!);
+        var url = new Uri(_options.GetFundDetailsUrlByOrderbookId(schedule[0].OrderBookId.Value));
         _logger.Info("Navigating to first fund: {0}", url);
-        BrowserUrl = url;
+        BrowserUrl = url.ToString();
         NavigationRequested?.Invoke(this, url);
     }
 
@@ -264,17 +297,12 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
                 .ObserveOn(_uiScheduler)
                 .Subscribe(OnEventReceived));
 
-        // Countdown ticks
-        _disposables.Add(
-            _orchestrator.CountdownTick
-                .ObserveOn(_uiScheduler)
-                .Subscribe(OnCountdownTick));
     }
 
-    private void OnNavigateToUrl(string url)
+    private void OnNavigateToUrl(Uri url)
     {
         _logger.Debug("Orchestrator requests navigation to: {0}", url);
-        BrowserUrl = url;
+        BrowserUrl = url.ToString();
         NavigationRequested?.Invoke(this, url);
     }
 
@@ -282,21 +310,18 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     {
         ControlPanelViewModel.OnSessionStateChanged(state);
 
-        if (state.IsActive) FundScheduleViewModel.MarkCurrentFund(state.CurrentIndex);
+        if (state.IsActive && state.CurrentOrderBookId.HasValue)
+        {
+            FundScheduleViewModel.MarkCurrentFund(state.CurrentOrderBookId.Value);
+            ControlPanelViewModel.CurrentIndex = FundScheduleViewModel.CurrentIndex;
+        }
     }
 
     private void OnEventReceived(IAboutFundEvent aboutFundEvent)
     {
-        ControlPanelViewModel.OnEventReceived(aboutFundEvent);
-
         // Mark fund as completed in schedule
         if (aboutFundEvent is AboutFundNavigationCompleted completed)
-            FundScheduleViewModel.MarkCompleted(completed.Index);
-    }
-
-    private void OnCountdownTick(int secondsRemaining)
-    {
-        ControlPanelViewModel.OnCountdownTick(secondsRemaining);
+            FundScheduleViewModel.MarkCompleted(completed.OrderbookId);
     }
 
     #endregion
@@ -310,9 +335,6 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     public void OnBrowserLoadingChanged(bool isLoading)
     {
         IsLoading = isLoading;
-
-        // Notify orchestrator when navigation completes
-        if (!isLoading) _orchestrator.NotifyNavigationCompleted();
     }
 
     #endregion
@@ -324,7 +346,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         if (!string.IsNullOrWhiteSpace(BrowserUrl))
         {
             _logger.Info("Navigating to: {0}", BrowserUrl);
-            NavigationRequested?.Invoke(this, BrowserUrl);
+            NavigationRequested?.Invoke(this, new Uri(BrowserUrl));
         }
     }
 
@@ -337,7 +359,16 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     private void ExecuteClose()
     {
         _logger.Debug("Close requested");
-        CloseRequested?.Invoke(this, EventArgs.Empty);
+        CurrentWindowService?.Close();
+    }
+
+    /// <summary>
+    /// Called by <see cref="DevExpress.Mvvm.UI.CurrentWindowService.ClosingCommand"/>
+    /// when the window is closing. Disposes ViewModel to stop all operations.
+    /// </summary>
+    private void ExecuteWindowClosing()
+    {
+        Dispose();
     }
 
     #endregion

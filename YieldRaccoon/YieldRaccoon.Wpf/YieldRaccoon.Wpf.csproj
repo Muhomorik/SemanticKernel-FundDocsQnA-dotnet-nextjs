@@ -9,6 +9,7 @@
     <UserSecretsId>8729093f-fe34-4e8a-9f2f-4311264e3379</UserSecretsId>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
+    <ApplicationIcon>Resources\YieldRaccoon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,6 +44,12 @@
 
     <!-- ImageMagick for streaming mode effects -->
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ApplicationIcon adds .ico as None; override to Resource so WPF pack URIs work -->
+    <None Remove="Resources\YieldRaccoon.ico" />
+    <Resource Include="Resources\YieldRaccoon.ico" />
   </ItemGroup>
 
   <ItemGroup>

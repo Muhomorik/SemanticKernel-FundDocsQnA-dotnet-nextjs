@@ -15,13 +15,13 @@ namespace YieldRaccoon.Infrastructure.Data.Repositories;
 /// </para>
 /// <para>
 /// Uses <see cref="ConcurrentDictionary{TKey,TValue}"/> with thread-safe list operations.
-/// Records are stored grouped by <see cref="FundId"/> for efficient fund-based queries.
+/// Records are stored grouped by <see cref="IsinId"/> for efficient fund-based queries.
 /// Duplicate detection uses FundId + NavDate composite key.
 /// </para>
 /// </remarks>
 public class InMemoryFundHistoryRepository : IFundHistoryRepository
 {
-    private readonly ConcurrentDictionary<FundId, List<FundHistoryRecord>> _records = new();
+    private readonly ConcurrentDictionary<IsinId, List<FundHistoryRecord>> _records = new();
     private readonly object _lock = new();
 
     /// <inheritdoc />
@@ -29,7 +29,7 @@ public class InMemoryFundHistoryRepository : IFundHistoryRepository
     {
         lock (_lock)
         {
-            var records = _records.GetOrAdd(record.FundId, _ => new List<FundHistoryRecord>());
+            var records = _records.GetOrAdd(record.IsinId, _ => new List<FundHistoryRecord>());
 
             // Find existing record with same NavDate
             var existingIndex = records.FindIndex(r => r.NavDate == record.NavDate);
@@ -55,6 +55,29 @@ public class InMemoryFundHistoryRepository : IFundHistoryRepository
             AddOrUpdateAsync(record, cancellationToken);
         }
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<int> AddRangeIfNotExistsAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default)
+    {
+        var insertedCount = 0;
+
+        lock (_lock)
+        {
+            foreach (var record in records)
+            {
+                var list = _records.GetOrAdd(record.IsinId, _ => new List<FundHistoryRecord>());
+
+                var exists = list.Exists(r => r.NavDate == record.NavDate);
+                if (!exists)
+                {
+                    list.Add(record);
+                    insertedCount++;
+                }
+            }
+        }
+
+        return Task.FromResult(insertedCount);
     }
 
     /// <inheritdoc />

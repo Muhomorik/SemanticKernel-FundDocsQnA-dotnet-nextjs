@@ -18,7 +18,7 @@ namespace YieldRaccoon.Application.Models;
 /// <para><strong>Completion semantics:</strong></para>
 /// <para>
 /// <see cref="IsComplete"/> becomes <c>true</c> when <em>every</em> slot is resolved,
-/// regardless of individual success or failure. A page visit where "Inställningar"
+/// regardless of individual success or failure. A page visit where a button
 /// was not found is still considered complete — the slot is marked
 /// <see cref="AboutFundFetchStatus.Failed"/> and the orchestrator can advance
 /// to the next fund without waiting forever.
@@ -30,7 +30,7 @@ namespace YieldRaccoon.Application.Models;
 /// via <c>with</c> expression:
 /// </para>
 /// <code>
-/// pageData = pageData with { ChartTimePeriods = AboutFundFetchSlot.Succeeded(json) };
+/// pageData = pageData with { Chart1Month = AboutFundFetchSlot.Succeeded(json) };
 /// </code>
 ///
 /// <para><strong>Lifecycle:</strong></para>
@@ -41,43 +41,57 @@ namespace YieldRaccoon.Application.Models;
 /// </list>
 /// </remarks>
 [DebuggerDisplay(
-    "PageData: {Isin} | Chart={ChartTimePeriods.Status}, SEK={SekPerformance.Status} | Complete={IsComplete}")]
+    "PageData: {OrderBookId} | " +
+    "1M={Chart1Month.Status}, 3M={Chart3Months.Status}, YTD={ChartYearToDate.Status}, " +
+    "1Y={Chart1Year.Status}, 3Y={Chart3Years.Status}, 5Y={Chart5Years.Status}, Max={ChartMax.Status} | " +
+    "Complete={IsComplete}")]
 public sealed record AboutFundPageData
 {
     /// <summary>
-    /// Gets the ISIN identifier of the fund being visited.
-    /// </summary>
-    public required string Isin { get; init; }
-
-    /// <summary>
     /// Gets the OrderBookId used in the external URL for this fund.
     /// </summary>
-    public required string OrderBookId { get; init; }
+    public required OrderBookId OrderBookId { get; init; }
 
-    // ── Fetch slots ───────────────────────────────────────────────
-
-    /// <summary>
-    /// Gets the fetch outcome for chart time-period data,
-    /// triggered by navigating to the fund detail page.
-    /// </summary>
-    /// <remarks>
-    /// Populated from the <c>chart/timeperiods/{orderbookId}</c> API response
-    /// intercepted after the page loads.
-    /// </remarks>
-    public AboutFundFetchSlot ChartTimePeriods { get; init; } = AboutFundFetchSlot.Pending();
+    #region Fetch slots (in call order)
 
     /// <summary>
-    /// Gets the fetch outcome for SEK performance data,
-    /// triggered by clicking the "Utvecklingen i SEK" checkbox.
+    /// Step 1 — Chart data after selecting the "1 month" time period.
     /// </summary>
-    /// <remarks>
-    /// Populated from the API response intercepted after the page interactor
-    /// clicks "Inställningar" → "Utvecklingen i SEK". If the button is not
-    /// found on the page, this slot is marked <see cref="AboutFundFetchStatus.Failed"/>.
-    /// </remarks>
-    public AboutFundFetchSlot SekPerformance { get; init; } = AboutFundFetchSlot.Pending();
+    public AboutFundFetchSlot Chart1Month { get; init; } = AboutFundFetchSlot.Pending();
 
-    // ── Completion checks ─────────────────────────────────────────
+    /// <summary>
+    /// Step 2 — Chart data after selecting the "3 months" time period.
+    /// </summary>
+    public AboutFundFetchSlot Chart3Months { get; init; } = AboutFundFetchSlot.Pending();
+
+    /// <summary>
+    /// Step 3 — Chart data after selecting the "year to date" time period.
+    /// </summary>
+    public AboutFundFetchSlot ChartYearToDate { get; init; } = AboutFundFetchSlot.Pending();
+
+    /// <summary>
+    /// Step 4 — Chart data after selecting the "1 year" time period.
+    /// </summary>
+    public AboutFundFetchSlot Chart1Year { get; init; } = AboutFundFetchSlot.Pending();
+
+    /// <summary>
+    /// Step 5 — Chart data after selecting the "3 years" time period.
+    /// </summary>
+    public AboutFundFetchSlot Chart3Years { get; init; } = AboutFundFetchSlot.Pending();
+
+    /// <summary>
+    /// Step 6 — Chart data after selecting the "5 years" time period.
+    /// </summary>
+    public AboutFundFetchSlot Chart5Years { get; init; } = AboutFundFetchSlot.Pending();
+
+    /// <summary>
+    /// Step 7 — Chart data after selecting the "max" time period.
+    /// </summary>
+    public AboutFundFetchSlot ChartMax { get; init; } = AboutFundFetchSlot.Pending();
+
+    #endregion
+
+    #region Completion checks
 
     /// <summary>
     /// Gets a value indicating whether all fetch slots have resolved
@@ -89,8 +103,13 @@ public sealed record AboutFundPageData
     /// once this returns <c>true</c>. Failed slots do not block completion.
     /// </remarks>
     public bool IsComplete =>
-        ChartTimePeriods.IsResolved
-        && SekPerformance.IsResolved;
+        Chart1Month.IsResolved
+        && Chart3Months.IsResolved
+        && ChartYearToDate.IsResolved
+        && Chart1Year.IsResolved
+        && Chart3Years.IsResolved
+        && Chart5Years.IsResolved
+        && ChartMax.IsResolved;
 
     /// <summary>
     /// Gets a value indicating whether every slot succeeded with data.
@@ -100,18 +119,44 @@ public sealed record AboutFundPageData
     /// page visit from one that completed with partial failures.
     /// </remarks>
     public bool IsFullySuccessful =>
-        ChartTimePeriods.IsSucceeded
-        && SekPerformance.IsSucceeded;
+        Chart1Month.IsSucceeded
+        && Chart3Months.IsSucceeded
+        && ChartYearToDate.IsSucceeded
+        && Chart1Year.IsSucceeded
+        && Chart3Years.IsSucceeded
+        && Chart5Years.IsSucceeded
+        && ChartMax.IsSucceeded;
 
     /// <summary>
     /// Gets the number of slots that have resolved (succeeded or failed).
     /// </summary>
     public int ResolvedCount =>
-        (ChartTimePeriods.IsResolved ? 1 : 0)
-        + (SekPerformance.IsResolved ? 1 : 0);
+        (Chart1Month.IsResolved ? 1 : 0)
+        + (Chart3Months.IsResolved ? 1 : 0)
+        + (ChartYearToDate.IsResolved ? 1 : 0)
+        + (Chart1Year.IsResolved ? 1 : 0)
+        + (Chart3Years.IsResolved ? 1 : 0)
+        + (Chart5Years.IsResolved ? 1 : 0)
+        + (ChartMax.IsResolved ? 1 : 0);
 
     /// <summary>
     /// Gets the total number of fetch slots tracked for this page visit.
     /// </summary>
-    public int TotalSlots => 2;
+    public int TotalSlots => 7;
+
+    /// <summary>
+    /// Returns all 7 fetch slots as an ordered enumerable of (slot identifier, slot data) pairs.
+    /// </summary>
+    public IEnumerable<(AboutFundDataSlot Slot, AboutFundFetchSlot Data)> AllSlots()
+    {
+        yield return (AboutFundDataSlot.Chart1Month, Chart1Month);
+        yield return (AboutFundDataSlot.Chart3Months, Chart3Months);
+        yield return (AboutFundDataSlot.ChartYearToDate, ChartYearToDate);
+        yield return (AboutFundDataSlot.Chart1Year, Chart1Year);
+        yield return (AboutFundDataSlot.Chart3Years, Chart3Years);
+        yield return (AboutFundDataSlot.Chart5Years, Chart5Years);
+        yield return (AboutFundDataSlot.ChartMax, ChartMax);
+    }
+
+    #endregion
 }
