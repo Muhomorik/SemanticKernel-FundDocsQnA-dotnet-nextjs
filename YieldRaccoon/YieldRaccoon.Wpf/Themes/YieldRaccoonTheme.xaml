@@ -21,7 +21,6 @@
     <SolidColorBrush x:Key="yr.ErrorBrush" Color="#E74C3C" />
     <SolidColorBrush x:Key="yr.InfoBrush" Color="#3498DB" />
     <SolidColorBrush x:Key="yr.MutedBrush" Color="#95A5A6" />
-    <SolidColorBrush x:Key="yr.StreamingBrush" Color="#FF4444" />
     <SolidColorBrush x:Key="yr.OverlayBrush" Color="#44000000" />
 
     <!--
