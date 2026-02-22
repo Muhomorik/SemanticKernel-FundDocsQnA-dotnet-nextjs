@@ -10,7 +10,17 @@ Because why scrape a website with a simple script when you can architect a *solu
 
 ## Preview
 
-![YieldRaccoon Screenshot](YieldRaccoon_screenshot.png)
+Main window
+
+![YieldRaccoon main](YieldRaccoon_screenshot_main.png)
+
+About fund window
+
+![YieldRaccoon about](YieldRaccoon_screenshot_about_fund.png)
+
+## Privacy filter
+
+`PrivacyFilterService` is a reusable static utility — any window with a WebView2 can plug it in. See [PRIVACY-OVERLAY.md](YieldRaccoon.Wpf/PRIVACY-OVERLAY.md) for the full architecture and implementation details.
 
 ## ⚠️ CRITICAL SECURITY REQUIREMENT
 
@@ -34,6 +44,8 @@ Because why scrape a website with a simple script when you can architect a *solu
 | Autofac | 9.0.0 | Dependency injection |
 | Rx.NET | 6.1.0 | Reactive programming |
 | MahApps.Metro | 2.4.11 | Modern UI toolkit |
+| WebView2 | 1.0.2903 | Embedded Chromium browser |
+| Magick.NET | 14.10.2 | Privacy filter image processing |
 | NLog | 6.0.7 | Logging |
 
 ## Project Structure
@@ -64,8 +76,9 @@ YieldRaccoon.sln
 └── YieldRaccoon.Wpf/                 # WPF UI
     ├── Modules/                      # Autofac DI modules (NLogModule, PresentationModule)
     ├── ViewModels/                   # DevExpress MVVM ViewModels
+    ├── Behaviors/                    # WebView2 behaviors (privacy refresh, auto-scroll)
     ├── Views/                        # XAML views
-    ├── Services/                     # WebView2 interceptor, page interactor
+    ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService
     └── Configuration/                # DatabaseOptions, YieldRaccoonOptions (FastMode, AutoStartOverview)
 ```
 
@@ -338,6 +351,8 @@ sequenceDiagram
 - `StopSessionCommand` - Cancel running session
 
 **Features:** ISIN deduplication, randomized delays (20-60s), progress tracking.
+
+Both the main window and AboutFund browser support a privacy mode that hides live browser content behind an oil-paint-filtered screenshot — useful during screen sharing or when someone's looking over your shoulder.
 
 ## Domain Events
 
