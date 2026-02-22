@@ -242,47 +242,66 @@
                                 Margin="8,0,0,0"
                                 VerticalAlignment="Center"
                                 IsReadOnly="True"
-                                Text="{Binding BrowserUrl, Mode=OneWay}" />
+                                Text="{Binding BrowserUrl, Mode=OneWay}">
+                                <TextBox.Style>
+                                    <Style BasedOn="{StaticResource MahApps.Styles.TextBox}" TargetType="TextBox">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPrivacyMode}" Value="True">
+                                                <Setter Property="Foreground" Value="Transparent" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
 
-                            <!--  Streaming mode toggle  -->
+                            <!--  Privacy mode toggle  -->
                             <mah:ToggleSwitch
                                 Grid.Column="2"
                                 Margin="8,0,0,0"
-                                IsOn="{Binding IsStreamingMode}"
+                                IsOn="{Binding IsPrivacyMode}"
                                 OffContent="Normal"
-                                OnContent="Streaming"
-                                ToolTip="Apply privacy filter to browser content for streaming" />
+                                OnContent="Privacy"
+                                ToolTip="Apply privacy filter to hide browser content" />
                         </Grid>
                     </Border>
 
-                    <!--  WebView2 Browser with streaming mode privacy overlay  -->
+                    <!--  WebView2 Browser with privacy overlay  -->
                     <Grid x:Name="BrowserContainer" Grid.Row="1">
-                        <!--  Browser (always visible - overlay covers when streaming)  -->
+                        <!--  Browser (always present — toggled Collapsed by code-behind when privacy active)  -->
                         <wv2:WebView2
                             x:Name="Browser"
                             Source="{Binding BrowserUrl, Mode=OneWay}" />
 
-                        <!--  Charcoal-filtered screenshot overlay (covers browser when streaming)  -->
-                        <Grid Background="Black" Visibility="{Binding IsStreamingMode, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                        <!--  Privacy overlay (covers browser when active)  -->
+                        <Grid Background="Black" Visibility="{Binding IsPrivacyMode, Converter={dxmvvm:BooleanToVisibilityConverter}}">
                             <Image
                                 RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                Source="{Binding StreamingScreenshot}"
+                                Source="{Binding PrivacyScreenshot}"
                                 Stretch="Fill" />
 
-                            <!--  Streaming mode indicator overlay  -->
+                            <!--  Privacy mode indicator  -->
                             <Border Background="{DynamicResource yr.OverlayBrush}">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <!--  Shield icon  -->
                                     <TextBlock
-                                        FontSize="48"
-                                        FontWeight="Bold"
-                                        Foreground="{DynamicResource yr.StreamingBrush}"
-                                        Text="&#x1F534; STREAMING" />
-                                    <TextBlock
-                                        Margin="0,16,0,0"
                                         HorizontalAlignment="Center"
-                                        FontSize="16"
+                                        FontFamily="Segoe Fluent Icons"
+                                        FontSize="48"
                                         Foreground="White"
-                                        Text="Browser content filtered for privacy" />
+                                        Text="&#xED1A;" />
+                                    <TextBlock
+                                        Margin="0,12,0,0"
+                                        HorizontalAlignment="Center"
+                                        FontSize="20"
+                                        FontWeight="SemiBold"
+                                        Foreground="White"
+                                        Text="Privacy mode" />
+                                    <TextBlock
+                                        Margin="0,8,0,0"
+                                        HorizontalAlignment="Center"
+                                        Foreground="White"
+                                        Style="{StaticResource yr.BodyStyle}"
+                                        Text="Browser content hidden" />
                                 </StackPanel>
                             </Border>
                         </Grid>

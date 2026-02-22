@@ -1,6 +1,3 @@
-using System.IO;
-using System.Windows.Media.Imaging;
-using ImageMagick;
 using MahApps.Metro.Controls;
 using Microsoft.Web.WebView2.Core;
 using NLog;
@@ -35,7 +32,7 @@ public partial class MainWindow : MetroWindow
         // Subscribe to ViewModel events
         _viewModel.BrowserReloadRequested += OnBrowserReloadRequested;
         _viewModel.RequestLoadMoreFunds += OnRequestLoadMoreFunds;
-        _viewModel.StreamingModeChanged += OnStreamingModeChanged;
+        _viewModel.PrivacyModeChanged += OnPrivacyModeChanged;
         _viewModel.BrowserScrollToEndRequested += OnBrowserScrollToEndRequested;
 
         // Wire up WebView2 initialization and events
@@ -95,192 +92,68 @@ public partial class MainWindow : MetroWindow
         // Update ViewModel on UI thread
         Dispatcher.Invoke(() => _viewModel.OnBrowserLoadingStateChanged(false));
 
-        // Update screenshot if streaming mode is active
-        if (_viewModel.IsStreamingMode) await CaptureStreamingScreenshotAsync();
+        // Update screenshot if privacy mode is active
+        if (_viewModel.IsPrivacyMode) await CapturePrivacyScreenshotOffScreenAsync();
     }
 
     /// <summary>
-    /// Handles streaming mode toggle from ViewModel.
+    /// Handles privacy mode toggle — captures screenshot before hiding WebView2 (HWND airspace).
     /// </summary>
-    /// <summary>
-    /// Handles streaming mode toggle.
-    /// </summary>
-    /// <remarks>
-    /// WebView2 is an HWND control with airspace issues - HWND controls always render
-    /// on top of WPF content regardless of z-order. Must hide WebView2 for overlay to show,
-    /// but capture screenshot first while browser is still visible.
-    /// </remarks>
-    private async void OnStreamingModeChanged(object? sender, EventArgs e)
+    private async void OnPrivacyModeChanged(object? sender, EventArgs e)
     {
-        if (_viewModel.IsStreamingMode)
+        if (_viewModel.IsPrivacyMode)
         {
+            if (Browser.CoreWebView2 == null)
+            {
+                _logger.Warn("Cannot capture privacy screenshot: CoreWebView2 not initialized");
+                return;
+            }
+
             // Capture screenshot BEFORE hiding browser (HWND must be visible to capture)
-            await CaptureStreamingScreenshotAsync();
+            _viewModel.PrivacyScreenshot = await PrivacyFilterService.CaptureAndFilterAsync(
+                Browser.CoreWebView2, Dispatcher);
+
             // Now hide browser so WPF overlay becomes visible
             Browser.Visibility = System.Windows.Visibility.Collapsed;
         }
         else
         {
-            // Show browser, clear screenshot
             Browser.Visibility = System.Windows.Visibility.Visible;
-            _viewModel.StreamingScreenshot = null;
+            _viewModel.PrivacyScreenshot = null;
         }
     }
 
     /// <summary>
-    /// Captures a screenshot of the WebView2 browser and applies Charcoal effect for streaming mode privacy.
-    /// </summary>
-    private async Task CaptureStreamingScreenshotAsync()
-    {
-        if (Browser.CoreWebView2 == null)
-        {
-            _logger.Warn("Cannot capture screenshot: CoreWebView2 is not initialized");
-            return;
-        }
-
-        try
-        {
-            _logger.Debug("Capturing WebView2 screenshot for streaming mode");
-
-            using var stream = new MemoryStream();
-            await Browser.CoreWebView2.CapturePreviewAsync(
-                CoreWebView2CapturePreviewImageFormat.Png, stream);
-
-            stream.Position = 0;
-
-            // Apply Charcoal effect using ImageMagick (runs on background thread)
-            var processedBytes = await Task.Run(() => ApplyCharcoalEffect(stream));
-
-            await Dispatcher.InvokeAsync(() =>
-            {
-                using var outputStream = new MemoryStream(processedBytes);
-                var result = new BitmapImage();
-                result.BeginInit();
-                result.CacheOption = BitmapCacheOption.OnLoad;
-                result.StreamSource = outputStream;
-                result.EndInit();
-                result.Freeze();
-
-                _viewModel.StreamingScreenshot = result;
-                _logger.Debug("Screenshot captured and Charcoal effect applied successfully");
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Failed to capture WebView2 screenshot");
-        }
-    }
-
-    /// <summary>
-    /// Captures screenshot with browser temporarily moved off-screen to avoid exposing content.
+    /// Captures privacy screenshot with browser temporarily moved off-screen.
     /// </summary>
     /// <remarks>
-    /// WebView2 is HWND control - must be visible to capture, but we move it off-screen
+    /// WebView2 is an HWND control — must be visible to capture, but we move it off-screen
     /// so user doesn't see sensitive content during the brief capture window.
     /// </remarks>
-    private async Task CaptureStreamingScreenshotOffScreenAsync()
+    private async Task CapturePrivacyScreenshotOffScreenAsync()
     {
         if (Browser.CoreWebView2 == null)
             return;
 
         try
         {
-            // Move browser off-screen (large negative offset)
             var originalTransform = Browser.RenderTransform;
             Browser.RenderTransform = new System.Windows.Media.TranslateTransform(-10000, 0);
 
-            // Make visible (renders off-screen, not seen by user)
             Browser.Visibility = System.Windows.Visibility.Visible;
-            await Task.Delay(50); // Allow render
+            await Task.Delay(50);
 
-            // Capture
-            await CaptureStreamingScreenshotAsync();
+            _viewModel.PrivacyScreenshot = await PrivacyFilterService.CaptureAndFilterAsync(
+                Browser.CoreWebView2, Dispatcher);
 
-            // Hide and restore transform
             Browser.Visibility = System.Windows.Visibility.Collapsed;
             Browser.RenderTransform = originalTransform;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to capture off-screen screenshot");
-            // Ensure browser is hidden on error
+            _logger.Error(ex, "Failed to capture off-screen privacy screenshot");
             Browser.Visibility = System.Windows.Visibility.Collapsed;
         }
-    }
-
-    /// <summary>
-    /// Applies Charcoal sketch effect using ImageMagick for privacy distortion.
-    /// </summary>
-    /// <param name="inputStream">The input image stream.</param>
-    /// <returns>Byte array of the processed image.</returns>
-    /// <remarks>
-    /// <para>Creates a pencil/charcoal sketch appearance that emphasizes edges
-    /// while removing color and detail - effective for privacy as text becomes unreadable.</para>
-    /// <para><b>Radius</b> - Size of the Gaussian operator:</para>
-    /// <list type="table">
-    ///   <listheader><term>Value</term><description>Effect / Use Case</description></listheader>
-    ///   <item><term>1-2</term><description>Fine lines, more detail preserved</description></item>
-    ///   <item><term>3-5</term><description>Moderate sketch, good privacy balance</description></item>
-    ///   <item><term>6+</term><description>Thick strokes, very abstract</description></item>
-    /// </list>
-    /// <para><b>Sigma</b> - Standard deviation of the Gaussian:</para>
-    /// <list type="table">
-    ///   <listheader><term>Value</term><description>Effect</description></listheader>
-    ///   <item><term>0.5</term><description>Sharper edges</description></item>
-    ///   <item><term>1.0</term><description>Balanced</description></item>
-    ///   <item><term>2.0+</term><description>Softer, more blended edges</description></item>
-    /// </list>
-    /// </remarks>
-    private static byte[] ApplyCharcoalEffect(Stream inputStream)
-    {
-        using var image = new MagickImage(inputStream);
-
-        // Convert to grayscale for sketch effect
-        image.ColorType = ColorType.Grayscale;
-
-        // Enhance contrast for more pronounced edges
-        image.Contrast();
-
-        // Apply Charcoal effect with more natural sketch parameters
-        image.Charcoal(3, 14);
-
-        using var outputStream = new MemoryStream();
-        image.Write(outputStream, MagickFormat.Png);
-        return outputStream.ToArray();
-    }
-
-    /// <summary>
-    /// Applies OilPaint effect using ImageMagick for privacy distortion.
-    /// </summary>
-    /// <param name="inputStream">The input image stream.</param>
-    /// <returns>Byte array of the processed image.</returns>
-    /// <remarks>
-    /// <para><b>Radius</b> - Brush/neighborhood size in pixels:</para>
-    /// <list type="table">
-    ///   <listheader><term>Value</term><description>Effect / Use Case</description></listheader>
-    ///   <item><term>1-3</term><description>Subtle texture, details preserved - Light privacy, artistic touch</description></item>
-    ///   <item><term>4-6</term><description>Moderate abstraction, text unreadable - Good balance</description></item>
-    ///   <item><term>8-12</term><description>Heavy abstraction, shapes visible - Strong privacy</description></item>
-    ///   <item><term>15+</term><description>Very abstract, only colors remain - Maximum privacy</description></item>
-    /// </list>
-    /// <para><b>Sigma</b> - Smoothness/blend factor:</para>
-    /// <list type="table">
-    ///   <listheader><term>Value</term><description>Effect</description></listheader>
-    ///   <item><term>0.5</term><description>Sharper brush strokes, more texture</description></item>
-    ///   <item><term>1.0</term><description>Balanced</description></item>
-    ///   <item><term>2.0+</term><description>Smoother, more blended strokes</description></item>
-    /// </list>
-    /// </remarks>
-    private static byte[] ApplyOilPaintEffect(Stream inputStream)
-    {
-        using var image = new MagickImage(inputStream);
-
-        // OilPaint(radius, sigma): radius=3 for subtle effect, sigma=1 for balanced smoothness
-        image.OilPaint(2, 2);
-
-        using var outputStream = new MemoryStream();
-        image.Write(outputStream, MagickFormat.Png);
-        return outputStream.ToArray();
     }
 
     /// <summary>
@@ -384,7 +257,7 @@ public partial class MainWindow : MetroWindow
     /// <summary>
     /// Handles the browser scroll to end request.
     /// Executes smooth scroll JavaScript in the WebView2 browser.
-    /// Updates streaming screenshot after content has rendered.
+    /// Updates privacy screenshot after content has rendered.
     /// </summary>
     private async void OnBrowserScrollToEndRequested(object? sender, EventArgs e)
     {
@@ -414,12 +287,12 @@ public partial class MainWindow : MetroWindow
             await Browser.CoreWebView2.ExecuteScriptAsync(scrollScript);
             _logger.Debug("Browser smooth scroll to bottom executed");
 
-            // Update streaming screenshot after scroll and DOM render
-            if (_viewModel.IsStreamingMode)
+            // Update privacy screenshot after scroll and DOM render
+            if (_viewModel.IsPrivacyMode)
             {
                 // Delay to allow scroll animation and DOM rendering to complete
                 await Task.Delay(500);
-                await CaptureStreamingScreenshotOffScreenAsync();
+                await CapturePrivacyScreenshotOffScreenAsync();
             }
         }
         catch (Exception ex)

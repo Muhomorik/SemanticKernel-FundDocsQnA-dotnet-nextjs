@@ -207,33 +207,33 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     #endregion
 
-    #region Streaming Mode Properties
+    #region Privacy Mode Properties
 
     /// <summary>
-    /// Gets or sets whether streaming mode is enabled (applies privacy filter to browser content).
+    /// Gets or sets whether privacy mode is enabled (applies privacy filter to browser content).
     /// </summary>
-    public bool IsStreamingMode
+    public bool IsPrivacyMode
     {
-        get => GetProperty(() => IsStreamingMode);
+        get => GetProperty(() => IsPrivacyMode);
         set
         {
-            SetProperty(() => IsStreamingMode, value, () => { StreamingModeChanged?.Invoke(this, EventArgs.Empty); });
+            SetProperty(() => IsPrivacyMode, value, () => { PrivacyModeChanged?.Invoke(this, EventArgs.Empty); });
         }
     }
 
     /// <summary>
     /// Gets or sets the captured browser screenshot with privacy filter applied.
     /// </summary>
-    public ImageSource? StreamingScreenshot
+    public ImageSource? PrivacyScreenshot
     {
-        get => GetProperty(() => StreamingScreenshot);
-        set => SetProperty(() => StreamingScreenshot, value);
+        get => GetProperty(() => PrivacyScreenshot);
+        set => SetProperty(() => PrivacyScreenshot, value);
     }
 
     /// <summary>
-    /// Event raised when streaming mode is toggled and a screenshot needs to be captured.
+    /// Event raised when privacy mode is toggled and a screenshot needs to be captured.
     /// </summary>
-    public event EventHandler? StreamingModeChanged;
+    public event EventHandler? PrivacyModeChanged;
 
     #endregion
 
@@ -350,7 +350,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         EstimatedTimeRemaining = TimeSpan.Zero;
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
-        IsStreamingMode = false;
+        IsPrivacyMode = false;
 
         // Initialize commands with CommandManager integration enabled
         RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
@@ -398,7 +398,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         EstimatedTimeRemaining = TimeSpan.Zero;
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
-        IsStreamingMode = false;
+        IsPrivacyMode = false;
 
         RefreshCommand = new DelegateCommand(() => { });
         ReloadBrowserCommand = new DelegateCommand(() => { });
