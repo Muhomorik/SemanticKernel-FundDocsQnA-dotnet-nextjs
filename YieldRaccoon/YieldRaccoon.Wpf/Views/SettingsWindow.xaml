@@ -9,15 +9,16 @@
     Title="Settings"
     Width="550"
     Height="280"
-    Icon="/Resources/YieldRaccoon.ico"
     MinWidth="450"
     MinHeight="250"
+    d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel,
+                                     IsDesignTimeCreatable=True}"
+    Icon="/Resources/YieldRaccoon.ico"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
     TitleCharacterCasing="Normal"
     WindowStartupLocation="CenterOwner"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel, IsDesignTimeCreatable=True}">
+    mc:Ignorable="d">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -28,7 +29,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Database Location Section -->
+        <!--  Database Location Section  -->
         <TextBlock
             Grid.Row="0"
             Margin="0,0,0,8"
@@ -55,45 +56,60 @@
                 Style="{StaticResource yr.ButtonStyle}" />
         </Grid>
 
-        <!-- Info text -->
+        <!--  Info text  -->
         <TextBlock
             Grid.Row="2"
             Margin="0,0,0,8"
-            Style="{StaticResource yr.SmallStyle}"
             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+            Style="{StaticResource yr.SmallStyle}"
             TextWrapping="Wrap">
             <Run Text="Settings file:" />
             <Run Text="{Binding SettingsFilePath, Mode=OneWay}" />
         </TextBlock>
 
-        <!-- Restart warning -->
-        <TextBlock
+        <!--  Restart warning  -->
+        <StackPanel
             Grid.Row="3"
             Margin="{StaticResource yr.ItemSpacing}"
             VerticalAlignment="Top"
-            FontWeight="SemiBold"
-            Foreground="{DynamicResource MahApps.Brushes.Accent}"
-            Text="{Binding RestartRequiredMessage}"
-            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
-        <!-- Buttons -->
-        <StackPanel
-            Grid.Row="4"
-            HorizontalAlignment="Right"
-            Orientation="Horizontal">
-            <Button
-                Width="80"
-                Margin="0,0,8,0"
-                Command="{Binding SaveCommand}"
-                Content="Save"
-                IsDefault="True"
-                Style="{StaticResource yr.ButtonAccentStyle}" />
-            <Button
-                Width="80"
-                Command="{Binding CancelCommand}"
-                Content="Cancel"
-                IsCancel="True"
-                Style="{StaticResource yr.ButtonStyle}" />
+            Orientation="Horizontal"
+            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock
+                Margin="0,0,4,0"
+                VerticalAlignment="Center"
+                FontFamily="Segoe Fluent Icons"
+                FontSize="14"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Text="&#xE7BA;" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Style="{StaticResource yr.CaptionStyle}"
+                Text="Restart required for changes to take effect" />
         </StackPanel>
+
+        <!--  Buttons  -->
+        <Grid Grid.Row="4">
+            <Button
+                HorizontalAlignment="Left"
+                Command="{Binding ResetToDefaultCommand}"
+                Content="Reset to default"
+                Style="{StaticResource yr.ButtonStyle}" />
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button
+                    Width="80"
+                    Margin="0,0,8,0"
+                    Command="{Binding SaveCommand}"
+                    Content="Save"
+                    IsDefault="True"
+                    Style="{StaticResource yr.ButtonAccentStyle}" />
+                <Button
+                    Width="80"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    IsCancel="True"
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </mah:MetroWindow>
