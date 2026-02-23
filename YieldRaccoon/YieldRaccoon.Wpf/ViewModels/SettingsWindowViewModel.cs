@@ -47,6 +47,7 @@ public class SettingsWindowViewModel : ViewModelBase
 
         // Initialize commands
         BrowseCommand = new DelegateCommand(ExecuteBrowse);
+        ResetToDefaultCommand = new DelegateCommand(ExecuteResetToDefault);
         SaveCommand = new DelegateCommand(ExecuteSave, CanExecuteSave);
         CancelCommand = new DelegateCommand(ExecuteCancel);
 
@@ -61,10 +62,11 @@ public class SettingsWindowViewModel : ViewModelBase
         _logger = LogManager.GetCurrentClassLogger();
         _settingsService = null!;
         _databaseOptions = new DatabaseOptions();
-        _originalDatabasePath = "YieldRaccoon.db";
+        _originalDatabasePath = DatabaseOptions.DefaultDatabaseFileName;
         DatabasePath = _originalDatabasePath;
 
         BrowseCommand = new DelegateCommand(() => { });
+        ResetToDefaultCommand = new DelegateCommand(() => { });
         SaveCommand = new DelegateCommand(() => { });
         CancelCommand = new DelegateCommand(() => { });
     }
@@ -112,6 +114,11 @@ public class SettingsWindowViewModel : ViewModelBase
     /// Gets the command to browse for a database file.
     /// </summary>
     public ICommand BrowseCommand { get; }
+
+    /// <summary>
+    /// Gets the command to reset the database path to the factory default.
+    /// </summary>
+    public ICommand ResetToDefaultCommand { get; }
 
     /// <summary>
     /// Gets the command to save settings and close.
@@ -166,6 +173,12 @@ public class SettingsWindowViewModel : ViewModelBase
         return Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
     }
 
+    private void ExecuteResetToDefault()
+    {
+        DatabasePath = DatabaseOptions.DefaultDatabaseFileName;
+        _logger.Debug("Database path reset to default");
+    }
+
     private bool CanExecuteSave()
     {
         return !string.IsNullOrWhiteSpace(DatabasePath);
@@ -213,7 +226,7 @@ public class SettingsWindowViewModel : ViewModelBase
         const string dataSourcePrefix = "Data Source=";
 
         if (string.IsNullOrWhiteSpace(connectionString))
-            return "YieldRaccoon.db";
+            return DatabaseOptions.DefaultDatabaseFileName;
 
         var index = connectionString.IndexOf(dataSourcePrefix, StringComparison.OrdinalIgnoreCase);
         if (index >= 0)

@@ -6,6 +6,11 @@ namespace YieldRaccoon.Wpf.Configuration;
 public class DatabaseOptions
 {
     /// <summary>
+    /// Default database filename used when no custom path is configured.
+    /// </summary>
+    public const string DefaultDatabaseFileName = "YieldRaccoon.db";
+
+    /// <summary>
     /// Gets or sets the database provider to use.
     /// </summary>
     /// <remarks>
@@ -21,7 +26,7 @@ public class DatabaseOptions
     /// For SQLite, this is typically: "Data Source=YieldRaccoon.db"
     /// For InMemory provider, this is ignored.
     /// </remarks>
-    public string ConnectionString { get; set; } = "Data Source=YieldRaccoon.db";
+    public string ConnectionString { get; set; } = $"Data Source={DefaultDatabaseFileName}";
 }
 
 /// <summary>
