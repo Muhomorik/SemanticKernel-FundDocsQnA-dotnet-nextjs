@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-22 (YieldRaccoon README.md major update: Rewrote sections for 7-slot/8-step collection architecture, three-tier scheduling, chart ingestion pipeline, IsinId/OrderBookId value objects, updated schema and diagrams)
+Last Updated: 2026-02-24 (YieldRaccoon Export feature: Export window with company/period filtering, FundDataExportService with SQLite copy+filter pipeline, 9 unit tests)
 
 **Tech Stack:**
 
@@ -651,6 +651,34 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 | **Infrastructure** | `AboutFundChartIngestionService` (JSON deserialization, merge, dedup, persist) | ✅ |
 | **Orchestrator** | `PersistChartDataAsync` in `AboutFundOrchestrator` (async void, resolves ISIN from schedule) | ✅ |
 | **DI** | Autofac registration in `PresentationModule` with NLog logger | ✅ |
+
+### Fund Data Export ✅ COMPLETED (2026-02-24)
+
+Export window allowing users to filter the fund database by company name and time period, saving the filtered result as a standalone SQLite `.db` file. Original database is never modified — the pipeline copies first, then filters the copy.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundDataExportService` interface (ExportAsync with company + cutoff) | ✅ |
+| **Infrastructure** | `FundDataExportService` (File.Copy → WAL checkpoint → DELETE non-matching → VACUUM) | ✅ |
+| **Presentation** | `ExportWindow.xaml` (period dropdown, company field, browse output, progress, status) | ✅ |
+| **Presentation** | `ExportWindowViewModel` (AsyncCommand, SaveFileDialog, auto-filename generation) | ✅ |
+| **Presentation** | `ExportPeriod` model record (1 week, 2 weeks, 1 month, 3 months) | ✅ |
+| **Presentation** | `IExportWindowService` / `ExportWindowService` (modal dialog via Autofac) | ✅ |
+| **MainWindow** | Export button in title bar (between AboutFund and Settings) | ✅ |
+| **DI** | `PresentationModule` registrations for service + window service | ✅ |
+| **Tests** | `FundDataExportServiceTests` — 9 tests (company filter, orphan removal, cutoff, case-insensitive, file creation, source untouched, no-match, null company, source not found) | ✅ |
+
+**Export Pipeline (SQLite only):**
+
+1. `File.Copy` source → destination (+ WAL/SHM journal files if present)
+2. `PRAGMA wal_checkpoint(TRUNCATE)` — merge WAL into main file
+3. `DELETE FROM FundProfiles WHERE CompanyName IS NULL OR LOWER(CompanyName) != LOWER(@company)`
+4. `DELETE FROM FundHistoryRecords WHERE FundId NOT IN (SELECT Isin FROM FundProfiles)`
+5. `DELETE FROM FundHistoryRecords WHERE NavDate < @cutoff`
+6. `PRAGMA journal_mode=DELETE` — switch from WAL to classic mode (checkpoints pending changes)
+7. `VACUUM` — reclaim disk space (operates directly on main file, not WAL)
+8. Close connection + clear connection pool
+9. Clean up leftover `-wal` / `-shm` journal files
 
 ### Future Enhancements (Planned)
 

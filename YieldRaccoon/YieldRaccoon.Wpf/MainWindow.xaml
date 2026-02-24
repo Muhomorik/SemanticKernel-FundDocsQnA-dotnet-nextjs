@@ -29,6 +29,15 @@
                     <TextBlock Margin="8,0,0,0" Text="AboutFund" />
                 </StackPanel>
             </Button>
+            <Button Command="{Binding OpenExportCommand}" ToolTip="Export">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="14"
+                        Text="&#xEDE1;" />
+                    <TextBlock Margin="8,0,0,0" Text="Export" />
+                </StackPanel>
+            </Button>
             <Button Command="{Binding OpenSettingsCommand}" ToolTip="Settings">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock

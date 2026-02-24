@@ -80,6 +80,18 @@ public class PresentationModule : Module
             .As<IAboutFundWindowService>()
             .SingleInstance();
 
+        // Export window service registration
+        // Register window service for showing Export window from ViewModels
+        builder.RegisterType<ExportWindowService>()
+            .As<IExportWindowService>()
+            .InstancePerDependency();
+
+        // Export data service registration
+        // Exports filtered fund data to standalone SQLite database files
+        builder.RegisterType<FundDataExportService>()
+            .As<IFundDataExportService>()
+            .InstancePerDependency();
+
         // Session scheduler registration
         // Register session scheduler for pre-calculating batch timings with randomized delays
         builder.RegisterType<CrawlSessionScheduler>()
