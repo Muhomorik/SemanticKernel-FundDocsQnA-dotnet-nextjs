@@ -63,7 +63,8 @@ YieldRaccoon.sln
 │   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
 │   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
-│                                     # IAboutFundChartIngestionService, IRandomDelayProvider
+│                                     # IAboutFundChartIngestionService, IFundDataExportService,
+│                                     # IRandomDelayProvider
 │
 ├── YieldRaccoon.Infrastructure/      # Technical concerns
 │   ├── Data/                         # EF Core DbContext, configurations, value converters
@@ -71,14 +72,17 @@ YieldRaccoon.sln
 │   ├── EventStore/                   # InMemoryCrawlEventStore, InMemoryAboutFundEventStore
 │   ├── Models/                       # Anti-corruption layer (chart API response shapes)
 │   └── Services/                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
-│                                     # ChartIngestionService, RandomDelayProvider, FundDetailsUrlBuilder
+│                                     # ChartIngestionService, FundDataExportService,
+│                                     # RandomDelayProvider, FundDetailsUrlBuilder
 │
 └── YieldRaccoon.Wpf/                 # WPF UI
     ├── Modules/                      # Autofac DI modules (NLogModule, PresentationModule)
     ├── ViewModels/                   # DevExpress MVVM ViewModels
+    ├── Models/                       # ExportPeriod, InterceptedFund, InterceptedHttpRequest
     ├── Behaviors/                    # WebView2 behaviors (privacy refresh, auto-scroll)
-    ├── Views/                        # XAML views
-    ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService
+    ├── Views/                        # XAML views (MainWindow, AboutFundWindow, ExportWindow, SettingsWindow)
+    ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService,
+    │                                 # ExportWindowService
     └── Configuration/                # DatabaseOptions, YieldRaccoonOptions (FastMode, AutoStartOverview)
 ```
 
@@ -248,6 +252,41 @@ SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY ChangePct DESC LIMIT 10;
 ```
 
 </details>
+
+## Fund Data Export
+
+Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database with others or for offline analysis. Available from the Export button in the title bar (SQLite provider only).
+
+The original database is never modified. The pipeline copies first, then filters the copy.
+
+**Export pipeline:**
+
+1. `File.Copy` source → destination (+ WAL/SHM journal files if present)
+2. `PRAGMA wal_checkpoint(TRUNCATE)` — merge WAL into main file
+3. `DELETE FROM FundProfiles` where company name doesn't match (case-insensitive)
+4. `DELETE FROM FundHistoryRecords` where fund no longer exists (orphan cleanup)
+5. `DELETE FROM FundHistoryRecords` where NavDate is before cutoff
+6. `PRAGMA journal_mode=DELETE` — switch from WAL to classic mode (checkpoints pending changes)
+7. `VACUUM` — reclaim disk space
+8. Clean up leftover `-wal` / `-shm` journal files
+
+**Filter options:**
+
+| Option | Values | Default |
+| -------- | -------- | --------- |
+| Time period | 1 week, 2 weeks, 1 month, 3 months | 1 week |
+| Company name | Free text (case-insensitive match) | *(empty)* |
+| Output file | Browse or auto-generated filename | `YieldRaccoon_{company}_{period}.db` in source directory |
+
+**Architecture:**
+
+| Layer | Component |
+| ------- | ----------- |
+| Application | `IFundDataExportService` — interface with `ExportAsync` |
+| Infrastructure | `FundDataExportService` — raw SQLite operations via `Microsoft.Data.Sqlite` |
+| Presentation | `ExportWindow` / `ExportWindowViewModel` — form with period, company, output path |
+| Presentation | `ExportPeriod` record — selectable time period model |
+| Presentation | `IExportWindowService` / `ExportWindowService` — modal dialog launcher |
 
 ## Repository Architecture
 
