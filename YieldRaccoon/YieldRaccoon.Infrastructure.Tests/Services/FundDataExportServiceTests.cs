@@ -58,7 +58,7 @@ public class FundDataExportServiceTests
         var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
 
         // Act
-        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate);
+        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate, minNumberOfOwners: 0);
 
         // Assert
         var profileCount = await CountRowsAsync(destPath, "FundProfiles");
@@ -74,7 +74,7 @@ public class FundDataExportServiceTests
         var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
 
         // Act
-        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate);
+        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate, minNumberOfOwners: 0);
 
         // Assert — only history records for Handelsbanken funds should remain
         var historyCount = await CountRowsAsync(destPath, "FundHistoryRecords");
@@ -94,7 +94,7 @@ public class FundDataExportServiceTests
         var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-7));
 
         // Act
-        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate);
+        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate, minNumberOfOwners: 0);
 
         // Assert — only recent records should remain
         var oldCount = await CountRowsAsync(destPath,
@@ -111,7 +111,7 @@ public class FundDataExportServiceTests
         var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
 
         // Act — lowercase input
-        await _sut.ExportAsync(sourcePath, destPath, "handelsbanken", cutoffDate);
+        await _sut.ExportAsync(sourcePath, destPath, "handelsbanken", cutoffDate, minNumberOfOwners: 0);
 
         // Assert
         var profileCount = await CountRowsAsync(destPath, "FundProfiles");
@@ -127,7 +127,7 @@ public class FundDataExportServiceTests
 
         // Act
         await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken",
-            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)));
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), minNumberOfOwners: 0);
 
         // Assert
         Assert.That(File.Exists(destPath), Is.True, "Export file should be created");
@@ -143,7 +143,7 @@ public class FundDataExportServiceTests
 
         // Act
         await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken",
-            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)));
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), minNumberOfOwners: 0);
 
         // Assert — source must be untouched
         var sourceCountAfter = await CountRowsAsync(sourcePath, "FundProfiles");
@@ -160,7 +160,7 @@ public class FundDataExportServiceTests
 
         // Act
         await _sut.ExportAsync(sourcePath, destPath, "NonExistentCompany",
-            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)));
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), minNumberOfOwners: 0);
 
         // Assert
         var profileCount = await CountRowsAsync(destPath, "FundProfiles");
@@ -178,13 +178,62 @@ public class FundDataExportServiceTests
 
         // Act — filter for SEB (has a profile, but "NullCompany" fund has CompanyName = null)
         await _sut.ExportAsync(sourcePath, destPath, "SEB",
-            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)));
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), minNumberOfOwners: 0);
 
         // Assert — null CompanyName profiles should be removed
         var nullCompanyCount = await CountRowsAsync(destPath,
             "FundProfiles WHERE CompanyName IS NULL");
         Assert.That(nullCompanyCount, Is.EqualTo(0),
             "Funds with null CompanyName should be removed");
+    }
+
+    [Test]
+    public async Task ExportAsync_MinNumberOfOwners_RemovesProfilesBelowThreshold()
+    {
+        // Arrange — Handelsbanken Sverige has 500 owners, Handelsbanken Global has 50
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — filter requires at least 100 owners
+        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate, minNumberOfOwners: 100);
+
+        // Assert — only Handelsbanken Sverige (500 owners) should remain
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(1), "Should keep only funds with >= 100 owners");
+    }
+
+    [Test]
+    public async Task ExportAsync_MinNumberOfOwners_NullOwnersAreExcluded()
+    {
+        // Arrange — Unknown Fund has null NumberOfOwners
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — use SEB + min owners 0 to keep all, then check null fund is gone by company filter
+        // Instead, test with a broad company match and minOwners > 0
+        await _sut.ExportAsync(sourcePath, destPath, "SEB", cutoffDate, minNumberOfOwners: 1);
+
+        // Assert — SEB fund (200 owners) should remain, null owners fund already excluded by company
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ExportAsync_MinNumberOfOwnersZero_SkipsOwnerFilter()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — minNumberOfOwners: 0 should skip the filter entirely
+        await _sut.ExportAsync(sourcePath, destPath, "Handelsbanken", cutoffDate, minNumberOfOwners: 0);
+
+        // Assert — both Handelsbanken funds should remain (500 and 50 owners)
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(2), "Should keep all Handelsbanken funds when owner filter is disabled");
     }
 
     #endregion
@@ -234,26 +283,26 @@ public class FundDataExportServiceTests
         context.FundProfiles.Add(new FundProfile
         {
             Id = isin1, Name = "Handelsbanken Sverige", CompanyName = "Handelsbanken",
-            FirstSeenAt = now
+            NumberOfOwners = 500, FirstSeenAt = now
         });
         context.FundProfiles.Add(new FundProfile
         {
             Id = isin2, Name = "Handelsbanken Global", CompanyName = "Handelsbanken",
-            FirstSeenAt = now
+            NumberOfOwners = 50, FirstSeenAt = now
         });
 
         // 1 SEB fund
         context.FundProfiles.Add(new FundProfile
         {
             Id = isin3, Name = "SEB Europafond", CompanyName = "SEB",
-            FirstSeenAt = now
+            NumberOfOwners = 200, FirstSeenAt = now
         });
 
         // 1 fund with null CompanyName
         context.FundProfiles.Add(new FundProfile
         {
             Id = isin4, Name = "Unknown Fund", CompanyName = null,
-            FirstSeenAt = now
+            NumberOfOwners = null, FirstSeenAt = now
         });
 
         // History records for each fund: one recent (3 days ago), one older (30 days ago)

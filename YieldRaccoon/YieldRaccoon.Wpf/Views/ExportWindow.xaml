@@ -9,7 +9,7 @@
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Export"
     Width="550"
-    Height="360"
+    Height="380"
     MinWidth="450"
     MinHeight="340"
     d:DataContext="{d:DesignInstance viewModels:ExportWindowViewModel,
@@ -67,16 +67,47 @@
                 Text="Export filtered fund data to a standalone database file."
                 TextWrapping="Wrap" />
 
-            <!--  Period  -->
-            <TextBlock
-                Margin="{StaticResource yr.LabelSpacing}"
-                Style="{StaticResource yr.SubheaderStyle}"
-                Text="Time period" />
-            <ComboBox
-                Width="160"
-                HorizontalAlignment="Left"
-                ItemsSource="{Binding Periods}"
-                SelectedItem="{Binding SelectedPeriod}" />
+            <!--  Period + Min owners  -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="{StaticResource yr.LabelSpacing}"
+                    Style="{StaticResource yr.SubheaderStyle}"
+                    Text="Time period" />
+                <ComboBox
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Width="160"
+                    HorizontalAlignment="Left"
+                    ItemsSource="{Binding Periods}"
+                    SelectedItem="{Binding SelectedPeriod}" />
+
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Margin="{StaticResource yr.LabelSpacing}"
+                    Style="{StaticResource yr.SubheaderStyle}"
+                    Text="Min owners" />
+                <mah:NumericUpDown
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Width="120"
+                    HorizontalAlignment="Left"
+                    Minimum="0"
+                    NumericInputMode="Numbers"
+                    Value="{Binding MinNumberOfOwners}" />
+            </Grid>
 
             <!--  Company name  -->
             <TextBlock

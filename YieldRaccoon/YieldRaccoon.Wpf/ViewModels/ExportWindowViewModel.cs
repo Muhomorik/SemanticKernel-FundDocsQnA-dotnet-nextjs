@@ -15,6 +15,8 @@ namespace YieldRaccoon.Wpf.ViewModels;
 /// </summary>
 public class ExportWindowViewModel : ViewModelBase
 {
+    private const int DefaultMinNumberOfOwners = 100;
+
     private readonly ILogger _logger;
     private readonly IFundDataExportService _exportService;
     private readonly DatabaseOptions _databaseOptions;
@@ -46,6 +48,7 @@ public class ExportWindowViewModel : ViewModelBase
         SelectedPeriod = Periods[1];
         CompanyName = string.Empty;
         OutputPath = BuildDefaultPath(string.Empty, Periods[1]);
+        MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
         IsStatusError = false;
@@ -73,6 +76,7 @@ public class ExportWindowViewModel : ViewModelBase
         SelectedPeriod = Periods[1];
         CompanyName = "Handelsbanken";
         OutputPath = @"YieldRaccoon_Handelsbanken_1week.db";
+        MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
         IsStatusError = false;
@@ -149,6 +153,15 @@ public class ExportWindowViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets the minimum number of owners a fund must have to be included in the export.
+    /// </summary>
+    public int MinNumberOfOwners
+    {
+        get => GetProperty(() => MinNumberOfOwners);
+        set => SetProperty(() => MinNumberOfOwners, value);
+    }
+
+    /// <summary>
     /// Gets or sets whether the status message indicates an error.
     /// </summary>
     public bool IsStatusError
@@ -206,7 +219,7 @@ public class ExportWindowViewModel : ViewModelBase
             var sourcePath = ExtractDatabasePath(_databaseOptions.ConnectionString);
             var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-SelectedPeriod.Days));
 
-            await _exportService.ExportAsync(sourcePath, OutputPath, CompanyName.Trim(), cutoffDate);
+            await _exportService.ExportAsync(sourcePath, OutputPath, CompanyName.Trim(), cutoffDate, MinNumberOfOwners);
 
             StatusMessage = $"Exported successfully to {Path.GetFileName(OutputPath)}";
             IsStatusError = false;

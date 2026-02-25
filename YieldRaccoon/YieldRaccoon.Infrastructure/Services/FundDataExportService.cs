@@ -22,7 +22,7 @@ public class FundDataExportService : IFundDataExportService
     }
 
     /// <inheritdoc />
-    public async Task ExportAsync(string sourcePath, string destinationPath, string companyName, DateOnly cutoffDate)
+    public async Task ExportAsync(string sourcePath, string destinationPath, string companyName, DateOnly cutoffDate, int minNumberOfOwners = 100)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -31,8 +31,8 @@ public class FundDataExportService : IFundDataExportService
         if (!File.Exists(sourcePath))
             throw new FileNotFoundException("Source database file not found.", sourcePath);
 
-        _logger.Info("Starting export: company={0}, cutoff={1}, source={2}, dest={3}",
-            companyName, cutoffDate, sourcePath, destinationPath);
+        _logger.Info("Starting export: company={0}, cutoff={1}, minOwners={2}, source={3}, dest={4}",
+            companyName, cutoffDate, minNumberOfOwners, sourcePath, destinationPath);
 
         // Ensure destination directory exists
         var destinationDir = Path.GetDirectoryName(destinationPath);
@@ -61,6 +61,15 @@ public class FundDataExportService : IFundDataExportService
             "DELETE FROM FundProfiles WHERE CompanyName IS NULL OR LOWER(CompanyName) != LOWER(@company)",
             ("@company", companyName));
         _logger.Info("Deleted {0} non-matching FundProfiles", deletedProfiles);
+
+        // Delete funds with fewer owners than the minimum threshold
+        if (minNumberOfOwners > 0)
+        {
+            var deletedByOwners = await ExecuteNonQueryAsync(connection,
+                "DELETE FROM FundProfiles WHERE NumberOfOwners IS NULL OR NumberOfOwners < @minOwners",
+                ("@minOwners", minNumberOfOwners));
+            _logger.Info("Deleted {0} FundProfiles below min owners threshold ({1})", deletedByOwners, minNumberOfOwners);
+        }
 
         // Delete orphaned history records (fund no longer exists in the filtered set)
         var deletedOrphans = await ExecuteNonQueryAsync(connection,

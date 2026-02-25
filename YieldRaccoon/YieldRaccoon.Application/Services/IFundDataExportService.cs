@@ -22,5 +22,6 @@ public interface IFundDataExportService
     /// <param name="destinationPath">Path where the filtered database will be saved.</param>
     /// <param name="companyName">Company name to keep (case-insensitive match).</param>
     /// <param name="cutoffDate">Oldest date to keep — records with NavDate before this are removed.</param>
-    Task ExportAsync(string sourcePath, string destinationPath, string companyName, DateOnly cutoffDate);
+    /// <param name="minNumberOfOwners">Minimum number of owners a fund must have to be included (0 to skip filter).</param>
+    Task ExportAsync(string sourcePath, string destinationPath, string companyName, DateOnly cutoffDate, int minNumberOfOwners = 100);
 }
