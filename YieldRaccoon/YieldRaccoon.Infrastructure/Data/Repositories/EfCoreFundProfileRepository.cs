@@ -80,6 +80,16 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public async Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.FundProfiles
+            .Where(fp => fp.OrderbookId == orderBookId.Value)
+            .Select(fp => fp.Id.Isin)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

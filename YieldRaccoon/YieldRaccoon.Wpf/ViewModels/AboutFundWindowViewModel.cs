@@ -341,13 +341,15 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
 
     #region Command Implementations
 
-    private void ExecuteNavigate()
+    private async void ExecuteNavigate()
     {
-        if (!string.IsNullOrWhiteSpace(BrowserUrl))
-        {
-            _logger.Info("Navigating to: {0}", BrowserUrl);
-            NavigationRequested?.Invoke(this, new Uri(BrowserUrl));
-        }
+        if (string.IsNullOrWhiteSpace(BrowserUrl)) return;
+
+        var uri = new Uri(BrowserUrl);
+        _logger.Info("Navigating to: {0}", uri);
+
+        // Delegate to orchestrator — handles URL parsing, passive collection, and navigation emission
+        await _orchestrator.StartManualCollectionAsync(uri);
     }
 
     private void ExecuteReload()

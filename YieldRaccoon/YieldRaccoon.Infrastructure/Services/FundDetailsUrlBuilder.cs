@@ -36,4 +36,45 @@ public class FundDetailsUrlBuilder : IFundDetailsUrlBuilder
         var url = _urlTemplate.Replace("{0}", orderBookId.Value, StringComparison.OrdinalIgnoreCase);
         return new Uri(url, UriKind.Absolute);
     }
+
+    /// <inheritdoc />
+    public bool TryParseOrderBookId(Uri url, out OrderBookId orderBookId)
+    {
+        orderBookId = default;
+
+        var parts = _urlTemplate.Split(["{0}"], 2, StringSplitOptions.None);
+        if (parts.Length != 2)
+            return false;
+
+        var urlString = url.AbsoluteUri;
+        var prefix = parts[0];
+        var suffix = parts[1];
+
+        if (!urlString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var afterPrefix = urlString[prefix.Length..];
+
+        int endIndex;
+        if (suffix.Length > 0)
+        {
+            endIndex = afterPrefix.IndexOf(suffix, StringComparison.OrdinalIgnoreCase);
+            if (endIndex <= 0)
+                return false;
+        }
+        else
+        {
+            // No suffix — take everything up to first '?' or '#' or end
+            endIndex = afterPrefix.IndexOfAny(['?', '#']);
+            if (endIndex < 0) endIndex = afterPrefix.Length;
+            if (endIndex == 0) return false;
+        }
+
+        var value = afterPrefix[..endIndex];
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        orderBookId = OrderBookId.Create(value);
+        return true;
+    }
 }

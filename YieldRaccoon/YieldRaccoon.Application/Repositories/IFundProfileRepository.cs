@@ -42,6 +42,18 @@ public interface IFundProfileRepository
         int limit = 60, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the ISIN for a fund identified by its OrderBookId.
+    /// </summary>
+    /// <remarks>
+    /// Used by manual collection mode to resolve the ISIN needed for chart data persistence
+    /// when the fund may not be in the pre-loaded schedule.
+    /// </remarks>
+    /// <param name="orderBookId">The fund's OrderBookId from the external URL.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The fund's ISIN string, or <c>null</c> if no matching profile was found.</returns>
+    Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.
     /// </summary>
     /// <remarks>

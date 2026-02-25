@@ -21,6 +21,11 @@ public sealed record AboutFundSessionState
     public bool IsActive { get; init; }
 
     /// <summary>
+    /// Gets the current session phase for UI adaptation (e.g., manual vs. automated mode).
+    /// </summary>
+    public AboutFundSessionPhase Phase { get; init; }
+
+    /// <summary>
     /// Gets the unique identifier of the active session, or null if no session is active.
     /// </summary>
     public AboutFundSessionId? SessionId { get; init; }

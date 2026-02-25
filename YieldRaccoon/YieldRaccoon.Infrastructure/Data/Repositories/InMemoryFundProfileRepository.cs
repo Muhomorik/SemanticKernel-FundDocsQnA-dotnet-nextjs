@@ -61,6 +61,17 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId,
+        CancellationToken cancellationToken = default)
+    {
+        var isin = _profiles.Values
+            .FirstOrDefault(fp => fp.OrderbookId == orderBookId.Value)
+            ?.Id.Isin;
+
+        return Task.FromResult(isin);
+    }
+
+    /// <inheritdoc />
     public Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-24 (YieldRaccoon Export feature: Export window with company/period filtering, FundDataExportService with SQLite copy+filter pipeline, 9 unit tests)
+Last Updated: 2026-02-24 (YieldRaccoon Manual Collection Mode: navigate to fund URL, manually click period buttons, each intercepted response saved to DB immediately — no session, no timers)
 
 **Tech Stack:**
 
@@ -679,6 +679,39 @@ Export window allowing users to filter the fund database by company name and tim
 7. `VACUUM` — reclaim disk space (operates directly on main file, not WAL)
 8. Close connection + clear connection pool
 9. Clean up leftover `-wal` / `-shm` journal files
+
+### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
+
+Added manual collection mode: navigate to any fund URL, manually click period buttons in the browser, and each intercepted API response is saved to the database immediately — no session, no timers, no scheduler. The existing interception pipeline (`WebView2 → AboutFundResponseInterceptor → collector → URL pattern matching → slot routing`) now supports passive collection with per-slot persistence.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `TryParseOrderBookId` on `IFundDetailsUrlBuilder` (extract OrderBookId from URL) | ✅ |
+| **Application** | `GetIsinByOrderBookIdAsync` on `IFundProfileRepository` (DB lookup) | ✅ |
+| **Application** | `BeginPassiveCollection` + `SlotUpdated` on `IAboutFundPageDataCollector` | ✅ |
+| **Application** | `StartManualCollectionAsync` on `IAboutFundOrchestrator` | ✅ |
+| **Application** | `ManualCollecting` value in `AboutFundSessionPhase` enum | ✅ |
+| **Application** | `Phase` property on `AboutFundSessionState` | ✅ |
+| **Infrastructure** | `FundDetailsUrlBuilder.TryParseOrderBookId` (URL template prefix/suffix parsing) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository.GetIsinByOrderBookIdAsync` (SQLite query) | ✅ |
+| **Infrastructure** | `AboutFundPageDataCollector` passive collection + `SlotUpdated` observable | ✅ |
+| **Infrastructure** | `AboutFundOrchestrator` manual mode (parse URL → ISIN lookup → passive collection → per-slot persistence) | ✅ |
+| **Presentation** | `ExecuteNavigate` in ViewModel delegates to `StartManualCollectionAsync` | ✅ |
+| **Presentation** | Control panel: `IsManualMode` / `ShowSessionProgress` — hides timers, shows slot badges only | ✅ |
+| **Tests** | `FundDetailsUrlBuilder_TryParseOrderBookIdTests` (11 tests) | ✅ |
+| **Tests** | `AboutFundPageDataCollector_PassiveCollectionTests` (12 tests) | ✅ |
+| **Tests** | `AboutFundOrchestrator_ManualCollectionTests` (18 tests) | ✅ |
+| **Tests** | `EfCoreFundProfileRepository_GetIsinByOrderBookIdAsyncTests` (4 tests) | ✅ |
+
+**Manual Mode Flow:**
+
+1. User enters fund URL in textbox → `ExecuteNavigate` → `orchestrator.StartManualCollectionAsync(url)`
+2. Orchestrator parses `OrderBookId` from URL via `TryParseOrderBookId`
+3. Looks up ISIN: first from loaded schedule, then DB via `GetIsinByOrderBookIdAsync`
+4. Calls `collector.BeginPassiveCollection(orderBookId)` — no timers, no interactions
+5. Subscribes to `collector.SlotUpdated` — each slot resolution triggers `IngestChartDataAsync` immediately
+6. If automated session is active, URL is navigated but manual collection is skipped (automated takes precedence)
+7. Navigating to a new URL silently transitions — previous data already persisted per-slot
 
 ### Future Enhancements (Planned)
 
