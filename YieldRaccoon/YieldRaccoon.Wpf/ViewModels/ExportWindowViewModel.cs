@@ -43,9 +43,9 @@ public class ExportWindowViewModel : ViewModelBase
         IsSqliteProvider = databaseOptions.Provider == DatabaseProvider.SQLite;
         _sourceDirectory = GetSourceDirectory(databaseOptions.ConnectionString);
         Periods = CreatePeriods();
-        SelectedPeriod = Periods[0];
+        SelectedPeriod = Periods[1];
         CompanyName = string.Empty;
-        OutputPath = BuildDefaultPath(string.Empty, Periods[0]);
+        OutputPath = BuildDefaultPath(string.Empty, Periods[1]);
         IsExporting = false;
         StatusMessage = string.Empty;
         IsStatusError = false;
@@ -70,7 +70,7 @@ public class ExportWindowViewModel : ViewModelBase
 
         IsSqliteProvider = true;
         Periods = CreatePeriods();
-        SelectedPeriod = Periods[0];
+        SelectedPeriod = Periods[1];
         CompanyName = "Handelsbanken";
         OutputPath = @"YieldRaccoon_Handelsbanken_1week.db";
         IsExporting = false;
@@ -272,6 +272,7 @@ public class ExportWindowViewModel : ViewModelBase
     [
         new ExportPeriod("1 week", 7),
         new ExportPeriod("2 weeks", 14),
+        new ExportPeriod("3 weeks", 21),
         new ExportPeriod("1 month", 30),
         new ExportPeriod("3 months", 90)
     ];
