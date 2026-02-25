@@ -236,6 +236,75 @@ public class FundDataExportServiceTests
         Assert.That(profileCount, Is.EqualTo(2), "Should keep all Handelsbanken funds when owner filter is disabled");
     }
 
+    [Test]
+    public async Task ExportAsync_NullCompanyName_KeepsAllProfiles()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — null company name means "all companies"
+        await _sut.ExportAsync(sourcePath, destPath, null, cutoffDate, minNumberOfOwners: 0);
+
+        // Assert — all 4 profiles should be kept (including null CompanyName fund)
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(4), "Null company name should keep all profiles");
+    }
+
+    [Test]
+    public async Task ExportAsync_EmptyCompanyName_KeepsAllProfiles()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — empty string means "all companies"
+        await _sut.ExportAsync(sourcePath, destPath, "", cutoffDate, minNumberOfOwners: 0);
+
+        // Assert
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(4), "Empty company name should keep all profiles");
+    }
+
+    [Test]
+    public async Task ExportAsync_WhitespaceCompanyName_KeepsAllProfiles()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-90));
+
+        // Act — whitespace-only means "all companies"
+        await _sut.ExportAsync(sourcePath, destPath, "   ", cutoffDate, minNumberOfOwners: 0);
+
+        // Assert
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(4), "Whitespace company name should keep all profiles");
+    }
+
+    [Test]
+    public async Task ExportAsync_NullCompanyName_StillAppliesOtherFilters()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "export.db");
+        var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-7));
+
+        // Act — no company filter, but cutoff and min owners still apply
+        await _sut.ExportAsync(sourcePath, destPath, null, cutoffDate, minNumberOfOwners: 100);
+
+        // Assert — Handelsbanken Global (50 owners), Unknown Fund (null owners) excluded by owner filter
+        var profileCount = await CountRowsAsync(destPath, "FundProfiles");
+        Assert.That(profileCount, Is.EqualTo(2), "Should keep Handelsbanken Sverige (500) and SEB (200)");
+
+        // Old history records should still be removed
+        var oldCount = await CountRowsAsync(destPath,
+            $"FundHistoryRecords WHERE NavDate < '{cutoffDate:yyyy-MM-dd}'");
+        Assert.That(oldCount, Is.EqualTo(0), "Cutoff filter should still apply");
+    }
+
     #endregion
 
     #region Edge Cases

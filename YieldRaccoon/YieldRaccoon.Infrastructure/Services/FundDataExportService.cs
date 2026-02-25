@@ -22,11 +22,10 @@ public class FundDataExportService : IFundDataExportService
     }
 
     /// <inheritdoc />
-    public async Task ExportAsync(string sourcePath, string destinationPath, string companyName, DateOnly cutoffDate, int minNumberOfOwners = 100)
+    public async Task ExportAsync(string sourcePath, string destinationPath, string? companyName, DateOnly cutoffDate, int minNumberOfOwners = 100)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(companyName);
 
         if (!File.Exists(sourcePath))
             throw new FileNotFoundException("Source database file not found.", sourcePath);
@@ -56,11 +55,18 @@ public class FundDataExportService : IFundDataExportService
         await ExecuteNonQueryAsync(connection, "PRAGMA wal_checkpoint(TRUNCATE)");
         _logger.Debug("WAL checkpoint completed");
 
-        // Delete funds not matching the company name (case-insensitive)
-        var deletedProfiles = await ExecuteNonQueryAsync(connection,
-            "DELETE FROM FundProfiles WHERE CompanyName IS NULL OR LOWER(CompanyName) != LOWER(@company)",
-            ("@company", companyName));
-        _logger.Info("Deleted {0} non-matching FundProfiles", deletedProfiles);
+        // Delete funds not matching the company name (case-insensitive), skip if no company specified
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            var deletedProfiles = await ExecuteNonQueryAsync(connection,
+                "DELETE FROM FundProfiles WHERE CompanyName IS NULL OR LOWER(CompanyName) != LOWER(@company)",
+                ("@company", companyName));
+            _logger.Info("Deleted {0} non-matching FundProfiles", deletedProfiles);
+        }
+        else
+        {
+            _logger.Info("No company filter specified — keeping all companies");
+        }
 
         // Delete funds with fewer owners than the minimum threshold
         if (minNumberOfOwners > 0)

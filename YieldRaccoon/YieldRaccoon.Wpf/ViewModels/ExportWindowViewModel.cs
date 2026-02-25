@@ -202,7 +202,6 @@ public class ExportWindowViewModel : ViewModelBase
     {
         return IsSqliteProvider
                && !IsExporting
-               && !string.IsNullOrWhiteSpace(CompanyName)
                && !string.IsNullOrWhiteSpace(OutputPath);
     }
 
@@ -219,7 +218,8 @@ public class ExportWindowViewModel : ViewModelBase
             var sourcePath = ExtractDatabasePath(_databaseOptions.ConnectionString);
             var cutoffDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-SelectedPeriod.Days));
 
-            await _exportService.ExportAsync(sourcePath, OutputPath, CompanyName.Trim(), cutoffDate, MinNumberOfOwners);
+            var companyFilter = string.IsNullOrWhiteSpace(CompanyName) ? null : CompanyName.Trim();
+            await _exportService.ExportAsync(sourcePath, OutputPath, companyFilter, cutoffDate, MinNumberOfOwners);
 
             StatusMessage = $"Exported successfully to {Path.GetFileName(OutputPath)}";
             IsStatusError = false;

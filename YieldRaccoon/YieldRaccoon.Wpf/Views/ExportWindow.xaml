@@ -113,7 +113,7 @@
             <TextBlock
                 Margin="0,20,0,4"
                 Style="{StaticResource yr.SubheaderStyle}"
-                Text="Company name" />
+                Text="Company name (empty = all)" />
             <TextBox
                 mah:TextBoxHelper.Watermark="Enter company name..."
                 Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}" />
