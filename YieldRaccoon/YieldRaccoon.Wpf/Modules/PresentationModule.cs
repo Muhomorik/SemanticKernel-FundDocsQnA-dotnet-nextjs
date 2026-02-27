@@ -92,6 +92,18 @@ public class PresentationModule : Module
             .As<IFundDataExportService>()
             .InstancePerDependency();
 
+        // Fund statistics CSV export service registration
+        // Computes summary statistics from fund NAV data and exports to CSV
+        builder.RegisterType<FundStatisticsCsvExportService>()
+            .As<IFundStatisticsCsvExportService>()
+            .InstancePerDependency();
+
+        // Fund statistics export window service registration
+        // Register window service for showing the statistics export window from ViewModels
+        builder.RegisterType<FundStatisticsExportWindowService>()
+            .As<IFundStatisticsExportWindowService>()
+            .InstancePerDependency();
+
         // Session scheduler registration
         // Register session scheduler for pre-calculating batch timings with randomized delays
         builder.RegisterType<CrawlSessionScheduler>()

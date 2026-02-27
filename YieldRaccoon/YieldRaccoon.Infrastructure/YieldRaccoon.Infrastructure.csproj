@@ -8,11 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="YieldRaccoon.Infrastructure.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\YieldRaccoon.Domain\YieldRaccoon.Domain.csproj" />
     <ProjectReference Include="..\YieldRaccoon.Application\YieldRaccoon.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Statistical computations (mean, std, skewness) for fund analytics -->
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+
     <!-- Reactive Extensions for IObservable -->
     <PackageReference Include="System.Reactive" Version="6.0.0" />
 

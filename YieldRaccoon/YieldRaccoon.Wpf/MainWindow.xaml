@@ -38,6 +38,15 @@
                     <TextBlock Margin="8,0,0,0" Text="Export" />
                 </StackPanel>
             </Button>
+            <Button Command="{Binding OpenFundStatisticsExportCommand}" ToolTip="Statistics export">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="14"
+                        Text="&#xE9D9;" />
+                    <TextBlock Margin="8,0,0,0" Text="Statistics" />
+                </StackPanel>
+            </Button>
             <Button Command="{Binding OpenSettingsCommand}" ToolTip="Settings">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock

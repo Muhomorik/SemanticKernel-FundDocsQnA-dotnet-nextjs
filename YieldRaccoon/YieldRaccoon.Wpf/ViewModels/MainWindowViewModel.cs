@@ -39,6 +39,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ISettingsDialogService _settingsDialogService;
     private readonly IAboutFundWindowService _aboutFundWindowService;
     private readonly IExportWindowService _exportWindowService;
+    private readonly IFundStatisticsExportWindowService _fundStatisticsExportWindowService;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
@@ -285,6 +286,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ICommand OpenExportCommand { get; }
 
+    /// <summary>
+    /// Gets the command to open the Fund Statistics Export window.
+    /// </summary>
+    public ICommand OpenFundStatisticsExportCommand { get; }
+
     #endregion
 
     #region Events
@@ -319,6 +325,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="settingsDialogService">Service for showing the settings dialog.</param>
     /// <param name="aboutFundWindowService">Service for showing the AboutFund browser window.</param>
     /// <param name="exportWindowService">Service for showing the Export window.</param>
+    /// <param name="fundStatisticsExportWindowService">Service for showing the Fund Statistics Export window.</param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
@@ -326,7 +333,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         ICrawlSessionOrchestrator orchestrator,
         ISettingsDialogService settingsDialogService,
         IAboutFundWindowService aboutFundWindowService,
-        IExportWindowService exportWindowService)
+        IExportWindowService exportWindowService,
+        IFundStatisticsExportWindowService fundStatisticsExportWindowService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -336,6 +344,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             aboutFundWindowService ?? throw new ArgumentNullException(nameof(aboutFundWindowService));
         _exportWindowService =
             exportWindowService ?? throw new ArgumentNullException(nameof(exportWindowService));
+        _fundStatisticsExportWindowService =
+            fundStatisticsExportWindowService ?? throw new ArgumentNullException(nameof(fundStatisticsExportWindowService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
@@ -372,6 +382,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         OpenSettingsCommand = new DelegateCommand(ExecuteOpenSettings);
         OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
         OpenExportCommand = new DelegateCommand(ExecuteOpenExport);
+        OpenFundStatisticsExportCommand = new DelegateCommand(ExecuteOpenFundStatisticsExport);
 
         // Set up subscriptions to orchestrator streams
         SetupOrchestratorSubscriptions();
@@ -391,6 +402,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _settingsDialogService = null!; // Design-time only
         _aboutFundWindowService = null!; // Design-time only
         _exportWindowService = null!; // Design-time only
+        _fundStatisticsExportWindowService = null!; // Design-time only
 
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
@@ -421,6 +433,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         OpenSettingsCommand = new DelegateCommand(() => { });
         OpenAboutFundCommand = new DelegateCommand(() => { });
         OpenExportCommand = new DelegateCommand(() => { });
+        OpenFundStatisticsExportCommand = new DelegateCommand(() => { });
     }
 
     #region Orchestrator Subscriptions
@@ -583,6 +596,16 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _logger.Debug("Open Export window command executed");
         _exportWindowService.ShowExportWindow();
+    }
+
+    /// <summary>
+    /// Executes the open Fund Statistics Export command.
+    /// Shows the Fund Statistics Export window via the window service.
+    /// </summary>
+    private void ExecuteOpenFundStatisticsExport()
+    {
+        _logger.Debug("Open Fund Statistics Export window command executed");
+        _fundStatisticsExportWindowService.ShowFundStatisticsExportWindow();
     }
 
     /// <summary>

@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-24 (YieldRaccoon Manual Collection Mode: navigate to fund URL, manually click period buttons, each intercepted response saved to DB immediately — no session, no timers)
+Last Updated: 2026-02-26 (YieldRaccoon Fund Statistics CSV Export: compute 13 summary stats per fund per time window, export as CSV for Claude.ai analysis)
 
 **Tech Stack:**
 
@@ -679,6 +679,30 @@ Export window allowing users to filter the fund database by company name and tim
 7. `VACUUM` — reclaim disk space (operates directly on main file, not WAL)
 8. Close connection + clear connection pool
 9. Clean up leftover `-wal` / `-shm` journal files
+
+### Fund Statistics CSV Export ✅ COMPLETED (2026-02-26)
+
+Compute 13 summary statistics per fund per time window from daily NAV data and export as CSV for exploratory data analysis with Claude. Each fund produces multiple rows — one per non-overlapping window. Source database is read-only (never modified). Uses MathNet.Numerics v5.0.0 for statistical computations.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundStatisticsCsvExportService` interface (ExportAsync with window size, company, min owners, cutoff date, progress) | ✅ |
+| **Infrastructure** | `FundStatisticsCalculator` (static, pure math: 13 stats from `decimal[]` NAV values) | ✅ |
+| **Infrastructure** | `FundSummaryStatistics` (internal record: 13 stats + isin + name + period dates) | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` (read-only SQLite → windowing → stats → CSV, with cutoff date filtering) | ✅ |
+| **Presentation** | `FundStatisticsExportWindow.xaml` (window size, lookback, min owners, company, browse output, progress bar) | ✅ |
+| **Presentation** | `FundStatisticsExportWindowViewModel` (AsyncCommand, SaveFileDialog, auto-filename, progress reporting) | ✅ |
+| **Presentation** | `IFundStatisticsExportWindowService` / `FundStatisticsExportWindowService` (modal dialog via Autofac) | ✅ |
+| **MainWindow** | `OpenFundStatisticsExportCommand` on `MainWindowViewModel` | ✅ |
+| **DI** | `PresentationModule` registrations for export service + window service | ✅ |
+| **Tests** | `FundStatisticsCalculatorTests` — 19 tests (returns, volatility, drawdowns, Sharpe, skewness, edge cases) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` — usage guide with Claude prompt templates | ✅ |
+
+**13 Statistics:** total_return_pct, ann_volatility, max_drawdown_pct, current_drawdown_pct, sharpe_ratio, best_day_pct, worst_day_pct, pct_positive_days, skewness, first_nav, last_nav, nav_high, nav_low
+
+**Window sizes:** 1 week (7d), 2 weeks (14d, default), 3 weeks (21d), 1 month (30d), 3 months (90d)
+
+**Lookback periods:** 1 month, 2 months, 3 months, 6 months (default), 1 year
 
 ### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
 
