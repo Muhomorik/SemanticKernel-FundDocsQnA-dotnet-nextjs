@@ -381,6 +381,10 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
+            // Reload schedule from DB so freshly-visited funds drop to the bottom
+            var schedule = await _orchestrator.LoadScheduleAsync();
+            FundScheduleViewModel.LoadSchedule(schedule);
+
             _orchestrator.SetAutoAdvance(ControlPanelViewModel.AutoStartOverview);
             await _orchestrator.StartSessionAsync();
         }
