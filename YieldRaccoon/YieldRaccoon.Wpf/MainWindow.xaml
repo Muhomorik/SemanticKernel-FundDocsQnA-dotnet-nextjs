@@ -568,18 +568,17 @@
         <!--  Status bar  -->
         <StatusBar Grid.Row="1">
             <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}" />
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock
-                        Margin="0,0,8,0"
+                        Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Text="{Binding IsLoading, StringFormat='Loading: {0}'}" />
-                    <Button
-                        Command="{Binding RefreshCommand}"
-                        Content="Refresh"
-                        Style="{StaticResource yr.ButtonFlatStyle}" />
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="12"
+                        Text="&#xEDA2;" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource yr.CaptionStyle}"
+                        Text="{Binding DatabaseProviderName}" />
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>

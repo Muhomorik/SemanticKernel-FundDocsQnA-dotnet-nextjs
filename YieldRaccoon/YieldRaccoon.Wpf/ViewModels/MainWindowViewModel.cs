@@ -46,6 +46,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     #region UI State Properties
 
     /// <summary>
+    /// Gets the display name of the active database provider (e.g., "InMemory", "SQLite").
+    /// </summary>
+    public string DatabaseProviderName { get; }
+
+    /// <summary>
     /// Gets or sets the window title.
     /// </summary>
     public string Title
@@ -326,6 +331,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="aboutFundWindowService">Service for showing the AboutFund browser window.</param>
     /// <param name="exportWindowService">Service for showing the Export window.</param>
     /// <param name="fundStatisticsExportWindowService">Service for showing the Fund Statistics Export window.</param>
+    /// <param name="databaseOptions">Database configuration options for provider display.</param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
@@ -334,7 +340,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         ISettingsDialogService settingsDialogService,
         IAboutFundWindowService aboutFundWindowService,
         IExportWindowService exportWindowService,
-        IFundStatisticsExportWindowService fundStatisticsExportWindowService)
+        IFundStatisticsExportWindowService fundStatisticsExportWindowService,
+        DatabaseOptions databaseOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -348,6 +355,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             fundStatisticsExportWindowService ?? throw new ArgumentNullException(nameof(fundStatisticsExportWindowService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+
+        DatabaseProviderName = (databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions)))
+            .Provider.ToString();
 
         _logger.Info("MainWindowViewModel constructor called");
 
@@ -404,6 +414,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _exportWindowService = null!; // Design-time only
         _fundStatisticsExportWindowService = null!; // Design-time only
 
+        DatabaseProviderName = "InMemory";
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
         BrowserUrl = "https://example.com";
