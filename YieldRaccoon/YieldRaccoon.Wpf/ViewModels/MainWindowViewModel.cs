@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -356,8 +357,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
-        DatabaseProviderName = (databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions)))
-            .Provider.ToString();
+        ArgumentNullException.ThrowIfNull(databaseOptions);
+        DatabaseProviderName = databaseOptions.Provider == DatabaseProvider.SQLite
+            ? $"SQLite — {Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""))}"
+            : "InMemory";
 
         _logger.Info("MainWindowViewModel constructor called");
 
