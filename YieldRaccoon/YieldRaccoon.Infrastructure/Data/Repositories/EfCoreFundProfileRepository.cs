@@ -36,7 +36,16 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
         }
         else
         {
+            // Preserve fields not owned by the crawl ingestion pipeline.
+            // AboutFundLastVisitedAt is set exclusively by the orchestrator;
+            // FirstSeenAt is set once on insert and must never change.
+            var preservedLastVisitedAt = existing.AboutFundLastVisitedAt;
+            var preservedFirstSeenAt = existing.FirstSeenAt;
+
             _context.Entry(existing).CurrentValues.SetValues(fundProfile);
+
+            existing.AboutFundLastVisitedAt = preservedLastVisitedAt;
+            _context.Entry(existing).Property(e => e.FirstSeenAt).CurrentValue = preservedFirstSeenAt;
         }
     }
 

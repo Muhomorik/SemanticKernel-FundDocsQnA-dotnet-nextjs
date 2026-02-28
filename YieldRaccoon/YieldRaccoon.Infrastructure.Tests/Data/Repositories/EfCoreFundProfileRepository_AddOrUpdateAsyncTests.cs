@@ -120,4 +120,64 @@ public class EfCoreFundProfileRepository_AddOrUpdateAsyncTests
         var retrieved = await _context.FundProfiles.FindAsync(profile.Id);
         Assert.That(retrieved!.Name, Is.EqualTo("Third Update"));
     }
+
+    [Test]
+    public async Task AddOrUpdateAsync_ExistingProfile_PreservesAboutFundLastVisitedAt()
+    {
+        // Arrange — create profile with a visited timestamp
+        var profile = _fixture.Create<FundProfile>();
+        var originalVisitedAt = new DateTimeOffset(2026, 2, 27, 14, 30, 0, TimeSpan.Zero);
+        profile.AboutFundLastVisitedAt = originalVisitedAt;
+
+        await _sut.AddOrUpdateAsync(profile);
+        await _sut.SaveChangesAsync();
+
+        // Simulate a crawl update — incoming profile has null AboutFundLastVisitedAt
+        var crawlUpdate = new FundProfile
+        {
+            Id = profile.Id,
+            Name = "Crawl Update",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = DateTimeOffset.UtcNow,
+            AboutFundLastVisitedAt = null
+        };
+
+        // Act
+        await _sut.AddOrUpdateAsync(crawlUpdate);
+        await _sut.SaveChangesAsync();
+
+        // Assert — orchestrator-owned timestamp must survive
+        var retrieved = await _context.FundProfiles.FindAsync(profile.Id);
+        Assert.That(retrieved!.AboutFundLastVisitedAt, Is.EqualTo(originalVisitedAt),
+            "AboutFundLastVisitedAt must not be overwritten by crawl ingestion");
+    }
+
+    [Test]
+    public async Task AddOrUpdateAsync_ExistingProfile_PreservesFirstSeenAt()
+    {
+        // Arrange — create profile (FirstSeenAt is init-only, set by FundProfileBuilder)
+        var profile = _fixture.Create<FundProfile>();
+        var originalFirstSeen = profile.FirstSeenAt;
+
+        await _sut.AddOrUpdateAsync(profile);
+        await _sut.SaveChangesAsync();
+
+        // Simulate a crawl update with a different FirstSeenAt
+        var crawlUpdate = new FundProfile
+        {
+            Id = profile.Id,
+            Name = "Crawl Update",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        // Act
+        await _sut.AddOrUpdateAsync(crawlUpdate);
+        await _sut.SaveChangesAsync();
+
+        // Assert — FirstSeenAt must not change after initial insert
+        var retrieved = await _context.FundProfiles.FindAsync(profile.Id);
+        Assert.That(retrieved!.FirstSeenAt, Is.EqualTo(originalFirstSeen),
+            "FirstSeenAt must not be overwritten on update");
+    }
 }

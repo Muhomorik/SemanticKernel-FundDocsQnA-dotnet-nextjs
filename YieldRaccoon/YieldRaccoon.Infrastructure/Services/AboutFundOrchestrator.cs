@@ -172,7 +172,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync()
     {
         _logger.Info("Loading fund schedule from database");
-        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(20);
+        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(80);
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;
     }
