@@ -4,13 +4,14 @@ using DevExpress.Mvvm;
 using Microsoft.Win32;
 using NLog;
 using YieldRaccoon.Wpf.Configuration;
+using YieldRaccoon.Wpf.Models;
 using YieldRaccoon.Wpf.Services;
 
 namespace YieldRaccoon.Wpf.ViewModels;
 
 /// <summary>
 /// ViewModel for the settings window.
-/// Allows users to configure database location and other preferences.
+/// Allows users to configure database provider, location, and other preferences.
 /// </summary>
 public class SettingsWindowViewModel : ViewModelBase
 {
@@ -18,6 +19,7 @@ public class SettingsWindowViewModel : ViewModelBase
     private readonly IUserSettingsService _settingsService;
     private readonly DatabaseOptions _databaseOptions;
     private readonly string _originalDatabasePath;
+    private readonly DatabaseProvider _originalProvider;
 
     /// <summary>
     /// Event raised when the window should close with a result.
@@ -41,6 +43,11 @@ public class SettingsWindowViewModel : ViewModelBase
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
+        // Initialize provider options
+        AvailableProviders = CreateProviderOptions();
+        _originalProvider = databaseOptions.Provider;
+        SelectedProvider = AvailableProviders.First(p => p.Provider == databaseOptions.Provider);
+
         // Extract the database path from the connection string
         _originalDatabasePath = ExtractDatabasePath(databaseOptions.ConnectionString);
         DatabasePath = userSettings?.DatabasePath ?? _originalDatabasePath;
@@ -63,7 +70,11 @@ public class SettingsWindowViewModel : ViewModelBase
         _settingsService = null!;
         _databaseOptions = new DatabaseOptions();
         _originalDatabasePath = DatabaseOptions.DefaultDatabaseFileName;
+        _originalProvider = DatabaseProvider.InMemory;
         DatabasePath = _originalDatabasePath;
+
+        AvailableProviders = CreateProviderOptions();
+        SelectedProvider = AvailableProviders[0];
 
         BrowseCommand = new DelegateCommand(() => { });
         ResetToDefaultCommand = new DelegateCommand(() => { });
@@ -72,6 +83,35 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     #region Properties
+
+    /// <summary>
+    /// Gets the available database providers for the ComboBox.
+    /// </summary>
+    public IReadOnlyList<DatabaseProviderOption> AvailableProviders { get; }
+
+    /// <summary>
+    /// Gets or sets the selected database provider.
+    /// </summary>
+    public DatabaseProviderOption SelectedProvider
+    {
+        get => GetProperty(() => SelectedProvider);
+        set
+        {
+            if (SetProperty(() => SelectedProvider, value))
+            {
+                RaisePropertyChanged(() => HasChanges);
+                RaisePropertyChanged(() => RestartRequiredMessage);
+                RaisePropertyChanged(() => IsDatabasePathVisible);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the database path field should be visible.
+    /// Only relevant for SQLite and DualWrite providers.
+    /// </summary>
+    public bool IsDatabasePathVisible =>
+        SelectedProvider?.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite;
 
     /// <summary>
     /// Gets or sets the database file path.
@@ -92,7 +132,9 @@ public class SettingsWindowViewModel : ViewModelBase
     /// <summary>
     /// Gets whether there are unsaved changes that require a restart.
     /// </summary>
-    public bool HasChanges => !string.Equals(DatabasePath, _originalDatabasePath, StringComparison.OrdinalIgnoreCase);
+    public bool HasChanges =>
+        !string.Equals(DatabasePath, _originalDatabasePath, StringComparison.OrdinalIgnoreCase)
+        || SelectedProvider?.Provider != _originalProvider;
 
     /// <summary>
     /// Gets the restart required message, shown when settings have changed.
@@ -175,8 +217,9 @@ public class SettingsWindowViewModel : ViewModelBase
 
     private void ExecuteResetToDefault()
     {
+        SelectedProvider = AvailableProviders.First(p => p.Provider == DatabaseProvider.InMemory);
         DatabasePath = DatabaseOptions.DefaultDatabaseFileName;
-        _logger.Debug("Database path reset to default");
+        _logger.Debug("Settings reset to defaults");
     }
 
     private bool CanExecuteSave()
@@ -188,10 +231,11 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         try
         {
-            _logger.Info($"Saving settings - Database path: {DatabasePath}");
+            _logger.Info($"Saving settings - Provider: {SelectedProvider.Provider}, Database path: {DatabasePath}");
 
             var settings = new UserSettings
             {
+                DatabaseProvider = SelectedProvider.Provider,
                 DatabasePath = DatabasePath
             };
 
@@ -203,7 +247,6 @@ public class SettingsWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to save settings");
-            // Could show error dialog here
         }
     }
 
@@ -216,6 +259,13 @@ public class SettingsWindowViewModel : ViewModelBase
     #endregion
 
     #region Helpers
+
+    private static IReadOnlyList<DatabaseProviderOption> CreateProviderOptions() =>
+    [
+        new DatabaseProviderOption(DatabaseProvider.InMemory, "InMemory"),
+        new DatabaseProviderOption(DatabaseProvider.SQLite, "SQLite"),
+        new DatabaseProviderOption(DatabaseProvider.DualWrite, "DualWrite (SQLite + Azure SQL)")
+    ];
 
     /// <summary>
     /// Extracts the database file path from a SQLite connection string.

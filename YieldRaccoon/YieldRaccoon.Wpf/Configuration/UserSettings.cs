@@ -10,4 +10,9 @@ public class UserSettings
     /// Custom database file path. When null, the default from appsettings.json is used.
     /// </summary>
     public string? DatabasePath { get; set; }
+
+    /// <summary>
+    /// Selected database provider. When null, the default from appsettings.json is used.
+    /// </summary>
+    public DatabaseProvider? DatabaseProvider { get; set; }
 }

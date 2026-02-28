@@ -14,7 +14,7 @@ public class DatabaseOptions
     /// Gets or sets the database provider to use.
     /// </summary>
     /// <remarks>
-    /// Valid values: "InMemory", "SQLite".
+    /// Valid values: "InMemory", "SQLite", "DualWrite".
     /// Default: "InMemory" for development/testing.
     /// </remarks>
     public DatabaseProvider Provider { get; set; } = DatabaseProvider.InMemory;
@@ -42,5 +42,11 @@ public enum DatabaseProvider
     /// <summary>
     /// Use SQLite database for local persistence.
     /// </summary>
-    SQLite
+    SQLite,
+
+    /// <summary>
+    /// Write to both SQLite (local) and Azure SQL Database (cloud).
+    /// Not yet implemented — falls back to SQLite.
+    /// </summary>
+    DualWrite
 }

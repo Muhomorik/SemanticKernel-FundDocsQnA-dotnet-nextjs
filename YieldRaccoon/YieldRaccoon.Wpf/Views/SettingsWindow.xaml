@@ -8,9 +8,9 @@
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Settings"
     Width="550"
-    Height="280"
+    Height="340"
     MinWidth="450"
-    MinHeight="250"
+    MinHeight="310"
     d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel,
                                      IsDesignTimeCreatable=True}"
     Icon="/Resources/YieldRaccoon.ico"
@@ -25,36 +25,53 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  Database Location Section  -->
-        <TextBlock
-            Grid.Row="0"
+        <!--  Database Provider Section  -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Database provider" />
+            <ComboBox
+                Width="280"
+                HorizontalAlignment="Left"
+                ItemsSource="{Binding AvailableProviders}"
+                SelectedItem="{Binding SelectedProvider}" />
+        </StackPanel>
+
+        <!--  Database Location Section (visible only for SQLite/DualWrite)  -->
+        <StackPanel
+            Grid.Row="1"
             Margin="0,0,0,8"
-            Style="{StaticResource yr.TitleStyle}"
-            Text="Database Location" />
+            Visibility="{Binding IsDatabasePathVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Database location" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+                <TextBox
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    mah:TextBoxHelper.Watermark="Database file path..."
+                    Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
 
-            <TextBox
-                Grid.Column="0"
-                Margin="0,0,8,0"
-                mah:TextBoxHelper.Watermark="Database file path..."
-                Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
-
-            <Button
-                Grid.Column="1"
-                Width="80"
-                Command="{Binding BrowseCommand}"
-                Content="Browse..."
-                Style="{StaticResource yr.ButtonStyle}" />
-        </Grid>
+                <Button
+                    Grid.Column="1"
+                    Width="80"
+                    Command="{Binding BrowseCommand}"
+                    Content="Browse..."
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </Grid>
+        </StackPanel>
 
         <!--  Info text  -->
         <TextBlock
@@ -89,7 +106,7 @@
         </StackPanel>
 
         <!--  Buttons  -->
-        <Grid Grid.Row="4">
+        <Grid Grid.Row="5">
             <Button
                 HorizontalAlignment="Left"
                 Command="{Binding ResetToDefaultCommand}"

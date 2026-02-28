@@ -234,9 +234,10 @@ public class PresentationModule : Module
     /// </summary>
     private void RegisterDatabaseProvider(ContainerBuilder builder)
     {
-        if (_databaseOptions.Provider == DatabaseProvider.SQLite)
+        if (_databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite)
         {
             // Register DbContext with SQLite provider
+            // (DualWrite falls back to SQLite until Azure SQL integration is implemented)
             builder.Register(ctx =>
                 {
                     var optionsBuilder = new DbContextOptionsBuilder<YieldRaccoonDbContext>();

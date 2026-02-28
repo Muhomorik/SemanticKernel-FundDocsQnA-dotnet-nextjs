@@ -358,9 +358,13 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
         ArgumentNullException.ThrowIfNull(databaseOptions);
-        DatabaseProviderName = databaseOptions.Provider == DatabaseProvider.SQLite
-            ? $"SQLite — {Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""))}"
-            : "InMemory";
+        var dbPath = Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""));
+        DatabaseProviderName = databaseOptions.Provider switch
+        {
+            DatabaseProvider.SQLite => $"SQLite — {dbPath}",
+            DatabaseProvider.DualWrite => $"DualWrite — {dbPath}",
+            _ => "InMemory"
+        };
 
         _logger.Info("MainWindowViewModel constructor called");
 
