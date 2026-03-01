@@ -251,42 +251,61 @@ SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY Change ASC;
 SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY ChangePct DESC LIMIT 10;
 ```
 
+**Ownership change (between two dates)** — shows change in NumberOfOwners between two specific dates (edit the dates in the view definition):
+
+```sql
+DROP VIEW IF EXISTS vw_OwnershipChangeSinceDate;
+```
+
+```sql
+CREATE VIEW vw_OwnershipChangeSinceDate AS
+SELECT
+    p.Name,
+    l.FundId AS Isin,
+    b.NumberOfOwners AS OwnersAtBaseline,
+    l.NumberOfOwners AS OwnersNow,
+    l.NumberOfOwners - b.NumberOfOwners AS Change,
+    ROUND((l.NumberOfOwners - b.NumberOfOwners) * 100.0 / b.NumberOfOwners, 2) AS ChangePct
+FROM (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate <= '2026-02-26'  -- ← change to target date
+) l
+JOIN (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate <= '2026-02-12'  -- ← change to baseline date
+) b ON l.FundId = b.FundId AND b.rn = 1
+JOIN FundProfiles p ON l.FundId = p.Isin
+WHERE l.rn = 1
+  AND b.NumberOfOwners >= 100
+  AND l.NumberOfOwners >= 100;
+```
+
+Query examples:
+
+```sql
+-- Top 10 gainers between Jan 15 and Mar 1
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY Change DESC LIMIT 50;
+
+-- Top 10 losers
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY Change ASC LIMIT 50;
+
+-- Top 10 by percentage growth
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY ChangePct DESC LIMIT 50;
+```
+
 </details>
 
 ## Fund Data Export
 
-Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database with others or for offline analysis. Available from the Export button in the title bar (SQLite provider only).
+Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database or offline analysis. The original database is never modified. See [FUND-DATA-EXPORT.md](docs/FUND-DATA-EXPORT.md) for the full pipeline, filter options, and architecture.
 
-The original database is never modified. The pipeline copies first, then filters the copy.
+## Fund Statistics Export
 
-**Export pipeline:**
-
-1. `File.Copy` source → destination (+ WAL/SHM journal files if present)
-2. `PRAGMA wal_checkpoint(TRUNCATE)` — merge WAL into main file
-3. `DELETE FROM FundProfiles` where company name doesn't match (case-insensitive)
-4. `DELETE FROM FundHistoryRecords` where fund no longer exists (orphan cleanup)
-5. `DELETE FROM FundHistoryRecords` where NavDate is before cutoff
-6. `PRAGMA journal_mode=DELETE` — switch from WAL to classic mode (checkpoints pending changes)
-7. `VACUUM` — reclaim disk space
-8. Clean up leftover `-wal` / `-shm` journal files
-
-**Filter options:**
-
-| Option | Values | Default |
-| -------- | -------- | --------- |
-| Time period | 1 week, 2 weeks, 1 month, 3 months | 1 week |
-| Company name | Free text (case-insensitive match) | *(empty)* |
-| Output file | Browse or auto-generated filename | `YieldRaccoon_{company}_{period}.db` in source directory |
-
-**Architecture:**
-
-| Layer | Component |
-| ------- | ----------- |
-| Application | `IFundDataExportService` — interface with `ExportAsync` |
-| Infrastructure | `FundDataExportService` — raw SQLite operations via `Microsoft.Data.Sqlite` |
-| Presentation | `ExportWindow` / `ExportWindowViewModel` — form with period, company, output path |
-| Presentation | `ExportPeriod` record — selectable time period model |
-| Presentation | `IExportWindowService` / `ExportWindowService` — modal dialog launcher |
+Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
 
 ## Repository Architecture
 

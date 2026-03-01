@@ -21,7 +21,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 ### Options
 
 | Option | Description | Default |
-|--------|-------------|---------|
+| -------- | ------------- | --------- |
 | **Window size** | How many calendar days each time window spans. NAV history is sliced into back-to-back chunks of this size. | 2 weeks (14 days) |
 | **Lookback** | How far back in time to include NAV data. Only data from this many days ago to today is processed. | 6 months (180 days) |
 | **Min owners** | Minimum number of fund owners required. Funds with fewer owners are excluded. | 100 |
@@ -31,7 +31,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 ### Available window sizes
 
 | Label | Days | Typical rows per fund (6 months of data) |
-|-------|------|------------------------------------------|
+| ------- | ------ | ------------------------------------------ |
 | 1 week | 7 | ~26 |
 | 2 weeks | 14 | ~13 |
 | 3 weeks | 21 | ~9 |
@@ -41,7 +41,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 ### Available lookback periods
 
 | Label | Days | Description |
-|-------|------|-------------|
+| ------- | ------ | ------------- |
 | 1 month | 30 | Only the last month of NAV data |
 | 2 months | 60 | Last 2 months |
 | 3 months | 90 | Last 3 months |
@@ -62,7 +62,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 Each row in the CSV represents one fund in one time window. Here's what each column means:
 
 | Column | Description | Formula / Notes |
-|--------|-------------|-----------------|
+| -------- | ------------- | ----------------- |
 | `series` | Fund ISIN identifier | e.g., `SE0000000001` |
 | `name` | Fund display name | e.g., `Avanza Zero` |
 | `period_start` | First date of the window | `YYYY-MM-DD` |
@@ -237,7 +237,7 @@ SE0000000002,Example Fund,2026-01-05,2026-01-16,50.0000,49.2000,50.5000,48.8000,
 Rows depend on both the **lookback period** and the **window size**. The table below assumes 1,400 funds:
 
 | Lookback | Window size | Rows per fund | Total rows | Approx. tokens |
-|----------|-------------|---------------|------------|----------------|
+| ---------- | ------------- | --------------- | ------------ | ---------------- |
 | 3 months | 2 weeks | ~6 | ~8,400 | ~85K |
 | 6 months | 2 weeks | ~13 | ~18,200 | ~180K |
 | 6 months | 1 month | ~6 | ~8,400 | ~85K |
