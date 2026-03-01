@@ -98,6 +98,12 @@ public class PresentationModule : Module
             .As<IFundStatisticsCsvExportService>()
             .InstancePerDependency();
 
+        // Fund metadata CSV export service registration
+        // Exports fund profile metadata (fees, risk metrics, classifications) to CSV
+        builder.RegisterType<FundMetadataCsvExportService>()
+            .As<IFundMetadataCsvExportService>()
+            .InstancePerDependency();
+
         // Fund statistics export window service registration
         // Register window service for showing the statistics export window from ViewModels
         builder.RegisterType<FundStatisticsExportWindowService>()

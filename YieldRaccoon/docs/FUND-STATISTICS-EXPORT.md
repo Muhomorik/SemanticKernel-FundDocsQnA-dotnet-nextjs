@@ -9,8 +9,10 @@ The Statistics Export feature reads your fund database (read-only), slices each 
 **Key points:**
 
 - Each fund produces **multiple rows** -- one per time window
+- Only funds with `Buyable = 1` are included
 - The source database is **never modified** (read-only access)
 - Output is a standard CSV file (UTF-8, RFC 4180 compliant)
+- A **metadata companion file** is also generated (see below)
 
 ## How to use
 
@@ -27,6 +29,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 | **Min owners** | Minimum number of fund owners required. Funds with fewer owners are excluded. | 100 |
 | **Company filter** | Optional. If set, only exports funds from this company (case-insensitive match on `CompanyName`). Leave blank for all companies. | Empty (all) |
 | **Output path** | Where to save the CSV file. Click **Browse** to pick a location. | `YieldRaccoon_stats_2weeks_6months.csv` |
+| **Metadata output path** | Where to save the metadata companion CSV. Click **Browse** to pick a location. | `YieldRaccoon_metadata.csv` |
 
 ### Available window sizes
 
@@ -245,3 +248,40 @@ Rows depend on both the **lookback period** and the **window size**. The table b
 | 1 year | 1 month | ~12 | ~16,800 | ~170K |
 
 **Recommendation:** Start with **6 months lookback + 2 weeks window** or **3 months + 2 weeks** for a good balance between coverage and token budget. If the CSV is too large for a single Claude conversation, use the company filter to export subsets.
+
+## Metadata companion file
+
+When you click **Export**, a second CSV file is generated alongside the statistics CSV. This metadata file contains one row per qualifying fund with static profile attributes — useful for joining with the statistics data during analysis.
+
+**Default filename:** `YieldRaccoon_metadata.csv` (or `YieldRaccoon_metadata_{company}.csv` when a company filter is set)
+
+**Filters applied:** Same as the statistics export — `Buyable = 1`, company name (if set), minimum number of owners.
+
+### Metadata columns (17)
+
+| Column | Description | Type |
+| -------- | ------------- | ------ |
+| `isin` | Fund ISIN identifier | Text |
+| `name` | Fund display name | Text |
+| `company_name` | Fund management company | Text |
+| `currency_code` | ISO 4217 currency code (SEK, EUR, etc.) | Text |
+| `category` | Fund category classification | Text |
+| `fund_type` | e.g., Equity Fund, Bond Fund | Text |
+| `is_index_fund` | Whether fund is index-tracking | `true`/`false`/empty |
+| `managed_type` | ACTIVE or PASSIVE | Text |
+| `total_fee` | Total expense ratio (decimal, e.g., 0.0125) | Decimal |
+| `management_fee` | Annual management fee (decimal) | Decimal |
+| `risk` | SRRI/SRI risk indicator (1-7) | Integer |
+| `rating` | Star rating (1-5) | Integer |
+| `sharpe_ratio` | Risk-adjusted return metric | Decimal |
+| `standard_deviation` | Annualized volatility | Decimal |
+| `recommended_holding_period` | Investor holding guidance | Text |
+| `capital` | Total assets under management | Decimal |
+| `number_of_owners` | Number of unique investors | Integer |
+
+### Example metadata CSV
+
+```csv
+isin,name,company_name,currency_code,category,fund_type,is_index_fund,managed_type,total_fee,management_fee,risk,rating,sharpe_ratio,standard_deviation,recommended_holding_period,capital,number_of_owners
+SE0000000001,Avanza Zero,Avanza Fonder,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,5 years,1000000,50000
+```

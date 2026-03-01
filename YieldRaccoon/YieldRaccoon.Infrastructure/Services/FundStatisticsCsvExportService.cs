@@ -109,7 +109,8 @@ public class FundStatisticsCsvExportService : IFundStatisticsCsvExportService
         command.CommandText = """
             SELECT fp.Isin, fp.Name
             FROM FundProfiles fp
-            WHERE (@company IS NULL OR LOWER(fp.CompanyName) = LOWER(@company))
+            WHERE fp.Buyable = 1
+              AND (@company IS NULL OR LOWER(fp.CompanyName) = LOWER(@company))
               AND (fp.NumberOfOwners IS NOT NULL AND fp.NumberOfOwners >= @minOwners)
             ORDER BY fp.Isin
             """;

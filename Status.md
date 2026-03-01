@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-26 (YieldRaccoon Fund Statistics CSV Export: compute 13 summary stats per fund per time window, export as CSV for Claude.ai analysis)
+Last Updated: 2026-03-01 (YieldRaccoon: Fund Metadata CSV Export + Buyable filter on both statistics and metadata exports)
 
 **Tech Stack:**
 
@@ -703,6 +703,25 @@ Compute 13 summary statistics per fund per time window from daily NAV data and e
 **Window sizes:** 1 week (7d), 2 weeks (14d, default), 3 weeks (21d), 1 month (30d), 3 months (90d)
 
 **Lookback periods:** 1 month, 2 months, 3 months, 6 months (default), 1 year
+
+### Fund Metadata CSV Export ✅ COMPLETED (2026-03-01)
+
+Export fund profile metadata (fees, risk metrics, classifications) as a companion CSV alongside the statistics export. Only funds with `Buyable = 1` are included in both statistics and metadata exports.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundMetadataCsvExportService` interface (ExportAsync with company, min owners) | ✅ |
+| **Infrastructure** | `FundMetadataCsvExportService` (read-only SQLite → single query → 17-column CSV, Buyable filter) | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` updated with `Buyable = 1` filter | ✅ |
+| **Presentation** | `MetadataOutputPath` property + `BrowseMetadataCommand` on `FundStatisticsExportWindowViewModel` | ✅ |
+| **Presentation** | New "Metadata output file" field in `FundStatisticsExportWindow.xaml` | ✅ |
+| **DI** | `PresentationModule` registration for metadata export service | ✅ |
+| **Tests** | `FundMetadataCsvExportServiceTests` — 13 tests (Buyable filter, company filter, owners, CSV format, edge cases) | ✅ |
+| **Tests** | `FundStatisticsCsvExportServiceTests` — 3 tests (Buyable filter on statistics export) | ✅ |
+
+**Metadata columns (17):** isin, name, company_name, currency_code, category, fund_type, is_index_fund, managed_type, total_fee, management_fee, risk, rating, sharpe_ratio, standard_deviation, recommended_holding_period, capital, number_of_owners
+
+**Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
 
 ### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
 

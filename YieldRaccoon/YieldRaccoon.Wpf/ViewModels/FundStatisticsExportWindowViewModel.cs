@@ -19,6 +19,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
     private readonly ILogger _logger;
     private readonly IFundStatisticsCsvExportService _exportService;
+    private readonly IFundMetadataCsvExportService _metadataExportService;
     private readonly DatabaseOptions _databaseOptions;
     private readonly string _sourceDirectory;
 
@@ -32,14 +33,17 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="exportService">Service for computing and exporting fund statistics.</param>
+    /// <param name="metadataExportService">Service for exporting fund profile metadata.</param>
     /// <param name="databaseOptions">Current database configuration.</param>
     public FundStatisticsExportWindowViewModel(
         ILogger logger,
         IFundStatisticsCsvExportService exportService,
+        IFundMetadataCsvExportService metadataExportService,
         DatabaseOptions databaseOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
+        _metadataExportService = metadataExportService ?? throw new ArgumentNullException(nameof(metadataExportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
         IsSqliteProvider = databaseOptions.Provider == DatabaseProvider.SQLite;
@@ -50,6 +54,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         SelectedLookbackPeriod = LookbackPeriods[3]; // 6 months default
         CompanyName = string.Empty;
         OutputPath = BuildDefaultPath(string.Empty, Periods[1], LookbackPeriods[3]);
+        MetadataOutputPath = BuildDefaultMetadataPath(string.Empty);
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -59,6 +64,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
         ExportCommand = new DelegateCommand(ExecuteExport, CanExecuteExport, true);
         BrowseCommand = new DelegateCommand(ExecuteBrowse, CanExecuteBrowse, true);
+        BrowseMetadataCommand = new DelegateCommand(ExecuteBrowseMetadata, CanExecuteBrowse, true);
         CloseCommand = new DelegateCommand(ExecuteClose);
         WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
 
@@ -72,6 +78,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     {
         _logger = LogManager.GetCurrentClassLogger();
         _exportService = null!;
+        _metadataExportService = null!;
         _databaseOptions = new DatabaseOptions();
         _sourceDirectory = string.Empty;
 
@@ -82,6 +89,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         SelectedLookbackPeriod = LookbackPeriods[3];
         CompanyName = string.Empty;
         OutputPath = @"YieldRaccoon_stats_2weeks_6months.csv";
+        MetadataOutputPath = @"YieldRaccoon_metadata.csv";
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -91,6 +99,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
         ExportCommand = new DelegateCommand(() => { });
         BrowseCommand = new DelegateCommand(() => { });
+        BrowseMetadataCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         WindowClosingCommand = new DelegateCommand(() => { });
     }
@@ -153,6 +162,15 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     {
         get => GetProperty(() => OutputPath);
         set => SetProperty(() => OutputPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the metadata CSV output file path.
+    /// </summary>
+    public string MetadataOutputPath
+    {
+        get => GetProperty(() => MetadataOutputPath);
+        set => SetProperty(() => MetadataOutputPath, value);
     }
 
     /// <summary>
@@ -229,6 +247,11 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     public ICommand BrowseCommand { get; }
 
     /// <summary>
+    /// Gets the command to browse for a metadata output file location.
+    /// </summary>
+    public ICommand BrowseMetadataCommand { get; }
+
+    /// <summary>
     /// Gets the command to close the window.
     /// </summary>
     public ICommand CloseCommand { get; }
@@ -246,7 +269,8 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     {
         return IsSqliteProvider
                && !IsExporting
-               && !string.IsNullOrWhiteSpace(OutputPath);
+               && !string.IsNullOrWhiteSpace(OutputPath)
+               && !string.IsNullOrWhiteSpace(MetadataOutputPath);
     }
 
     private async void ExecuteExport()
@@ -280,9 +304,18 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
                 cutoffDate,
                 progress);
 
-            StatusMessage = $"Exported {rowCount} rows to {Path.GetFileName(OutputPath)}";
+            // Metadata export
+            ProgressText = "Writing metadata...";
+            var metadataRowCount = await _metadataExportService.ExportAsync(
+                sourcePath,
+                MetadataOutputPath,
+                companyFilter,
+                MinNumberOfOwners);
+
+            StatusMessage = $"Exported {rowCount} stat rows + {metadataRowCount} metadata rows";
             IsStatusError = false;
-            _logger.Info("Statistics export completed: {0} ({1} rows)", OutputPath, rowCount);
+            _logger.Info("Export completed: stats={0} ({1} rows), metadata={2} ({3} rows)",
+                OutputPath, rowCount, MetadataOutputPath, metadataRowCount);
         }
         catch (FileNotFoundException ex)
         {
@@ -325,6 +358,27 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         }
     }
 
+    private void ExecuteBrowseMetadata()
+    {
+        _logger.Debug("Browse for metadata export output path");
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Select metadata export location",
+            Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+            DefaultExt = ".csv",
+            FileName = Path.GetFileName(MetadataOutputPath),
+            InitialDirectory = GetInitialDirectory(),
+            OverwritePrompt = true
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            MetadataOutputPath = dialog.FileName;
+            _logger.Info("Selected metadata export path: {0}", MetadataOutputPath);
+        }
+    }
+
     private void ExecuteClose()
     {
         _logger.Debug("Statistics export window close requested");
@@ -364,6 +418,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
             return;
 
         OutputPath = BuildDefaultPath(CompanyName, SelectedPeriod, SelectedLookbackPeriod);
+        MetadataOutputPath = BuildDefaultMetadataPath(CompanyName);
     }
 
     private string BuildDefaultPath(string companyName, ExportPeriod period, ExportPeriod lookback)
@@ -373,6 +428,17 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         var filename = string.IsNullOrWhiteSpace(companyName)
             ? $"YieldRaccoon_stats_{periodTag}_{lookbackTag}.csv"
             : $"YieldRaccoon_stats_{SanitizeFilename(companyName.Trim())}_{periodTag}_{lookbackTag}.csv";
+
+        return string.IsNullOrEmpty(_sourceDirectory)
+            ? filename
+            : Path.Combine(_sourceDirectory, filename);
+    }
+
+    private string BuildDefaultMetadataPath(string companyName)
+    {
+        var filename = string.IsNullOrWhiteSpace(companyName)
+            ? "YieldRaccoon_metadata.csv"
+            : $"YieldRaccoon_metadata_{SanitizeFilename(companyName.Trim())}.csv";
 
         return string.IsNullOrEmpty(_sourceDirectory)
             ? filename
