@@ -208,7 +208,7 @@ public class FundStatisticsCsvExportService : IFundStatisticsCsvExportService
         await using var writer = new StreamWriter(path, append: false, encoding: new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Header
-        await writer.WriteLineAsync("series,period_start,period_end,first_nav,last_nav,nav_high,nav_low,total_return_pct,ann_volatility,max_drawdown_pct,current_drawdown_pct,sharpe_ratio,best_day_pct,worst_day_pct,pct_positive_days,skewness");
+        await writer.WriteLineAsync("isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,total_return_pct,ann_volatility,max_drawdown_pct,current_drawdown_pct,sharpe_ratio,best_day_pct,worst_day_pct,pct_positive_days,skewness");
 
         // Data rows
         foreach (var s in statistics)
@@ -216,7 +216,8 @@ public class FundStatisticsCsvExportService : IFundStatisticsCsvExportService
             var name = EscapeCsvField(s.Name);
             var line = string.Format(
                 CultureInfo.InvariantCulture,
-                "{0},{1},{2},{3},{4},{5},{6},{7:F4},{8:F4},{9:F4},{10:F4},{11:F4},{12:F4},{13:F4},{14:F4},{15:F4}",
+                "{0},{1},{2},{3},{4},{5},{6},{7},{8:F4},{9:F4},{10:F4},{11:F4},{12:F4},{13:F4},{14:F4},{15:F4},{16:F4}",
+                s.Isin,
                 name,
                 s.PeriodStart.ToString("yyyy-MM-dd"),
                 s.PeriodEnd.ToString("yyyy-MM-dd"),

@@ -63,7 +63,7 @@ Each row in the CSV represents one fund in one time window. Here's what each col
 
 | Column | Description | Formula / Notes |
 | -------- | ------------- | ----------------- |
-| `series` | Fund ISIN identifier | e.g., `SE0000000001` |
+| `isin` | Fund ISIN identifier | e.g., `SE0000000001` |
 | `name` | Fund display name | e.g., `Avanza Zero` |
 | `period_start` | First date of the window | `YYYY-MM-DD` |
 | `period_end` | Last date of the window | `YYYY-MM-DD` |
@@ -226,7 +226,7 @@ for given risk level) with a connecting line.
 ## Example CSV output
 
 ```csv
-series,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,total_return_pct,ann_volatility,max_drawdown_pct,current_drawdown_pct,sharpe_ratio,best_day_pct,worst_day_pct,pct_positive_days,skewness
+isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,total_return_pct,ann_volatility,max_drawdown_pct,current_drawdown_pct,sharpe_ratio,best_day_pct,worst_day_pct,pct_positive_days,skewness
 SE0000000001,Avanza Zero,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
 SE0000000001,Avanza Zero,2026-01-19,2026-01-30,102.3000,103.5000,104.0000,101.8000,1.1730,8.5000,-0.5000,-0.4808,0.9200,0.8000,-0.6000,55.5556,-0.0500
 SE0000000002,Example Fund,2026-01-05,2026-01-16,50.0000,49.2000,50.5000,48.8000,-1.6000,15.3000,-3.2000,-2.5743,-0.5500,1.0000,-2.1000,44.4444,-0.3000
