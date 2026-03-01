@@ -112,7 +112,7 @@
                     Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                     Style="{StaticResource yr.CaptionStyle}">
                     <Run Text="ETA " />
-                    <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
+                    <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=hh\\:mm\\:ss}" />
                 </TextBlock>
             </Grid>
 
