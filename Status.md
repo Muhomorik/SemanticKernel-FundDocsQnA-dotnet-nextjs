@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-02 (Infrastructure: Azure SQL Database setup for YieldRaccoon fund data)
+Last Updated: 2026-03-02 (Backend: Fund data sync endpoints for YieldRaccoon → Azure SQL)
 
 **Tech Stack:**
 
@@ -90,12 +90,13 @@ Last Updated: 2026-03-02 (Infrastructure: Azure SQL Database setup for YieldRacc
 | LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
 | Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
 | Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
-| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), health checks, Swagger |
-| Authentication | ✅ | API key authentication for embedding endpoints (Cosmos DB only) |
+| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, health checks, Swagger |
+| Fund Data Sync | ✅ | EF Core + Azure SQL: FundProfiles + FundHistoryRecords tables, auto-migration, upsert/insert-only patterns |
+| Authentication | ✅ | API key authentication for embedding + fund data endpoints |
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
-| Unit Tests | ✅ | 69 tests passing (Domain, ApplicationCore, Infrastructure) |
+| Unit Tests | ✅ | 122 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data) |
 | Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
@@ -108,6 +109,37 @@ Last Updated: 2026-03-02 (Infrastructure: Azure SQL Database setup for YieldRacc
 | System Prompt | ✅ | Hardened with anti-jailbreak instructions |
 | Rate Limiting | ✅ | 10 req/min/IP, 2 request queue |
 | Request Size Limits | ✅ | 10KB max body size |
+
+### Fund Data Sync (Azure SQL) ✅ COMPLETED (2026-03-02)
+
+Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. EF Core with SQL Server provider, auto-migration on startup, API key authentication.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `IsinId` value object (12-char ISIN validation) | ✅ |
+| **Domain** | `FundHistoryRecordId` value object (auto-increment long) | ✅ |
+| **Domain** | `FundProfile` aggregate root (~35 properties, keyed by ISIN) | ✅ |
+| **Domain** | `FundHistoryRecord` entity (Nav, NavDate, Capital, Risk metrics) | ✅ |
+| **Domain** | `IFundProfileRepository` / `IFundHistoryRepository` interfaces | ✅ |
+| **ApplicationCore** | API DTOs mirrored from YieldRaccoon (5 files) | ✅ |
+| **ApplicationCore** | `IFundSyncService` / `FundSyncService` (DTO→entity mapping, validation) | ✅ |
+| **Infrastructure** | `FundDataDbContext` (EF Core, SQL Server types) | ✅ |
+| **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, unique constraints) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository` (upsert, preserves FirstSeenAt) | ✅ |
+| **Infrastructure** | `EfCoreFundHistoryRepository` (upsert + insert-if-not-exists) | ✅ |
+| **Controller** | `POST /api/funds/list` (batch crawl session sync) | ✅ |
+| **Controller** | `POST /api/funds/about` (single fund + chart history) | ✅ |
+| **Middleware** | `ApiKeyAuthenticationMiddleware` expanded for `/api/funds` | ✅ |
+| **Health** | `AzureSqlHealthCheck` (connectivity + profile count) | ✅ |
+| **Migration** | `InitialFundData` (FundProfiles + FundHistoryRecords tables) | ✅ |
+| **Tests** | `IsinIdTests` (8), `FundHistoryRecordIdTests` (7), `FundSyncServiceTests` (17), `EfCoreFundProfileRepository_UpsertAsyncTests` (9), `EfCoreFundHistoryRepository_UpsertRangeAsyncTests` (6), `EfCoreFundHistoryRepository_InsertIfNotExistsRangeAsyncTests` (6) | ✅ |
+
+**Endpoints:**
+
+| Method | Path | Purpose |
+| -------- | ------ | --------- |
+| POST | `/api/funds/list` | Batch upsert profiles + daily snapshots from fund list crawl |
+| POST | `/api/funds/about` | Upsert profile + insert-only chart history from fund detail page |
 
 ### Planned Features
 
@@ -756,10 +788,23 @@ Added manual collection mode: navigate to any fund URL, manually click period bu
 6. If automated session is active, URL is navigated but manual collection is skipped (automated takes precedence)
 7. Navigating to a new URL silently transitions — previous data already persisted per-slot
 
+### Cloud Sync API DTOs ✅ COMPLETED (2026-03-02)
+
+HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund data to Backend API (Azure SQL). These are the source-of-truth for the wire format — Backend has its own identical copies (no project reference).
+
+| File | Purpose |
+| ------ | ------- |
+| `ApiFundDto.cs` | Fund profile + daily snapshot (~35 fields, JSON-friendly types) |
+| `ApiFundHistoryPointDto.cs` | Single NAV chart data point (ISIN + Nav + NavDate) |
+| `FundListSyncRequest.cs` | Request for `POST /api/funds/list` (batch from crawl session) |
+| `FundAboutSyncRequest.cs` | Request for `POST /api/funds/about` (single fund + chart history) |
+| `FundSyncResponse.cs` | Response from both endpoints (success, message, counts) |
+
 ### Future Enhancements (Planned)
 
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
+| Cloud Sync Integration | 📅 Planned | Wire YieldRaccoon orchestrators to call Backend API fund sync endpoints |
 | CrawlOrchestrationService | 📅 Planned | Application service coordinating crawl sessions with Rx.NET |
 | Additional ViewModels | 📅 Planned | Create ViewModels for specific features |
 | User Controls | 📅 Planned | Break down MainWindow into smaller user controls |
@@ -785,7 +830,7 @@ Added manual collection mode: navigate to any fund URL, manually click period bu
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
 | Cosmos DB Vector Database | ✅ Production Ready | Optional persistent vector storage via `cosmosdb` verb. **Local + Production deployed**: Backend API, authentication, Managed Identity RBAC, Key Vault secrets, embeddings uploaded. Free tier (1000 RU/s, 25GB) |
-| Azure SQL Database | ✅ Infrastructure Ready | Sweden Central. Free tier, serverless, auto-pause. Microsoft Entra-only auth, Managed Identity `<your-app-service>` (datareader/datawriter/ddladmin). Connection string in Key Vault. Backend EF Core integration pending. Vector support available for future Cosmos DB migration. |
+| Azure SQL Database | ✅ Production Ready | Sweden Central. Free tier, serverless, auto-pause. Microsoft Entra-only auth, Managed Identity. Connection string in Key Vault. **Backend EF Core integrated**: FundProfiles + FundHistoryRecords tables, auto-migration, fund data sync endpoints (`/api/funds/list`, `/api/funds/about`). |
 
 ### Deployment Setup Complete
 
@@ -813,13 +858,13 @@ Added manual collection mode: navigate to any fund URL, manually click period bu
 
 | Test Suite | Status | Coverage |
 | ------------- | -------- | ---------- |
-| Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests, deprecated), UserQuestionSanitizer (13 tests), models, value objects |
-| ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (10 tests), RAG pipeline orchestration |
-| Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (5 tests), DocumentChunkMapper (4 tests), VectorStore integration |
+| Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests, deprecated), UserQuestionSanitizer (13 tests), models, value objects, IsinId (8 tests), FundHistoryRecordId (7 tests) |
+| ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (10 tests), FundSyncService (17 tests), RAG pipeline orchestration |
+| Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (5 tests), DocumentChunkMapper (4 tests), VectorStore integration, EfCoreFundProfileRepository (9 tests), EfCoreFundHistoryRepository (12 tests) |
 | Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
 | Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
-| **Total Backend Tests** | **✅ 69 Complete** | 69 tests passing (includes VectorStore migration) |
+| **Total Backend Tests** | **✅ 122 Complete** | 122 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository tests) |
 
 ### Frontend
 

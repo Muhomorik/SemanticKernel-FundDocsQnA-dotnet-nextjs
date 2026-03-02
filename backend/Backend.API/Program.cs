@@ -3,8 +3,11 @@ using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Backend.API.ApplicationCore.Configuration;
 using Backend.API.ApplicationCore.Services;
 using Backend.API.Configuration;
+using Backend.API.Domain.FundData.Interfaces;
 using Backend.API.Domain.Interfaces;
 using Backend.API.HealthChecks;
+using Backend.API.Infrastructure.FundData;
+using Backend.API.Infrastructure.FundData.Repositories;
 using Backend.API.Infrastructure.LLM.Configuration;
 using Backend.API.Infrastructure.LLM.Providers;
 using Backend.API.Infrastructure.Persistence;
@@ -13,6 +16,7 @@ using Backend.API.Middleware;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Azure.Cosmos;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -121,7 +125,9 @@ backendOptions = backendOptions with
     CosmosDbDatabaseName = builder.Configuration["BackendOptions:CosmosDbDatabaseName"]
                            ?? backendOptions.CosmosDbDatabaseName,
     EmbeddingApiKey = builder.Configuration["BackendOptions:EmbeddingApiKey"]
-                      ?? backendOptions.EmbeddingApiKey
+                      ?? backendOptions.EmbeddingApiKey,
+    AzureSqlConnectionString = builder.Configuration["BackendOptions:AzureSqlConnectionString"]
+                                ?? backendOptions.AzureSqlConnectionString
 };
 
 // Validate the appropriate API key is set for the selected provider
@@ -349,6 +355,20 @@ if (hasApiKeys)
 }
 
 // ========================================
+// 5.5 Fund Data Services (Azure SQL - Conditional)
+// ========================================
+var hasAzureSql = !string.IsNullOrWhiteSpace(backendOptions.AzureSqlConnectionString);
+if (hasAzureSql)
+{
+    builder.Services.AddDbContext<FundDataDbContext>(options =>
+        options.UseSqlServer(backendOptions.AzureSqlConnectionString));
+
+    builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
+    builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
+    builder.Services.AddScoped<IFundSyncService, FundSyncService>();
+}
+
+// ========================================
 // 6. ASP.NET Core Services Configuration
 // ========================================
 // Controllers for REST API endpoints
@@ -371,6 +391,14 @@ if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
 {
     healthChecksBuilder.AddCheck<CosmosDbHealthCheck>(
         "cosmosdb",
+        tags: new[] { "ready" });
+}
+
+// Azure SQL health check (only when Azure SQL is configured)
+if (hasAzureSql)
+{
+    healthChecksBuilder.AddCheck<AzureSqlHealthCheck>(
+        "azure_sql",
         tags: new[] { "ready" });
 }
 
@@ -475,6 +503,26 @@ else
 }
 
 // ========================================
+// 7.5 Azure SQL Auto-Migration
+// ========================================
+if (hasAzureSql)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FundDataDbContext>();
+        await db.Database.MigrateAsync();
+        var profileCount = await db.FundProfiles.CountAsync();
+        Console.WriteLine($"✓ Azure SQL initialized ({profileCount} fund profiles)");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"✗ Azure SQL migration failed: {ex.Message}");
+        throw;
+    }
+}
+
+// ========================================
 // 7. Middleware Pipeline Configuration
 // ========================================
 // Swagger UI only in development
@@ -490,9 +538,9 @@ app.UseCors();
 // Enable rate limiting middleware - DoS protection
 app.UseRateLimiter();
 
-// API key authentication for embedding endpoints (Cosmos DB only)
+// API key authentication for protected endpoints (embeddings + fund data)
 // Must be registered before UseAuthorization
-if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb)
+if (backendOptions.VectorStorageType == VectorStorageType.CosmosDb || hasAzureSql)
 {
     app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 }
@@ -536,6 +584,7 @@ switch (backendOptions.LlmProvider)
 }
 
 Console.WriteLine($"OpenAI Embedding Model: {backendOptions.OpenAIEmbeddingModel}");
+Console.WriteLine($"Azure SQL: {(hasAzureSql ? "Configured (fund data sync enabled)" : "Not configured")}");
 
 // Run the application
 app.Run();

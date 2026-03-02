@@ -22,6 +22,12 @@ public class BackendDomainCustomization : ICustomization
         fixture.Customizations.Add(new AskQuestionResponseBuilder());
         fixture.Customizations.Add(new UserQuestionSanitizerBuilder());
 
+        // Fund data domain builders
+        fixture.Customizations.Add(new IsinIdBuilder());
+        fixture.Customizations.Add(new FundHistoryRecordIdBuilder());
+        fixture.Customizations.Add(new FundProfileBuilder());
+        fixture.Customizations.Add(new FundHistoryRecordBuilder());
+
         // Configure default test values
         fixture.Inject(CreateDefaultApplicationOptions());
         fixture.Inject(CreateDefaultBackendOptions());

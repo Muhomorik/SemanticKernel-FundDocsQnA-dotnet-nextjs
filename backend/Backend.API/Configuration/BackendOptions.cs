@@ -103,6 +103,13 @@ public record BackendOptions
     public string? EmbeddingApiKey { get; init; }
 
     /// <summary>
+    /// Gets or sets the Azure SQL Database connection string for fund data persistence.
+    /// Uses Active Directory Default authentication (Managed Identity in Azure, VS/CLI login locally).
+    /// Stored in Key Vault as BackendOptions--AzureSqlConnectionString.
+    /// </summary>
+    public string? AzureSqlConnectionString { get; init; }
+
+    /// <summary>
     /// Gets or sets the allowed CORS origins.
     /// Can be overridden via Azure App Service Configuration using BackendOptions__AllowedOrigins__0, etc.
     /// </summary>

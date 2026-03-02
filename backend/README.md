@@ -392,6 +392,46 @@ Healthy
 - `200 OK` - Application is ready (embeddings loaded, dependencies available)
 - `503 Service Unavailable` - Application is not ready
 
+### POST /api/funds/list
+
+Batch sync fund profiles + daily snapshots from YieldRaccoon crawl session. Requires API key authentication.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:5000/api/funds/list \
+  -H "Content-Type: application/json" \
+  -H "Authorization: ApiKey your-api-key" \
+  -d '{"funds":[{"isin":"SE0008613939","name":"Fund A","nav":123.45,"navDate":"2025-01-15"}]}'
+```
+
+**Status Codes:**
+
+- `200 OK` - Sync successful (returns profiles processed and history records inserted)
+- `400 Bad Request` - Invalid request body
+- `401 Unauthorized` - Missing or invalid API key
+- `503 Service Unavailable` - Azure SQL not configured
+
+### POST /api/funds/about
+
+Sync single fund profile + chart history records from a fund detail page. Requires API key authentication.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:5000/api/funds/about \
+  -H "Content-Type: application/json" \
+  -H "Authorization: ApiKey your-api-key" \
+  -d '{"profile":{"isin":"SE0008613939","name":"Fund A"},"historyRecords":[{"isin":"SE0008613939","nav":123.45,"navDate":"2025-01-15"}]}'
+```
+
+**Status Codes:**
+
+- `200 OK` - Sync successful
+- `400 Bad Request` - Invalid ISIN format or missing required fields
+- `401 Unauthorized` - Missing or invalid API key
+- `503 Service Unavailable` - Azure SQL not configured
+
 ## Testing
 
 ### Manual Testing
