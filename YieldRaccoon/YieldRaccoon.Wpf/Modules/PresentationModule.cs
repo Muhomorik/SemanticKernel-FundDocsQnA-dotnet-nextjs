@@ -1,4 +1,6 @@
+using System.Net.Http;
 using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -243,7 +245,6 @@ public class PresentationModule : Module
         if (_databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite)
         {
             // Register DbContext with SQLite provider
-            // (DualWrite falls back to SQLite until Azure SQL integration is implemented)
             builder.Register(ctx =>
                 {
                     var optionsBuilder = new DbContextOptionsBuilder<YieldRaccoonDbContext>();
@@ -274,13 +275,88 @@ public class PresentationModule : Module
                 .SingleInstance();
         }
 
-        // Register ingestion service (works with both provider types via interfaces)
+        if (_databaseOptions.Provider is DatabaseProvider.DualWrite)
+        {
+            RegisterDualWriteServices(builder);
+        }
+        else
+        {
+            // Non-DualWrite: register services directly, no-op sync status provider
+            builder.RegisterType<FundIngestionService>()
+                .As<IFundIngestionService>()
+                .InstancePerDependency();
+
+            builder.RegisterType<AboutFundChartIngestionService>()
+                .As<IAboutFundChartIngestionService>()
+                .InstancePerDependency();
+
+            builder.RegisterType<NullBackendSyncStatusProvider>()
+                .As<IBackendSyncStatusProvider>()
+                .SingleInstance();
+        }
+    }
+
+    /// <summary>
+    /// Registers DualWrite infrastructure: inner SQLite services with named keys,
+    /// Backend API client, sync status stream, and decorator services.
+    /// </summary>
+    private void RegisterDualWriteServices(ContainerBuilder builder)
+    {
+        // Shared Rx Subject for sync status notifications (singleton)
+        builder.Register(ctx => new Subject<BackendSyncStatus>())
+            .AsSelf()
+            .SingleInstance();
+
+        // BackendSyncStatusProvider wraps the Subject for ViewModel consumption
+        builder.RegisterType<BackendSyncStatusProvider>()
+            .As<IBackendSyncStatusProvider>()
+            .SingleInstance();
+
+        // Pre-configured HttpClient for Backend API (BaseAddress + ApiKey header)
+        builder.Register(ctx =>
+            {
+                var client = new HttpClient
+                {
+                    BaseAddress = new Uri(_databaseOptions.BackendApiUrl!),
+                    Timeout = TimeSpan.FromSeconds(30)
+                };
+
+                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiKey))
+                    client.DefaultRequestHeaders.Add("Authorization", $"ApiKey {_databaseOptions.BackendApiKey}");
+
+                return client;
+            })
+            .SingleInstance();
+
+        // Backend API client
+        builder.RegisterType<FundSyncApiClient>()
+            .As<IFundSyncApiClient>()
+            .SingleInstance();
+
+        // Inner SQLite services — registered with named keys so decorators can resolve them
         builder.RegisterType<FundIngestionService>()
+            .Named<IFundIngestionService>("sqlite")
+            .InstancePerDependency();
+
+        builder.RegisterType<AboutFundChartIngestionService>()
+            .Named<IAboutFundChartIngestionService>("sqlite")
+            .InstancePerDependency();
+
+        // DualWrite decorators — resolve inner services by named key
+        builder.Register(ctx => new DualWriteFundIngestionService(
+                ctx.Resolve<NLog.ILogger>(),
+                ctx.ResolveNamed<IFundIngestionService>("sqlite"),
+                ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IFundIngestionService>()
             .InstancePerDependency();
 
-        // Register chart ingestion service for about-fund page data persistence
-        builder.RegisterType<AboutFundChartIngestionService>()
+        builder.Register(ctx => new DualWriteChartIngestionService(
+                ctx.Resolve<NLog.ILogger>(),
+                ctx.ResolveNamed<IAboutFundChartIngestionService>("sqlite"),
+                ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<IFundProfileRepository>(),
+                ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IAboutFundChartIngestionService>()
             .InstancePerDependency();
     }

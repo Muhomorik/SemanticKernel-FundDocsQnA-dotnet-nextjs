@@ -99,6 +99,12 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public async Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
+    {
+        return await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

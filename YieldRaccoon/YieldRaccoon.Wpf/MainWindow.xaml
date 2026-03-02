@@ -581,6 +581,35 @@
                         Text="{Binding DatabaseProviderName}" />
                 </StackPanel>
             </StatusBarItem>
+
+            <!--  Backend sync status (visible only in DualWrite mode)  -->
+            <StatusBarItem
+                HorizontalAlignment="Right"
+                Visibility="{Binding IsBackendSyncVisible, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,4,0"
+                        VerticalAlignment="Center"
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="12"
+                        Text="&#xE753;">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource yr.SuccessBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBackendSyncHealthy}" Value="False">
+                                        <Setter Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource yr.CaptionStyle}"
+                        Text="{Binding BackendSyncMessage}" />
+                </StackPanel>
+            </StatusBarItem>
         </StatusBar>
     </Grid>
 </mah:MetroWindow>

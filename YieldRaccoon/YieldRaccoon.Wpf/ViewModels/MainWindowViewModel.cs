@@ -9,6 +9,7 @@ using DevExpress.Mvvm;
 using NLog;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Services;
+using YieldRaccoon.Infrastructure.Services;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Mappers;
 using YieldRaccoon.Wpf.Models;
@@ -41,6 +42,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAboutFundWindowService _aboutFundWindowService;
     private readonly IExportWindowService _exportWindowService;
     private readonly IFundStatisticsExportWindowService _fundStatisticsExportWindowService;
+    private readonly IBackendSyncStatusProvider _backendSyncStatusProvider;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
@@ -215,6 +217,33 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Backend Sync Properties
+
+    /// <summary>
+    /// Gets whether the backend sync status indicator should be visible (DualWrite mode only).
+    /// </summary>
+    public bool IsBackendSyncVisible { get; }
+
+    /// <summary>
+    /// Gets or sets the backend sync status message for the status bar.
+    /// </summary>
+    public string BackendSyncMessage
+    {
+        get => GetProperty(() => BackendSyncMessage);
+        set => SetProperty(() => BackendSyncMessage, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the last backend sync was successful (drives icon color).
+    /// </summary>
+    public bool IsBackendSyncHealthy
+    {
+        get => GetProperty(() => IsBackendSyncHealthy);
+        set => SetProperty(() => IsBackendSyncHealthy, value);
+    }
+
+    #endregion
+
     #region Privacy Mode Properties
 
     /// <summary>
@@ -333,6 +362,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="exportWindowService">Service for showing the Export window.</param>
     /// <param name="fundStatisticsExportWindowService">Service for showing the Fund Statistics Export window.</param>
     /// <param name="databaseOptions">Database configuration options for provider display.</param>
+    /// <param name="backendSyncStatusProvider">Provider for backend sync status notifications.</param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
@@ -342,7 +372,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IAboutFundWindowService aboutFundWindowService,
         IExportWindowService exportWindowService,
         IFundStatisticsExportWindowService fundStatisticsExportWindowService,
-        DatabaseOptions databaseOptions)
+        DatabaseOptions databaseOptions,
+        IBackendSyncStatusProvider backendSyncStatusProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -357,6 +388,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
+        _backendSyncStatusProvider =
+            backendSyncStatusProvider ?? throw new ArgumentNullException(nameof(backendSyncStatusProvider));
+
         ArgumentNullException.ThrowIfNull(databaseOptions);
         var dbPath = Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""));
         DatabaseProviderName = databaseOptions.Provider switch
@@ -365,6 +399,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             DatabaseProvider.DualWrite => $"DualWrite — {dbPath}",
             _ => "InMemory"
         };
+        IsBackendSyncVisible = databaseOptions.Provider is DatabaseProvider.DualWrite;
 
         _logger.Info("MainWindowViewModel constructor called");
 
@@ -388,6 +423,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
         IsPrivacyMode = false;
+        BackendSyncMessage = string.Empty;
+        IsBackendSyncHealthy = true;
 
         // Initialize commands with CommandManager integration enabled
         RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
@@ -420,8 +457,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _aboutFundWindowService = null!; // Design-time only
         _exportWindowService = null!; // Design-time only
         _fundStatisticsExportWindowService = null!; // Design-time only
+        _backendSyncStatusProvider = new NullBackendSyncStatusProvider();
 
         DatabaseProviderName = "InMemory";
+        IsBackendSyncVisible = false;
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
         BrowserUrl = "https://example.com";
@@ -491,6 +530,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             .Subscribe(OnSessionCompleted)
             .DisposeWith(_disposables);
 
+        // Backend sync status (DualWrite mode — NullProvider emits nothing for other modes)
+        _backendSyncStatusProvider.Status
+            .ObserveOn(_uiScheduler)
+            .Subscribe(OnBackendSyncStatusChanged)
+            .DisposeWith(_disposables);
+
         _logger.Debug("Orchestrator subscriptions configured");
     }
 
@@ -549,6 +594,20 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         DelayCountdown = tick.SecondsRemaining;
         SessionStatusMessage = "Next batch in";
+    }
+
+    /// <summary>
+    /// Handles backend sync status changes from the DualWrite decorators.
+    /// </summary>
+    private void OnBackendSyncStatusChanged(BackendSyncStatus status)
+    {
+        BackendSyncMessage = status.Message;
+        IsBackendSyncHealthy = status.IsSuccess;
+
+        if (status.IsSuccess)
+            _logger.Debug("Backend sync: {0}", status.Message);
+        else
+            _logger.Warn("Backend sync error: {0}", status.Message);
     }
 
     /// <summary>

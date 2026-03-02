@@ -54,6 +54,14 @@ public interface IFundProfileRepository
     Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a fund profile by its ISIN identifier.
+    /// </summary>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The fund profile, or <c>null</c> if not found.</returns>
+    Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.
     /// </summary>
     /// <remarks>

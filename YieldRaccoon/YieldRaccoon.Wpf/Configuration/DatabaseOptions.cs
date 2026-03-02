@@ -63,8 +63,8 @@ public enum DatabaseProvider
     SQLite,
 
     /// <summary>
-    /// Write to both SQLite (local) and Azure SQL Database (cloud).
-    /// Not yet implemented — falls back to SQLite.
+    /// Write to both SQLite (local) and Backend API (cloud sync).
+    /// SQLite always persists first; Backend API sync is fire-and-forget.
     /// </summary>
     DualWrite
 }
