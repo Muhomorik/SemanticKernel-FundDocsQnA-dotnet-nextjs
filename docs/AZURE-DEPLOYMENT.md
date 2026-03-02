@@ -9,6 +9,7 @@ This deployment uses:
 **Backend:**
 
 - **Azure App Service (F1 Free tier)** - ~$0/month
+- **Azure SQL Database (Free tier)** - $0/month (fund data for YieldRaccoon)
 - **Application Insights (Free tier)** - ~$0/month (5GB data/month)
 - **Azure Key Vault** - ~$0.03/month
 
@@ -197,7 +198,7 @@ Create a Cosmos DB account with NoSQL API and vector search enabled:
 # Set variables
 RESOURCE_GROUP="<your-resource-group>"
 COSMOS_ACCOUNT="<your-cosmos-account-name>"  # Must be globally unique
-LOCATION="<your-location>"  # e.g., eastus
+LOCATION="<your-location>"  # e.g., swedencentral
 
 # Create Cosmos DB account with free tier and vector search
 az cosmosdb create \
@@ -855,6 +856,59 @@ swa deploy ./out --deployment-token <YOUR_TOKEN>
 
 ---
 
+## Azure SQL Database (Fund Data)
+
+Azure SQL Database stores YieldRaccoon fund data (FundProfiles, FundHistoryRecords) for the Backend API. Future: may also host RAG embeddings (replacing Cosmos DB).
+
+### Resources
+
+| Resource | Name | SKU | Region |
+|----------|------|-----|--------|
+| SQL Server | `<your-sql-server>` | — | Sweden Central |
+| SQL Database | `<your-sql-database>` | Free tier (General Purpose, serverless, 2 vCores, 32 GB) | Sweden Central |
+
+### Configuration
+
+- **Authentication:** Microsoft Entra-only (zero SQL passwords)
+- **Firewall:** Azure services only (no developer IPs)
+- **Connection string:** Stored in Key Vault as `BackendOptions--AzureSqlConnectionString`
+
+```text
+Server=tcp:<your-sql-server>.database.windows.net,1433;Database=<your-sql-database>;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;
+```
+
+### Access Control
+
+The App Service managed identity (`<your-app-service>`) has these database roles:
+
+| Role | Purpose |
+|------|---------|
+| `db_datareader` | Read all tables |
+| `db_datawriter` | Insert/update/delete all tables |
+| `db_ddladmin` | Create/alter/drop tables (EF Core migrations) |
+
+Granted via Portal Query Editor:
+
+```sql
+CREATE USER [<your-app-service>] FROM EXTERNAL PROVIDER;
+ALTER ROLE db_datareader ADD MEMBER [<your-app-service>];
+ALTER ROLE db_datawriter ADD MEMBER [<your-app-service>];
+ALTER ROLE db_ddladmin ADD MEMBER [<your-app-service>];
+```
+
+### Free Tier Limits
+
+- **100,000 vCore seconds/month** (~28 hours active compute)
+- **32 GB storage** (lifetime)
+- **Auto-pause** when free limits hit (resumes next month)
+- **Upgrade path:** flip to Serverless pay-per-use (~$3-5/mo) on same DB, no migration
+
+### Vector Search (Future)
+
+Azure SQL supports native `VECTOR(1536)` type and `VECTOR_DISTANCE('cosine', ...)` — planned for consolidating Cosmos DB embeddings into Azure SQL. See [AZURE-SQL-MIGRATION.md](../YieldRaccoon/AZURE-SQL-MIGRATION.md).
+
+---
+
 ## Cost Optimization
 
 ### Current Setup (Free/Low Cost)
@@ -862,6 +916,7 @@ swa deploy ./out --deployment-token <YOUR_TOKEN>
 | Resource | Tier | Monthly Cost |
 |----------|------|--------------|
 | App Service F1 | Free | $0 |
+| Azure SQL Database | Free | $0 |
 | Static Web Apps | Free | $0 |
 | Application Insights | Free (5GB) | $0 |
 | Key Vault | Standard | ~$0.03 |

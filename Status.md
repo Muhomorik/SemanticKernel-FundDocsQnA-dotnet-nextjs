@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-01 (YieldRaccoon: Fund Metadata CSV Export + Buyable filter on both statistics and metadata exports)
+Last Updated: 2026-03-02 (Infrastructure: Azure SQL Database setup for YieldRaccoon fund data)
 
 **Tech Stack:**
 
@@ -785,6 +785,7 @@ Added manual collection mode: navigate to any fund URL, manually click period bu
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
 | Cosmos DB Vector Database | ✅ Production Ready | Optional persistent vector storage via `cosmosdb` verb. **Local + Production deployed**: Backend API, authentication, Managed Identity RBAC, Key Vault secrets, embeddings uploaded. Free tier (1000 RU/s, 25GB) |
+| Azure SQL Database | ✅ Infrastructure Ready | Sweden Central. Free tier, serverless, auto-pause. Microsoft Entra-only auth, Managed Identity `<your-app-service>` (datareader/datawriter/ddladmin). Connection string in Key Vault. Backend EF Core integration pending. Vector support available for future Cosmos DB migration. |
 
 ### Deployment Setup Complete
 
