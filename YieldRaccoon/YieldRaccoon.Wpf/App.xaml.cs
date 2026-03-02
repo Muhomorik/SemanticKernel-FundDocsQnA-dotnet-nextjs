@@ -234,6 +234,18 @@ public partial class App
             databaseOptions.ConnectionString = $"Data Source={userSettings.DatabasePath}";
             Logger.Info($"Applied user database path: {userSettings.DatabasePath}");
         }
+
+        if (!string.IsNullOrWhiteSpace(userSettings.BackendApiUrl))
+        {
+            databaseOptions.BackendApiUrl = userSettings.BackendApiUrl;
+            Logger.Info($"Applied user Backend API URL: {userSettings.BackendApiUrl}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userSettings.BackendApiKey))
+        {
+            databaseOptions.BackendApiKey = userSettings.BackendApiKey;
+            Logger.Info("Applied user Backend API key (value hidden)");
+        }
     }
 
     /// <summary>

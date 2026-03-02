@@ -27,6 +27,24 @@ public class DatabaseOptions
     /// For InMemory provider, this is ignored.
     /// </remarks>
     public string ConnectionString { get; set; } = $"Data Source={DefaultDatabaseFileName}";
+
+    /// <summary>
+    /// Gets or sets the Backend API base URL for the DualWrite provider.
+    /// </summary>
+    /// <remarks>
+    /// Used only when <see cref="Provider"/> is <see cref="DatabaseProvider.DualWrite"/>.
+    /// Example: "https://your-app.azurewebsites.net"
+    /// </remarks>
+    public string? BackendApiUrl { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Backend API key for the DualWrite provider.
+    /// </summary>
+    /// <remarks>
+    /// Used only when <see cref="Provider"/> is <see cref="DatabaseProvider.DualWrite"/>.
+    /// Sent as "Authorization: ApiKey {key}" header to the Backend API fund sync endpoints.
+    /// </remarks>
+    public string? BackendApiKey { get; set; }
 }
 
 /// <summary>

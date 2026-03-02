@@ -15,4 +15,14 @@ public class UserSettings
     /// Selected database provider. When null, the default from appsettings.json is used.
     /// </summary>
     public DatabaseProvider? DatabaseProvider { get; set; }
+
+    /// <summary>
+    /// Backend API base URL for DualWrite provider. When null, the default from appsettings.json is used.
+    /// </summary>
+    public string? BackendApiUrl { get; set; }
+
+    /// <summary>
+    /// Backend API key for DualWrite provider. When null, the default from appsettings.json is used.
+    /// </summary>
+    public string? BackendApiKey { get; set; }
 }

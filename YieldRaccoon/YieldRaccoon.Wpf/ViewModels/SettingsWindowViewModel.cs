@@ -20,6 +20,8 @@ public class SettingsWindowViewModel : ViewModelBase
     private readonly DatabaseOptions _databaseOptions;
     private readonly string _originalDatabasePath;
     private readonly DatabaseProvider _originalProvider;
+    private readonly string _originalBackendApiUrl;
+    private readonly string _originalBackendApiKey;
 
     /// <summary>
     /// Event raised when the window should close with a result.
@@ -52,6 +54,12 @@ public class SettingsWindowViewModel : ViewModelBase
         _originalDatabasePath = ExtractDatabasePath(databaseOptions.ConnectionString);
         DatabasePath = userSettings?.DatabasePath ?? _originalDatabasePath;
 
+        // Initialize Backend API settings for DualWrite
+        _originalBackendApiUrl = databaseOptions.BackendApiUrl ?? string.Empty;
+        _originalBackendApiKey = databaseOptions.BackendApiKey ?? string.Empty;
+        BackendApiUrl = userSettings?.BackendApiUrl ?? _originalBackendApiUrl;
+        BackendApiKey = userSettings?.BackendApiKey ?? _originalBackendApiKey;
+
         // Initialize commands
         BrowseCommand = new DelegateCommand(ExecuteBrowse);
         ResetToDefaultCommand = new DelegateCommand(ExecuteResetToDefault);
@@ -70,7 +78,9 @@ public class SettingsWindowViewModel : ViewModelBase
         _settingsService = null!;
         _databaseOptions = new DatabaseOptions();
         _originalDatabasePath = DatabaseOptions.DefaultDatabaseFileName;
-        _originalProvider = DatabaseProvider.InMemory;
+        _originalProvider = DatabaseProvider.DualWrite;
+        _originalBackendApiUrl = string.Empty;
+        _originalBackendApiKey = string.Empty;
         DatabasePath = _originalDatabasePath;
 
         AvailableProviders = CreateProviderOptions();
@@ -102,6 +112,7 @@ public class SettingsWindowViewModel : ViewModelBase
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
                 RaisePropertyChanged(() => IsDatabasePathVisible);
+                RaisePropertyChanged(() => IsBackendApiVisible);
             }
         }
     }
@@ -112,6 +123,45 @@ public class SettingsWindowViewModel : ViewModelBase
     /// </summary>
     public bool IsDatabasePathVisible =>
         SelectedProvider?.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite;
+
+    /// <summary>
+    /// Gets whether the Backend API settings should be visible.
+    /// Only relevant for the DualWrite provider.
+    /// </summary>
+    public bool IsBackendApiVisible =>
+        SelectedProvider?.Provider is DatabaseProvider.DualWrite;
+
+    /// <summary>
+    /// Gets or sets the Backend API base URL.
+    /// </summary>
+    public string BackendApiUrl
+    {
+        get => GetProperty(() => BackendApiUrl);
+        set
+        {
+            if (SetProperty(() => BackendApiUrl, value))
+            {
+                RaisePropertyChanged(() => HasChanges);
+                RaisePropertyChanged(() => RestartRequiredMessage);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the Backend API key.
+    /// </summary>
+    public string BackendApiKey
+    {
+        get => GetProperty(() => BackendApiKey);
+        set
+        {
+            if (SetProperty(() => BackendApiKey, value))
+            {
+                RaisePropertyChanged(() => HasChanges);
+                RaisePropertyChanged(() => RestartRequiredMessage);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets the database file path.
@@ -134,7 +184,9 @@ public class SettingsWindowViewModel : ViewModelBase
     /// </summary>
     public bool HasChanges =>
         !string.Equals(DatabasePath, _originalDatabasePath, StringComparison.OrdinalIgnoreCase)
-        || SelectedProvider?.Provider != _originalProvider;
+        || SelectedProvider?.Provider != _originalProvider
+        || !string.Equals(BackendApiUrl ?? string.Empty, _originalBackendApiUrl, StringComparison.Ordinal)
+        || !string.Equals(BackendApiKey ?? string.Empty, _originalBackendApiKey, StringComparison.Ordinal);
 
     /// <summary>
     /// Gets the restart required message, shown when settings have changed.
@@ -219,6 +271,8 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         SelectedProvider = AvailableProviders.First(p => p.Provider == DatabaseProvider.InMemory);
         DatabasePath = DatabaseOptions.DefaultDatabaseFileName;
+        BackendApiUrl = string.Empty;
+        BackendApiKey = string.Empty;
         _logger.Debug("Settings reset to defaults");
     }
 
@@ -236,7 +290,9 @@ public class SettingsWindowViewModel : ViewModelBase
             var settings = new UserSettings
             {
                 DatabaseProvider = SelectedProvider.Provider,
-                DatabasePath = DatabasePath
+                DatabasePath = DatabasePath,
+                BackendApiUrl = string.IsNullOrWhiteSpace(BackendApiUrl) ? null : BackendApiUrl.TrimEnd('/'),
+                BackendApiKey = string.IsNullOrWhiteSpace(BackendApiKey) ? null : BackendApiKey
             };
 
             _settingsService.Save(settings);
@@ -268,7 +324,7 @@ public class SettingsWindowViewModel : ViewModelBase
     ];
 
     /// <summary>
-    /// Extracts the database file path from a SQLite connection string.
+    /// Extracts the database file path from an SQLite connection string.
     /// </summary>
     private static string ExtractDatabasePath(string connectionString)
     {
