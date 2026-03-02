@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-02 (Backend: Fund data sync endpoints for YieldRaccoon → Azure SQL)
+Last Updated: 2026-03-02 (YieldRaccoon: DualWrite provider — cloud sync via Backend API)
 
 **Tech Stack:**
 
@@ -804,7 +804,7 @@ HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund 
 
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
-| Cloud Sync Integration | 📅 Planned | Wire YieldRaccoon orchestrators to call Backend API fund sync endpoints |
+| Cloud Sync Integration | ✅ | DualWrite provider: decorator pattern on ingestion services, fire-and-forget Backend API sync, status bar indicator with Rx.NET |
 | CrawlOrchestrationService | 📅 Planned | Application service coordinating crawl sessions with Rx.NET |
 | Additional ViewModels | 📅 Planned | Create ViewModels for specific features |
 | User Controls | 📅 Planned | Break down MainWindow into smaller user controls |
