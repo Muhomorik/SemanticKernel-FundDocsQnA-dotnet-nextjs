@@ -24,6 +24,9 @@ public class FundSyncApiClient : IFundSyncApiClient
     }
 
     /// <inheritdoc />
+    public bool IsConfigured => _httpClient.BaseAddress is not null;
+
+    /// <inheritdoc />
     public async Task<FundSyncResponse> SyncFundListAsync(
         FundListSyncRequest request,
         CancellationToken cancellationToken = default)

@@ -12,6 +12,10 @@ namespace YieldRaccoon.Application.Services;
 public interface IFundSyncApiClient
 {
     /// <summary>
+    /// Gets whether the API client has a configured Backend API URL.
+    /// </summary>
+    bool IsConfigured { get; }
+    /// <summary>
     /// Sends a batch of fund profiles to <c>POST /api/funds/list</c>.
     /// </summary>
     /// <param name="request">The batch of fund data from a crawl session.</param>

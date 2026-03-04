@@ -43,6 +43,10 @@ public class CloudSyncService : ICloudSyncService
         IProgress<CloudSyncProgress> progress,
         CancellationToken cancellationToken = default)
     {
+        if (!_apiClient.IsConfigured)
+            throw new InvalidOperationException(
+                "Backend API URL is not configured. Set the URL in Settings before syncing.");
+
         var stopwatch = Stopwatch.StartNew();
         var profilesSynced = 0;
         var successCount = 0;

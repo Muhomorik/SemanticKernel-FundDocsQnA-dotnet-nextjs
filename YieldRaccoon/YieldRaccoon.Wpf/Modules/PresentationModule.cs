@@ -312,20 +312,19 @@ public class PresentationModule : Module
     /// </summary>
     private void RegisterBackendApiClient(ContainerBuilder builder)
     {
-        if (string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl))
-            return;
-
-        // Pre-configured HttpClient for Backend API (BaseAddress + ApiKey header)
+        // Pre-configured HttpClient for Backend API
+        // BaseAddress is null when BackendApiUrl is not configured — callers must guard
         builder.Register(ctx =>
             {
-                var client = new HttpClient
-                {
-                    BaseAddress = new Uri(_databaseOptions.BackendApiUrl!),
-                    Timeout = TimeSpan.FromSeconds(30)
-                };
+                var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiKey))
-                    client.DefaultRequestHeaders.Add("Authorization", $"ApiKey {_databaseOptions.BackendApiKey}");
+                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl))
+                {
+                    client.BaseAddress = new Uri(_databaseOptions.BackendApiUrl);
+
+                    if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiKey))
+                        client.DefaultRequestHeaders.Add("Authorization", $"ApiKey {_databaseOptions.BackendApiKey}");
+                }
 
                 return client;
             })
@@ -338,7 +337,6 @@ public class PresentationModule : Module
 
         // Cloud sync service registration
         // Orchestrates bulk-syncing local fund data to the Backend API
-        // Registered here because it depends on IFundSyncApiClient (requires BackendApiUrl)
         builder.RegisterType<CloudSyncService>()
             .As<ICloudSyncService>()
             .InstancePerDependency();
@@ -371,8 +369,10 @@ public class PresentationModule : Module
             .InstancePerDependency();
 
         // DualWrite decorators — resolve inner services by named key
+        // NLogModule injects ILogger via pipeline middleware, which doesn't apply to lambda
+        // registrations — use LogManager.GetLogger() directly instead of ctx.Resolve<ILogger>()
         builder.Register(ctx => new DualWriteFundIngestionService(
-                ctx.Resolve<NLog.ILogger>(),
+                LogManager.GetLogger(typeof(DualWriteFundIngestionService).FullName!),
                 ctx.ResolveNamed<IFundIngestionService>("sqlite"),
                 ctx.Resolve<IFundSyncApiClient>(),
                 ctx.Resolve<Subject<BackendSyncStatus>>()))
@@ -380,7 +380,7 @@ public class PresentationModule : Module
             .InstancePerDependency();
 
         builder.Register(ctx => new DualWriteChartIngestionService(
-                ctx.Resolve<NLog.ILogger>(),
+                LogManager.GetLogger(typeof(DualWriteChartIngestionService).FullName!),
                 ctx.ResolveNamed<IAboutFundChartIngestionService>("sqlite"),
                 ctx.Resolve<IFundSyncApiClient>(),
                 ctx.Resolve<IFundProfileRepository>(),

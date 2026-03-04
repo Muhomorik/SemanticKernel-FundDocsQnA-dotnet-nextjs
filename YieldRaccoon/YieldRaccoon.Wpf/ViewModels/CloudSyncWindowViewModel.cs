@@ -70,7 +70,7 @@ public class CloudSyncWindowViewModel : ViewModelBase
         _databaseOptions = new DatabaseOptions();
 
         IsBackendConfigured = true;
-        CompanyName = "Handelsbanken";
+        CompanyName = "";
         ThrottleMs = DefaultThrottleMs;
         IsSyncing = false;
         ProgressValue = 0;
