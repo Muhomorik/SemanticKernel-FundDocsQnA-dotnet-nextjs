@@ -4,7 +4,9 @@ using YieldRaccoon.Application.DTOs;
 using YieldRaccoon.Application.DTOs.Api;
 using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
+using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
+using YieldRaccoon.Domain.ValueObjects;
 using YieldRaccoon.Infrastructure.Mappers;
 
 namespace YieldRaccoon.Infrastructure.Services;
@@ -24,17 +26,20 @@ public class DualWriteFundIngestionService : IFundIngestionService
     private readonly ILogger _logger;
     private readonly IFundIngestionService _inner;
     private readonly IFundSyncApiClient _apiClient;
+    private readonly IFundProfileRepository _profileRepository;
     private readonly Subject<BackendSyncStatus> _syncStatus;
 
     public DualWriteFundIngestionService(
         ILogger logger,
         IFundIngestionService inner,
         IFundSyncApiClient apiClient,
+        IFundProfileRepository profileRepository,
         Subject<BackendSyncStatus> syncStatus)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+        _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _syncStatus = syncStatus ?? throw new ArgumentNullException(nameof(syncStatus));
     }
 
@@ -59,10 +64,20 @@ public class DualWriteFundIngestionService : IFundIngestionService
     {
         try
         {
-            var apiFunds = funds
-                .Where(d => !string.IsNullOrWhiteSpace(d.Isin) && !string.IsNullOrWhiteSpace(d.Name))
-                .Select(d => d.ToApiFundDto())
-                .ToList();
+            // Fetch profiles from local DB to include authoritative timestamps
+            var apiFunds = new List<ApiFundDto>();
+            foreach (var dto in funds)
+            {
+                if (string.IsNullOrWhiteSpace(dto.Isin) || string.IsNullOrWhiteSpace(dto.Name))
+                    continue;
+
+                IsinId isinId;
+                try { isinId = IsinId.Create(dto.Isin); }
+                catch (ArgumentException) { continue; }
+
+                var profile = await _profileRepository.GetByIsinAsync(isinId);
+                apiFunds.Add(profile != null ? profile.ToApiFundDto() : dto.ToApiFundDto());
+            }
 
             if (apiFunds.Count == 0)
             {

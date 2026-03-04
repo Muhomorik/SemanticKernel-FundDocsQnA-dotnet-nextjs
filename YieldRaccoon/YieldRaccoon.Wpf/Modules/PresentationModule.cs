@@ -375,6 +375,7 @@ public class PresentationModule : Module
                 LogManager.GetLogger(typeof(DualWriteFundIngestionService).FullName!),
                 ctx.ResolveNamed<IFundIngestionService>("sqlite"),
                 ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<IFundProfileRepository>(),
                 ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IFundIngestionService>()
             .InstancePerDependency();

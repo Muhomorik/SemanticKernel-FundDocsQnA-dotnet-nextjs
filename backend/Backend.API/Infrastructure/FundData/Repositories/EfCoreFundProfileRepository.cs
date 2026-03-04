@@ -62,13 +62,15 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
             existing.GovernanceScore = profile.GovernanceScore;
             existing.LowCarbon = profile.LowCarbon;
             existing.EuArticleType = profile.EuArticleType;
-            existing.CrawlerLastUpdatedAt = profile.CrawlerLastUpdatedAt;
 
-            // Only update AboutFundLastVisitedAt if explicitly set (non-null) on the incoming profile
+            // Only update timestamps if explicitly set (non-null) on the incoming profile.
+            // The /api/funds/list endpoint sends timestamps from YieldRaccoon — they get applied.
+            // The /api/funds/about endpoint sends null timestamps — existing values are preserved.
+            if (profile.CrawlerLastUpdatedAt != null)
+                existing.CrawlerLastUpdatedAt = profile.CrawlerLastUpdatedAt;
+
             if (profile.AboutFundLastVisitedAt != null)
-            {
                 existing.AboutFundLastVisitedAt = profile.AboutFundLastVisitedAt;
-            }
 
             // FirstSeenAt is never overwritten — it stays as originally set
         }

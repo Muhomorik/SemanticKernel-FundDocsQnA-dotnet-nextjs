@@ -28,7 +28,6 @@ public class FundSyncService : IFundSyncService
     public async Task<FundSyncResponse> SyncFromFundListAsync(
         FundListSyncRequest request, CancellationToken cancellationToken = default)
     {
-        var now = DateTimeOffset.UtcNow;
         var profilesProcessed = 0;
         var historyRecords = new List<FundHistoryRecord>();
 
@@ -51,7 +50,7 @@ public class FundSyncService : IFundSyncService
                 continue;
             }
 
-            var profile = CreateProfile(dto, isinId, now);
+            var profile = CreateProfile(dto, isinId);
             await _profileRepository.UpsertAsync(profile, cancellationToken);
 
             var historyRecord = CreateHistoryRecord(dto, isinId);
@@ -108,9 +107,13 @@ public class FundSyncService : IFundSyncService
             };
         }
 
-        var now = DateTimeOffset.UtcNow;
-        var profile = CreateProfile(dto, isinId, now);
-        profile.AboutFundLastVisitedAt = now;
+        var profile = CreateProfile(dto, isinId);
+
+        // About endpoint never updates timestamps — null them out so the repository's
+        // null-guard preserves existing values. Only /api/funds/list may update timestamps.
+        profile.CrawlerLastUpdatedAt = null;
+        profile.AboutFundLastVisitedAt = null;
+
         await _profileRepository.UpsertAsync(profile, cancellationToken);
 
         // Build chart history records (Nav + NavDate only)
@@ -154,7 +157,7 @@ public class FundSyncService : IFundSyncService
         };
     }
 
-    private static FundProfile CreateProfile(ApiFundDto dto, IsinId isinId, DateTimeOffset now)
+    private static FundProfile CreateProfile(ApiFundDto dto, IsinId isinId)
     {
         return new FundProfile
         {
@@ -191,8 +194,9 @@ public class FundSyncService : IFundSyncService
             GovernanceScore = dto.GovernanceScore,
             LowCarbon = dto.LowCarbon,
             EuArticleType = dto.EuArticleType,
-            FirstSeenAt = now,
-            CrawlerLastUpdatedAt = now
+            FirstSeenAt = ParseDateTimeOffset(dto.FirstSeenAt) ?? DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = ParseDateTimeOffset(dto.CrawlerLastUpdatedAt),
+            AboutFundLastVisitedAt = ParseDateTimeOffset(dto.AboutFundLastVisitedAt),
         };
     }
 
@@ -215,5 +219,11 @@ public class FundSyncService : IFundSyncService
     {
         if (string.IsNullOrWhiteSpace(dateString)) return null;
         return DateOnly.TryParse(dateString, out var date) ? date : null;
+    }
+
+    private static DateTimeOffset? ParseDateTimeOffset(string? dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString)) return null;
+        return DateTimeOffset.TryParse(dateString, out var dto) ? dto : null;
     }
 }

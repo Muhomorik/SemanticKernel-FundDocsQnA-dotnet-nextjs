@@ -93,6 +93,9 @@ public static class ApiFundDtoMapper
         GovernanceScore = profile.GovernanceScore,
         LowCarbon = profile.LowCarbon,
         EuArticleType = profile.EuArticleType,
+        FirstSeenAt = profile.FirstSeenAt.ToString("O"),
+        CrawlerLastUpdatedAt = profile.CrawlerLastUpdatedAt?.ToString("O"),
+        AboutFundLastVisitedAt = profile.AboutFundLastVisitedAt?.ToString("O"),
     };
 
     /// <summary>
