@@ -2,6 +2,7 @@ using System.Reactive.Subjects;
 using System.Text.Json;
 using NLog;
 using YieldRaccoon.Application.DTOs.Api;
+using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
@@ -96,6 +97,12 @@ public class DualWriteChartIngestionService : IAboutFundChartIngestionService
                 isinId.Isin, response.HistoryRecordsInserted);
             _syncStatus.OnNext(BackendSyncStatus.Success(
                 $"Synced {isinId.Isin}: {response.HistoryRecordsInserted} history records"));
+        }
+        catch (RateLimitedException ex)
+        {
+            _logger.Warn(ex, "Backend rate limited during about-fund sync for {0}", isinId.Isin);
+            _syncStatus.OnNext(BackendSyncStatus.Error(
+                $"Rate limited by backend ({isinId.Isin}) — retries exhausted"));
         }
         catch (Exception ex)
         {

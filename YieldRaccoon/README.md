@@ -686,6 +686,7 @@ sequenceDiagram
 
 - SQLite always writes first — exceptions propagate normally to callers
 - Backend API calls are fire-and-forget — wrapped in try/catch, never block
+- **Rate limiting (429):** `FundSyncApiClient` retries with exponential backoff (2s, 4s, 8s), respects `Retry-After` header. After 3 retries, publishes "Rate limited" status to the status bar
 - All errors logged at Error/Warn level via NLog
 - Errors surface in status bar via Rx observable (green/red cloud icon + message)
 

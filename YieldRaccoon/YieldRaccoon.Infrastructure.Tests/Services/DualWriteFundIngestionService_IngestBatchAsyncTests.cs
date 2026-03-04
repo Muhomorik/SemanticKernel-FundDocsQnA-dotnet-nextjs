@@ -6,6 +6,7 @@ using NLog;
 using NUnit.Framework;
 using YieldRaccoon.Application.DTOs;
 using YieldRaccoon.Application.DTOs.Api;
+using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Infrastructure.Services;
@@ -169,6 +170,29 @@ public class DualWriteFundIngestionService_IngestBatchAsyncTests
         Assert.That(capturedRequest, Is.Not.Null);
         Assert.That(capturedRequest!.Funds, Has.Count.EqualTo(2));
         Assert.That(capturedRequest.Funds.Select(f => f.Isin), Is.EquivalentTo(new[] { "SE0001234567", "SE0005555555" }));
+    }
+
+    [Test]
+    public async Task IngestBatchAsync_BackendRateLimited_PublishesRateLimitError()
+    {
+        // Arrange
+        var funds = CreateValidFunds(1);
+        _innerMock.Setup(x => x.IngestBatchAsync(It.IsAny<IEnumerable<FundDataDto>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        _apiClientMock.Setup(x => x.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RateLimitedException(3));
+
+        BackendSyncStatus? received = null;
+        _syncSubject.Subscribe(s => received = s);
+
+        // Act
+        await _sut.IngestBatchAsync(funds);
+        await Task.Delay(200);
+
+        // Assert
+        Assert.That(received, Is.Not.Null);
+        Assert.That(received!.IsSuccess, Is.False);
+        Assert.That(received.Message, Does.Contain("Rate limited"));
     }
 
     private List<FundDataDto> CreateValidFunds(int count)

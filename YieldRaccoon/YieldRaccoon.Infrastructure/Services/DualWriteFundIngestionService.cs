@@ -2,6 +2,7 @@ using System.Reactive.Subjects;
 using NLog;
 using YieldRaccoon.Application.DTOs;
 using YieldRaccoon.Application.DTOs.Api;
+using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Infrastructure.Mappers;
@@ -75,6 +76,11 @@ public class DualWriteFundIngestionService : IFundIngestionService
             _logger.Info("Backend sync completed: {0} profiles processed", response.ProfilesProcessed);
             _syncStatus.OnNext(BackendSyncStatus.Success(
                 $"Synced {response.ProfilesProcessed} funds"));
+        }
+        catch (RateLimitedException ex)
+        {
+            _logger.Warn(ex, "Backend rate limited during fund list sync");
+            _syncStatus.OnNext(BackendSyncStatus.Error("Rate limited by backend — retries exhausted"));
         }
         catch (Exception ex)
         {

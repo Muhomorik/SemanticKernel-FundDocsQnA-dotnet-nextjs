@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-04 (YieldRaccoon: Cloud Sync window for on-demand bulk sync to Backend API)
+Last Updated: 2026-03-04 (YieldRaccoon: HTTP 429 rate-limit handling with retry, backoff, and GUI feedback)
 
 **Tech Stack:**
 
@@ -107,7 +107,7 @@ Last Updated: 2026-03-04 (YieldRaccoon: Cloud Sync window for on-demand bulk syn
 | Custom Validation | ✅ | [SafeQuestion] detects injection patterns |
 | Input Sanitization | ✅ | Removes control chars, normalizes whitespace |
 | System Prompt | ✅ | Hardened with anti-jailbreak instructions |
-| Rate Limiting | ✅ | 10 req/min/IP, 2 request queue |
+| Rate Limiting | ✅ | 60 req/min, queue of 5, `Retry-After: 5` header on 429 |
 | Request Size Limits | ✅ | 10KB max body size |
 
 ### Fund Data Sync (Azure SQL) ✅ COMPLETED (2026-03-02)
@@ -814,6 +814,20 @@ On-demand bulk sync window accessible from the title bar. Lets users push all (o
 | **Repository** | Added `GetByCompanyNameFilterAsync` to `IFundProfileRepository` + both implementations |
 | **Tests** | 8 unit tests in `CloudSyncService_SyncAsyncTests` (empty results, batch calls, per-fund calls, history mapping, partial failures, cancellation, progress, filter passthrough) |
 | **Docs** | [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) — feature overview, sync phases, Mermaid sequence diagram |
+
+### HTTP 429 Rate-Limit Handling ✅ COMPLETED (2026-03-04)
+
+Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` retries 429 responses with exponential backoff (2s, 4s, 8s), respects `Retry-After` header. GUI clearly shows when rate-limited.
+
+| Component | Details |
+| --------- | ------- |
+| **Application** | `RateLimitedException` — marker exception thrown after retries exhausted |
+| **Infrastructure** | `FundSyncApiClient` — `SendWithRetryAsync` with 3 retries + exponential backoff |
+| **Infrastructure** | `CloudSyncService` — catches rate-limit, reports "Rate limited" phase, 10s cooldown |
+| **Infrastructure** | `DualWriteFundIngestionService` / `DualWriteChartIngestionService` — catches rate-limit, publishes distinct status bar message |
+| **Presentation** | Default throttle bumped from 500ms to 1200ms (~50 req/min, under 60/min limit) |
+| **Backend** | Added `Retry-After: 5` header to 429 responses |
+| **Tests** | 6 retry tests in `FundSyncApiClient_RetryTests`, 2 rate-limit tests in DualWrite test classes, fixed 8 pre-existing `CloudSyncService` test failures (missing `IsConfigured` mock) |
 
 ### Future Enhancements (Planned)
 

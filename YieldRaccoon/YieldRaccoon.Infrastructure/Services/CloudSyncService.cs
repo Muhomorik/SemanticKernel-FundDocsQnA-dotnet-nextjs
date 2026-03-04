@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using NLog;
 using YieldRaccoon.Application.DTOs.Api;
+using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
@@ -133,6 +134,25 @@ public class CloudSyncService : ICloudSyncService
                     var aboutResponse = await _apiClient.SyncFundAboutAsync(aboutRequest, cancellationToken);
                     historyTotal += aboutResponse.HistoryRecordsInserted;
                     successCount++;
+                }
+                catch (RateLimitedException)
+                {
+                    _logger.Warn("Cloud sync: rate limited on fund {0} ({1}) — retries exhausted, skipping",
+                        fund.Name, fund.Id.Isin);
+                    failCount++;
+
+                    progress.Report(new CloudSyncProgress
+                    {
+                        TotalFunds = funds.Count,
+                        ProcessedFunds = i,
+                        SuccessCount = successCount,
+                        FailCount = failCount,
+                        CurrentFundName = fund.Name,
+                        Phase = "Rate limited — waiting before next fund..."
+                    });
+
+                    // Extra cooldown to let the backend rate limit window reset
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {

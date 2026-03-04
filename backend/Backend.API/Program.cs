@@ -127,7 +127,7 @@ backendOptions = backendOptions with
     EmbeddingApiKey = builder.Configuration["BackendOptions:EmbeddingApiKey"]
                       ?? backendOptions.EmbeddingApiKey,
     AzureSqlConnectionString = builder.Configuration["BackendOptions:AzureSqlConnectionString"]
-                                ?? backendOptions.AzureSqlConnectionString
+                               ?? backendOptions.AzureSqlConnectionString
 };
 
 // Validate the appropriate API key is set for the selected provider
@@ -469,10 +469,11 @@ builder.Services.AddRateLimiter(options =>
             rateLimitOptions.QueueLimit = 5; // Allow 5 requests to queue
         });
 
-    // Set OnRejected handler to return proper HTTP 429 response
+    // Set OnRejected handler to return proper HTTP 429 response with Retry-After hint
     options.OnRejected = (context, token) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers.RetryAfter = "5";
         return ValueTask.CompletedTask;
     };
 });
@@ -524,6 +525,10 @@ if (hasAzureSql)
 {
     try
     {
+        // Re-authenticate in Visual Studio
+        // The error says your VS 2019 token is stale:
+        // Tools → Options → Azure Services Authentication → re-authenticate.
+
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<FundDataDbContext>();
         await db.Database.MigrateAsync();

@@ -12,7 +12,7 @@ Bulk-sync local fund data (profiles + history records) to the Backend API on dem
 
 1. Click **Cloud sync** in the title bar (between Statistics and Settings)
 2. Optionally enter a **Company name** to filter — leave empty to sync all funds
-3. Set **Throttle (ms)** — delay between per-fund API calls (default: 500ms)
+3. Set **Throttle (ms)** — delay between per-fund API calls (default: 1200ms, keeps requests under the backend's 60/min rate limit)
 4. Click **Sync to cloud**
 5. Watch the progress bar and status updates
 6. Close the window to cancel an in-progress sync
@@ -58,6 +58,7 @@ Iterates over each fund and sends `POST /api/funds/about` with the fund profile 
 
 ## Error handling
 
+- **Rate limiting (429):** `FundSyncApiClient` automatically retries with exponential backoff (2s, 4s, 8s), respecting the backend's `Retry-After` header. After 3 retries, the fund is skipped with a 10-second cooldown before continuing. The progress bar shows "Rate limited — waiting before next fund..." during cooldown.
 - **Per-fund failures** are caught and counted — they don't stop the overall sync
 - **Cancellation** (closing the window) stops the loop after the current fund completes
 - The final result shows total funds, successful syncs, failures, and history records inserted

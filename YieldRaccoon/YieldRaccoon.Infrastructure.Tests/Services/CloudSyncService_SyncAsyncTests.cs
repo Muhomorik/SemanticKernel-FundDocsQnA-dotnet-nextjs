@@ -36,6 +36,7 @@ public class CloudSyncService_SyncAsyncTests
         _loggerMock = _fixture.Freeze<Mock<ILogger>>();
         _profileRepoMock = _fixture.Freeze<Mock<IFundProfileRepository>>();
         _apiClientMock = _fixture.Freeze<Mock<IFundSyncApiClient>>();
+        _apiClientMock.Setup(c => c.IsConfigured).Returns(true);
 
         _sut = _fixture.Create<CloudSyncService>();
 

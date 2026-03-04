@@ -14,7 +14,9 @@ namespace YieldRaccoon.Wpf.ViewModels;
 /// </summary>
 public class CloudSyncWindowViewModel : ViewModelBase
 {
-    private const int DefaultThrottleMs = 500;
+    // Backend rate limit is 60 req/min. At 1200ms per call (~50 req/min)
+    // we stay comfortably under the limit and avoid 429 responses.
+    private const int DefaultThrottleMs = 1200;
 
     private readonly ILogger _logger;
     private readonly ICloudSyncService _cloudSyncService;
