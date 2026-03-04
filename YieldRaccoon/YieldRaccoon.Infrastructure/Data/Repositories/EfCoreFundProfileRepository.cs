@@ -56,7 +56,7 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+    public async Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default)
     {
         // Project and filter in SQL, then sort client-side because
@@ -75,7 +75,6 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
 
         return rows
             .OrderBy(f => f.AboutFundLastVisitedAt ?? DateTimeOffset.MinValue)
-            .ThenBy(f => f.HistoryRecordCount)
             .Take(limit)
             .Select(f => new AboutFundScheduleItem
             {

@@ -97,8 +97,8 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_ProjectsLastVisitedAt()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_ProjectsLastVisitedAt()
     {
         // Arrange
         var visitedAt = DateTimeOffset.UtcNow;
@@ -108,7 +108,7 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
         await _sut.SaveChangesAsync();
 
         // Act
-        var items = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var items = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(items, Has.Count.EqualTo(1));
@@ -116,8 +116,8 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NullLastVisitedAt_SortsBeforeNonNull()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NullLastVisitedAt_SortsBeforeNonNull()
     {
         // Arrange — two funds with same history count (0), one visited and one not
         var neverVisited = await CreateAndSaveFundProfileAsync();
@@ -131,7 +131,7 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
         await _sut.SaveChangesAsync();
 
         // Act
-        var items = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var items = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(items, Has.Count.EqualTo(2));

@@ -155,7 +155,7 @@ flowchart TB
 - `FundIngestionService` maps DTOs to entities before calling repositories
 - DI container resolves the correct implementation based on `DatabaseOptions.Provider`
 - InMemory repositories use `ConcurrentDictionary` for thread-safe, session-scoped storage
-- `GetFundsOrderedByHistoryCountAsync` returns funds prioritized for browsing (unvisited first, then fewest history records)
+- `GetFundsOrderedByLastVisitAsync` returns funds prioritized for browsing (never-visited first, then oldest visit date)
 - `UpdateLastVisitedAtAsync` tracks when the AboutFund orchestrator last visited a fund
 - `AddRangeIfNotExistsAsync` inserts only new history records, deduplicating by (FundId, NavDate) composite key
 

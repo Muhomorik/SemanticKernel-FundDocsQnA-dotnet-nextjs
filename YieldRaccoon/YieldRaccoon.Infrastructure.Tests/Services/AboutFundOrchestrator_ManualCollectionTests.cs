@@ -472,7 +472,7 @@ public class AboutFundOrchestrator_ManualCollectionTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetFundsOrderedByHistoryCountAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetFundsOrderedByLastVisitAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(scheduleItems);
     }
 
@@ -491,7 +491,7 @@ public class AboutFundOrchestrator_ManualCollectionTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetFundsOrderedByHistoryCountAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetFundsOrderedByLastVisitAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(scheduleItems);
 
         // Schedule calculator needs to return schedules for StartSessionAsync

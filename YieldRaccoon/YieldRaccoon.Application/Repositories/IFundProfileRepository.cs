@@ -30,15 +30,17 @@ public interface IFundProfileRepository
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets fund profiles ordered by history record count (ascending), limited to a specified count.
+    /// Gets fund profiles ordered by last visit date ascending (never-visited first),
+    /// limited to a specified count.
     /// </summary>
     /// <remarks>
-    /// Used by the about-fund browsing feature to find funds with the least historical data.
+    /// Used by the about-fund browsing feature to prioritize funds with the oldest
+    /// (or missing) visit data. Funds with null <c>AboutFundLastVisitedAt</c> sort first.
     /// </remarks>
     /// <param name="limit">Maximum number of funds to return.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Funds with their history record counts, ordered ascending.</returns>
-    Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+    /// <returns>Funds ordered by last visit date ascending, never-visited first.</returns>
+    Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default);
 
     /// <summary>

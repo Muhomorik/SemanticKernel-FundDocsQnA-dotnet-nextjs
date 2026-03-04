@@ -37,7 +37,7 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+    public Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default)
     {
         // In-memory implementation returns all profiles with zero history count
@@ -53,7 +53,6 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
                 LastVisitedAt = fp.AboutFundLastVisitedAt
             })
             .OrderBy(f => f.LastVisitedAt)
-            .ThenBy(f => f.Name)
             .Take(limit)
             .ToList();
 

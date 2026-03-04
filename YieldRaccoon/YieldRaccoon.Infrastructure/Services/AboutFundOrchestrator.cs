@@ -130,6 +130,11 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public IObservable<Uri> NavigateToUrl => _navigateToUrl.AsObservable();
 
     /// <summary>
+    /// 80 calls a day allows us to make a full loop in a month.
+    /// </summary>
+    private const int ScheduleLimit = 80;
+    
+    /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundOrchestrator"/> class.
     /// </summary>
     public AboutFundOrchestrator(ILogger logger,
@@ -172,7 +177,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync()
     {
         _logger.Info("Loading fund schedule from database");
-        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(80);
+        _schedule = await _fundProfileRepository.GetFundsOrderedByLastVisitAsync(ScheduleLimit);
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;
     }
