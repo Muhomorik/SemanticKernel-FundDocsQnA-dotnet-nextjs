@@ -209,12 +209,6 @@ public class PresentationModule : Module
             .As<ICloudSyncWindowService>()
             .InstancePerDependency();
 
-        // Cloud sync service registration
-        // Orchestrates bulk-syncing local fund data to the Backend API
-        builder.RegisterType<CloudSyncService>()
-            .As<ICloudSyncService>()
-            .InstancePerDependency();
-
         // Backend API client registration (available when BackendApiUrl is configured)
         RegisterBackendApiClient(builder);
 
@@ -341,6 +335,13 @@ public class PresentationModule : Module
         builder.RegisterType<FundSyncApiClient>()
             .As<IFundSyncApiClient>()
             .SingleInstance();
+
+        // Cloud sync service registration
+        // Orchestrates bulk-syncing local fund data to the Backend API
+        // Registered here because it depends on IFundSyncApiClient (requires BackendApiUrl)
+        builder.RegisterType<CloudSyncService>()
+            .As<ICloudSyncService>()
+            .InstancePerDependency();
     }
 
     /// <summary>
