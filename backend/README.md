@@ -371,7 +371,7 @@ The [YieldRaccoon](../YieldRaccoon/README.md) desktop app provides a **Cloud Syn
 
 Protected endpoints (`/api/embeddings/*` and `/api/funds/*`) require an API key header:
 
-```
+```plaintext
 Authorization: ApiKey <your-api-key>
 ```
 
@@ -386,7 +386,7 @@ The middleware uses constant-time comparison to prevent timing attacks. Returns 
 
 ### Rate Limiting
 
-All API endpoints are rate-limited: **60 requests per minute** with a queue of 5. Returns `429 Too Many Requests` when exceeded.
+All API endpoints are rate-limited: **60 requests per minute** with a queue of 5. Returns `429 Too Many Requests` with a `Retry-After: 5` header when exceeded.
 
 ### Request Size Limit
 
