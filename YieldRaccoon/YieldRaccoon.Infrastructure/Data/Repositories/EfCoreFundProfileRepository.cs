@@ -105,6 +105,25 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<FundProfile>> GetByCompanyNameFilterAsync(
+        string? companyName, CancellationToken cancellationToken = default)
+    {
+        var query = _context.FundProfiles
+            .Include(fp => fp.HistoryRecords)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            var filter = companyName.Trim();
+            query = query.Where(fp => fp.CompanyName != null
+                                      && EF.Functions.Like(fp.CompanyName, $"%{filter}%"));
+        }
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

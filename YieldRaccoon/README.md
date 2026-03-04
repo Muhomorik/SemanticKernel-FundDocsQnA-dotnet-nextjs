@@ -94,6 +94,10 @@ Export filtered fund data to a standalone SQLite `.db` file — useful for shari
 
 Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
 
+## Cloud Sync
+
+Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings. See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for sync phases, error handling, and architecture.
+
 ## Repository Architecture
 
 The application supports swappable repository implementations based on configuration.

@@ -47,6 +47,15 @@
                     <TextBlock Margin="8,0,0,0" Text="Statistics" />
                 </StackPanel>
             </Button>
+            <Button Command="{Binding OpenCloudSyncCommand}" ToolTip="Cloud sync">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="14"
+                        Text="&#xE753;" />
+                    <TextBlock Margin="8,0,0,0" Text="Cloud sync" />
+                </StackPanel>
+            </Button>
             <Button Command="{Binding OpenSettingsCommand}" ToolTip="Settings">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock

@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-02 (YieldRaccoon: DualWrite provider — cloud sync via Backend API)
+Last Updated: 2026-03-04 (YieldRaccoon: Cloud Sync window for on-demand bulk sync to Backend API)
 
 **Tech Stack:**
 
@@ -124,9 +124,9 @@ Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. 
 | **ApplicationCore** | API DTOs mirrored from YieldRaccoon (5 files) | ✅ |
 | **ApplicationCore** | `IFundSyncService` / `FundSyncService` (DTO→entity mapping, validation) | ✅ |
 | **Infrastructure** | `FundDataDbContext` (EF Core, SQL Server types) | ✅ |
-| **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, unique constraints) | ✅ |
+| **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, single unique descending index) | ✅ |
 | **Infrastructure** | `EfCoreFundProfileRepository` (upsert, preserves FirstSeenAt) | ✅ |
-| **Infrastructure** | `EfCoreFundHistoryRepository` (upsert + insert-if-not-exists) | ✅ |
+| **Infrastructure** | `EfCoreFundHistoryRepository` (batch-load upsert + insert-if-not-exists) | ✅ |
 | **Controller** | `POST /api/funds/list` (batch crawl session sync) | ✅ |
 | **Controller** | `POST /api/funds/about` (single fund + chart history) | ✅ |
 | **Middleware** | `ApiKeyAuthenticationMiddleware` expanded for `/api/funds` | ✅ |
@@ -799,6 +799,21 @@ HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund 
 | `FundListSyncRequest.cs` | Request for `POST /api/funds/list` (batch from crawl session) |
 | `FundAboutSyncRequest.cs` | Request for `POST /api/funds/about` (single fund + chart history) |
 | `FundSyncResponse.cs` | Response from both endpoints (success, message, counts) |
+
+### Cloud Sync Window ✅ COMPLETED (2026-03-04)
+
+On-demand bulk sync window accessible from the title bar. Lets users push all (or filtered) fund profiles + history records to the Backend API with configurable throttling. Two-phase sync: batch profile push via `POST /api/funds/list`, then per-fund history via `POST /api/funds/about` with throttle delays.
+
+| Component | Details |
+| --------- | ------- |
+| **Application** | `ICloudSyncService`, `CloudSyncProgress`, `CloudSyncResult` |
+| **Infrastructure** | `CloudSyncService` — queries funds, maps to API DTOs, two-phase sync with throttling |
+| **Presentation** | `CloudSyncWindow` / `CloudSyncWindowViewModel` — company filter, throttle, progress bar, cancellation |
+| **Window Service** | `ICloudSyncWindowService` / `CloudSyncWindowService` — modal dialog launcher |
+| **DI Refactor** | Extracted `RegisterBackendApiClient()` from `RegisterDualWriteServices()` — HttpClient + FundSyncApiClient available whenever BackendApiUrl is configured |
+| **Repository** | Added `GetByCompanyNameFilterAsync` to `IFundProfileRepository` + both implementations |
+| **Tests** | 8 unit tests in `CloudSyncService_SyncAsyncTests` (empty results, batch calls, per-fund calls, history mapping, partial failures, cancellation, progress, filter passthrough) |
+| **Docs** | [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) — feature overview, sync phases, Mermaid sequence diagram |
 
 ### Future Enhancements (Planned)
 

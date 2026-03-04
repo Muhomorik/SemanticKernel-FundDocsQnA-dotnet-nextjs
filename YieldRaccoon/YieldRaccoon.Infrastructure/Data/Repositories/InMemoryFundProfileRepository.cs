@@ -79,6 +79,22 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<FundProfile>> GetByCompanyNameFilterAsync(
+        string? companyName, CancellationToken cancellationToken = default)
+    {
+        IEnumerable<FundProfile> profiles = _profiles.Values;
+
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            var filter = companyName.Trim();
+            profiles = profiles.Where(fp => fp.CompanyName != null
+                                            && fp.CompanyName.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return Task.FromResult<IReadOnlyList<FundProfile>>(profiles.ToList());
+    }
+
+    /// <inheritdoc />
     public Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

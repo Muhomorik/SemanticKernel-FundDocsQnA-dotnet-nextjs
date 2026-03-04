@@ -62,6 +62,16 @@ public interface IFundProfileRepository
     Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets fund profiles optionally filtered by company name, with history records eagerly loaded.
+    /// Returns all profiles when <paramref name="companyName"/> is <c>null</c> or empty.
+    /// </summary>
+    /// <param name="companyName">Optional company name substring filter (case-insensitive).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Fund profiles with their history records.</returns>
+    Task<IReadOnlyList<FundProfile>> GetByCompanyNameFilterAsync(
+        string? companyName, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.
     /// </summary>
     /// <remarks>

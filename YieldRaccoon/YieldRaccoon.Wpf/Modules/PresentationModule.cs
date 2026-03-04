@@ -203,6 +203,21 @@ public class PresentationModule : Module
             .As<IAboutFundResponseInterceptor>()
             .InstancePerDependency();
 
+        // Cloud sync window service registration
+        // Register window service for showing Cloud Sync window from ViewModels
+        builder.RegisterType<CloudSyncWindowService>()
+            .As<ICloudSyncWindowService>()
+            .InstancePerDependency();
+
+        // Cloud sync service registration
+        // Orchestrates bulk-syncing local fund data to the Backend API
+        builder.RegisterType<CloudSyncService>()
+            .As<ICloudSyncService>()
+            .InstancePerDependency();
+
+        // Backend API client registration (available when BackendApiUrl is configured)
+        RegisterBackendApiClient(builder);
+
         // Database provider registration
         RegisterDatabaseProvider(builder);
 
@@ -297,20 +312,14 @@ public class PresentationModule : Module
     }
 
     /// <summary>
-    /// Registers DualWrite infrastructure: inner SQLite services with named keys,
-    /// Backend API client, sync status stream, and decorator services.
+    /// Registers the pre-configured HttpClient and FundSyncApiClient for Backend API access.
+    /// Called whenever <see cref="DatabaseOptions.BackendApiUrl"/> is configured,
+    /// regardless of the provider — needed by both DualWrite mode and Cloud Sync.
     /// </summary>
-    private void RegisterDualWriteServices(ContainerBuilder builder)
+    private void RegisterBackendApiClient(ContainerBuilder builder)
     {
-        // Shared Rx Subject for sync status notifications (singleton)
-        builder.Register(ctx => new Subject<BackendSyncStatus>())
-            .AsSelf()
-            .SingleInstance();
-
-        // BackendSyncStatusProvider wraps the Subject for ViewModel consumption
-        builder.RegisterType<BackendSyncStatusProvider>()
-            .As<IBackendSyncStatusProvider>()
-            .SingleInstance();
+        if (string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl))
+            return;
 
         // Pre-configured HttpClient for Backend API (BaseAddress + ApiKey header)
         builder.Register(ctx =>
@@ -331,6 +340,24 @@ public class PresentationModule : Module
         // Backend API client
         builder.RegisterType<FundSyncApiClient>()
             .As<IFundSyncApiClient>()
+            .SingleInstance();
+    }
+
+    /// <summary>
+    /// Registers DualWrite infrastructure: inner SQLite services with named keys,
+    /// sync status stream, and decorator services.
+    /// HttpClient and FundSyncApiClient are registered by <see cref="RegisterBackendApiClient"/>.
+    /// </summary>
+    private void RegisterDualWriteServices(ContainerBuilder builder)
+    {
+        // Shared Rx Subject for sync status notifications (singleton)
+        builder.Register(ctx => new Subject<BackendSyncStatus>())
+            .AsSelf()
+            .SingleInstance();
+
+        // BackendSyncStatusProvider wraps the Subject for ViewModel consumption
+        builder.RegisterType<BackendSyncStatusProvider>()
+            .As<IBackendSyncStatusProvider>()
             .SingleInstance();
 
         // Inner SQLite services — registered with named keys so decorators can resolve them

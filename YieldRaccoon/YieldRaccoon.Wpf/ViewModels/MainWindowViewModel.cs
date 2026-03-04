@@ -42,6 +42,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IAboutFundWindowService _aboutFundWindowService;
     private readonly IExportWindowService _exportWindowService;
     private readonly IFundStatisticsExportWindowService _fundStatisticsExportWindowService;
+    private readonly ICloudSyncWindowService _cloudSyncWindowService;
     private readonly IBackendSyncStatusProvider _backendSyncStatusProvider;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
@@ -326,6 +327,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ICommand OpenFundStatisticsExportCommand { get; }
 
+    /// <summary>
+    /// Gets the command to open the Cloud Sync window.
+    /// </summary>
+    public ICommand OpenCloudSyncCommand { get; }
+
     #endregion
 
     #region Events
@@ -361,6 +367,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="aboutFundWindowService">Service for showing the AboutFund browser window.</param>
     /// <param name="exportWindowService">Service for showing the Export window.</param>
     /// <param name="fundStatisticsExportWindowService">Service for showing the Fund Statistics Export window.</param>
+    /// <param name="cloudSyncWindowService">Service for showing the Cloud Sync window.</param>
     /// <param name="databaseOptions">Database configuration options for provider display.</param>
     /// <param name="backendSyncStatusProvider">Provider for backend sync status notifications.</param>
     public MainWindowViewModel(
@@ -372,6 +379,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IAboutFundWindowService aboutFundWindowService,
         IExportWindowService exportWindowService,
         IFundStatisticsExportWindowService fundStatisticsExportWindowService,
+        ICloudSyncWindowService cloudSyncWindowService,
         DatabaseOptions databaseOptions,
         IBackendSyncStatusProvider backendSyncStatusProvider)
     {
@@ -385,6 +393,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             exportWindowService ?? throw new ArgumentNullException(nameof(exportWindowService));
         _fundStatisticsExportWindowService =
             fundStatisticsExportWindowService ?? throw new ArgumentNullException(nameof(fundStatisticsExportWindowService));
+        _cloudSyncWindowService =
+            cloudSyncWindowService ?? throw new ArgumentNullException(nameof(cloudSyncWindowService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
 
@@ -437,6 +447,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
         OpenExportCommand = new DelegateCommand(ExecuteOpenExport);
         OpenFundStatisticsExportCommand = new DelegateCommand(ExecuteOpenFundStatisticsExport);
+        OpenCloudSyncCommand = new DelegateCommand(ExecuteOpenCloudSync);
 
         // Set up subscriptions to orchestrator streams
         SetupOrchestratorSubscriptions();
@@ -457,6 +468,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _aboutFundWindowService = null!; // Design-time only
         _exportWindowService = null!; // Design-time only
         _fundStatisticsExportWindowService = null!; // Design-time only
+        _cloudSyncWindowService = null!; // Design-time only
         _backendSyncStatusProvider = new NullBackendSyncStatusProvider();
 
         DatabaseProviderName = "InMemory";
@@ -491,6 +503,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         OpenAboutFundCommand = new DelegateCommand(() => { });
         OpenExportCommand = new DelegateCommand(() => { });
         OpenFundStatisticsExportCommand = new DelegateCommand(() => { });
+        OpenCloudSyncCommand = new DelegateCommand(() => { });
     }
 
     #region Orchestrator Subscriptions
@@ -683,6 +696,16 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _logger.Debug("Open Fund Statistics Export window command executed");
         _fundStatisticsExportWindowService.ShowFundStatisticsExportWindow();
+    }
+
+    /// <summary>
+    /// Executes the open Cloud Sync command.
+    /// Shows the Cloud Sync window via the window service.
+    /// </summary>
+    private void ExecuteOpenCloudSync()
+    {
+        _logger.Debug("Open Cloud Sync window command executed");
+        _cloudSyncWindowService.ShowCloudSyncWindow();
     }
 
     /// <summary>

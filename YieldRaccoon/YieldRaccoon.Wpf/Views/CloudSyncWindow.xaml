@@ -1,0 +1,184 @@
+<mah:MetroWindow
+    x:Class="YieldRaccoon.Wpf.Views.CloudSyncWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
+    Title="Cloud sync"
+    Width="550"
+    Height="440"
+    d:DataContext="{d:DesignInstance viewModels:CloudSyncWindowViewModel,
+                                     IsDesignTimeCreatable=True}"
+    Icon="/Resources/YieldRaccoon.ico"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    TitleCharacterCasing="Normal"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <dxmvvm:Interaction.Behaviors>
+        <dxmvvm:CurrentWindowService ClosingCommand="{Binding WindowClosingCommand}" />
+    </dxmvvm:Interaction.Behaviors>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <!--  Form fields / warning  -->
+            <RowDefinition Height="Auto" />
+            <!--  Status + progress  -->
+            <RowDefinition Height="*" />
+            <!--  Buttons  -->
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Backend not configured warning (visible when NOT configured)  -->
+        <StackPanel
+            Grid.Row="0"
+            Orientation="Horizontal"
+            Visibility="{Binding IsBackendConfigured, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}">
+            <TextBlock
+                Margin="0,0,4,0"
+                VerticalAlignment="Center"
+                FontFamily="Segoe Fluent Icons"
+                FontSize="14"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Text="&#xE7BA;" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Style="{StaticResource yr.BodyStyle}"
+                Text="Cloud sync requires Backend API URL in settings." />
+        </StackPanel>
+
+        <!--  Form fields (visible when backend is configured)  -->
+        <StackPanel
+            Grid.Row="0"
+            Visibility="{Binding IsBackendConfigured, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+
+            <!--  Description  -->
+            <TextBlock
+                Margin="0,0,0,12"
+                Foreground="{StaticResource MahApps.Brushes.Gray2}"
+                Style="{StaticResource yr.CaptionStyle}"
+                Text="Bulk-sync local fund data (profiles + history records) to the Backend API."
+                TextWrapping="Wrap" />
+
+            <!--  Company name  -->
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Company name (empty = all)" />
+            <TextBox
+                mah:TextBoxHelper.Watermark="Enter company name..."
+                Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}" />
+
+            <!--  Throttle  -->
+            <TextBlock
+                Margin="0,20,0,4"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Throttle (ms)" />
+            <mah:NumericUpDown
+                Width="120"
+                HorizontalAlignment="Left"
+                Minimum="0"
+                NumericInputMode="Numbers"
+                Value="{Binding ThrottleMs}" />
+        </StackPanel>
+
+        <!--  Status + progress (visible when backend is configured)  -->
+        <StackPanel
+            Grid.Row="1"
+            Margin="0,12,0,0"
+            VerticalAlignment="Top"
+            Visibility="{Binding IsBackendConfigured, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+
+            <!--  Progress bar  -->
+            <mah:MetroProgressBar
+                Maximum="100"
+                Visibility="{Binding IsSyncing, Converter={dxmvvm:BooleanToVisibilityConverter}}"
+                Value="{Binding ProgressValue}" />
+
+            <!--  Progress text  -->
+            <TextBlock
+                Margin="{StaticResource yr.CompactSpacing}"
+                Style="{StaticResource yr.CaptionStyle}"
+                Text="{Binding ProgressText}"
+                TextWrapping="Wrap"
+                Visibility="{Binding IsSyncing, Converter={dxmvvm:BooleanToVisibilityConverter}}" />
+
+            <!--  Counts  -->
+            <TextBlock
+                Margin="{StaticResource yr.ItemSpacing}"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Visibility="{Binding IsSyncing, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <TextBlock.Style>
+                    <Style BasedOn="{StaticResource yr.CaptionStyle}" TargetType="TextBlock" />
+                </TextBlock.Style>
+                <Run Text="{Binding SuccessCount, Mode=OneWay}" />
+                <Run Text=" synced, " />
+                <Run Text="{Binding FailCount, Mode=OneWay}" />
+                <Run Text=" failed" />
+            </TextBlock>
+
+            <!--  Status message with icon  -->
+            <StackPanel
+                Orientation="Horizontal"
+                Visibility="{Binding StatusMessage, Converter={dxmvvm:StringToBooleanConverter}, ConverterParameter=Inverse}">
+                <TextBlock
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    FontFamily="Segoe Fluent Icons"
+                    FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="&#xE73E;" />
+                            <Setter Property="Foreground" Value="{StaticResource yr.SuccessBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsStatusError}" Value="True">
+                                    <Setter Property="Text" Value="&#xE783;" />
+                                    <Setter Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Text="{Binding StatusMessage}"
+                    TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style BasedOn="{StaticResource yr.CaptionStyle}" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource yr.SuccessBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsStatusError}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource yr.ErrorBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </StackPanel>
+
+        <!--  Buttons  -->
+        <Grid Grid.Row="2">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button
+                    Width="120"
+                    Margin="0,0,8,0"
+                    Command="{Binding SyncCommand}"
+                    Content="Sync to cloud"
+                    IsDefault="True"
+                    Style="{StaticResource yr.ButtonAccentStyle}" />
+                <Button
+                    Width="80"
+                    Command="{Binding CloseCommand}"
+                    Content="Close"
+                    IsCancel="True"
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</mah:MetroWindow>
