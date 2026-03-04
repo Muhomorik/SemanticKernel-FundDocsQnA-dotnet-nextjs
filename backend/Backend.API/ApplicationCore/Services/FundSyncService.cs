@@ -55,7 +55,11 @@ public class FundSyncService : IFundSyncService
             await _profileRepository.UpsertAsync(profile, cancellationToken);
 
             var historyRecord = CreateHistoryRecord(dto, isinId);
-            historyRecords.Add(historyRecord);
+            if (historyRecord.NavDate != null)
+            {
+                historyRecords.Add(historyRecord);
+            }
+
             profilesProcessed++;
         }
 

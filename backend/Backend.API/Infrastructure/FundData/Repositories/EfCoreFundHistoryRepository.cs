@@ -6,6 +6,7 @@ namespace Backend.API.Infrastructure.FundData.Repositories;
 
 /// <summary>
 /// EF Core implementation of <see cref="IFundHistoryRepository"/>.
+/// Batch-loads existing records to avoid N+1 query patterns.
 /// </summary>
 public class EfCoreFundHistoryRepository : IFundHistoryRepository
 {
@@ -19,18 +20,23 @@ public class EfCoreFundHistoryRepository : IFundHistoryRepository
     /// <inheritdoc />
     public async Task UpsertRangeAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default)
     {
-        foreach (var record in records)
+        var recordsList = records.Where(r => r.NavDate != null).ToList();
+        if (recordsList.Count == 0) return;
+
+        // Batch-load all potentially matching existing records in one query.
+        // Generates: WHERE FundId IN (...) AND NavDate IN (...)
+        var isins = recordsList.Select(r => r.IsinId).Distinct().ToList();
+        var navDates = recordsList.Select(r => r.NavDate!.Value).Distinct().ToList();
+
+        var existingRecords = await _context.FundHistoryRecords
+            .Where(h => isins.Contains(h.IsinId) && navDates.Contains(h.NavDate!.Value))
+            .ToListAsync(cancellationToken);
+
+        var lookup = existingRecords.ToDictionary(h => (h.IsinId, h.NavDate!.Value));
+
+        foreach (var record in recordsList)
         {
-            if (record.NavDate == null) continue;
-
-            var existing = await _context.FundHistoryRecords
-                .FirstOrDefaultAsync(h => h.IsinId == record.IsinId && h.NavDate == record.NavDate, cancellationToken);
-
-            if (existing == null)
-            {
-                _context.FundHistoryRecords.Add(record);
-            }
-            else
+            if (lookup.TryGetValue((record.IsinId, record.NavDate!.Value), out var existing))
             {
                 // Overwrite daily snapshot values
                 _context.Entry(existing).CurrentValues.SetValues(new
@@ -46,20 +52,33 @@ public class EfCoreFundHistoryRepository : IFundHistoryRepository
                     record.StandardDeviation
                 });
             }
+            else
+            {
+                _context.FundHistoryRecords.Add(record);
+            }
         }
     }
 
     /// <inheritdoc />
     public async Task InsertIfNotExistsRangeAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default)
     {
-        foreach (var record in records)
+        var recordsList = records.Where(r => r.NavDate != null).ToList();
+        if (recordsList.Count == 0) return;
+
+        // Batch-load existing (ISIN, NavDate) pairs in one query
+        var isins = recordsList.Select(r => r.IsinId).Distinct().ToList();
+        var navDates = recordsList.Select(r => r.NavDate!.Value).Distinct().ToList();
+
+        var existingPairs = await _context.FundHistoryRecords
+            .Where(h => isins.Contains(h.IsinId) && navDates.Contains(h.NavDate!.Value))
+            .Select(h => new { h.IsinId, NavDate = h.NavDate!.Value })
+            .ToListAsync(cancellationToken);
+
+        var existingSet = existingPairs.Select(p => (p.IsinId, p.NavDate)).ToHashSet();
+
+        foreach (var record in recordsList)
         {
-            if (record.NavDate == null) continue;
-
-            var exists = await _context.FundHistoryRecords
-                .AnyAsync(h => h.IsinId == record.IsinId && h.NavDate == record.NavDate, cancellationToken);
-
-            if (!exists)
+            if (!existingSet.Contains((record.IsinId, record.NavDate!.Value)))
             {
                 _context.FundHistoryRecords.Add(record);
             }

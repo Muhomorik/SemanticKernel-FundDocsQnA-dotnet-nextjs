@@ -15,9 +15,8 @@ namespace Backend.API.Infrastructure.FundData.Configuration;
 /// - Decimals: DECIMAL(18,6)
 /// - NavDate: DATE
 ///
-/// Indexing strategy for time-range queries per fund:
-/// - Composite index on (FundId, NavDate DESC) for efficient history queries
-/// - Unique constraint prevents duplicate snapshots for the same fund on the same date
+/// Indexing strategy:
+/// - Single unique index on (FundId ASC, NavDate DESC) serves both uniqueness and time-range query performance
 /// </remarks>
 public class FundHistoryRecordConfiguration : IEntityTypeConfiguration<FundHistoryRecord>
 {
@@ -46,14 +45,11 @@ public class FundHistoryRecordConfiguration : IEntityTypeConfiguration<FundHisto
         builder.Property(h => h.SharpeRatio).HasColumnType("DECIMAL(18,6)");
         builder.Property(h => h.StandardDeviation).HasColumnType("DECIMAL(18,6)");
 
-        // Composite index for time-range queries (NavDate DESC for "latest records" queries)
-        builder.HasIndex(h => new { FundId = h.IsinId, h.NavDate })
-            .HasDatabaseName("IX_FundHistoryRecords_FundId_NavDate")
-            .IsDescending(false, true);
-
-        // Unique constraint: one record per fund per NAV date
+        // Unique constraint + descending NavDate for efficient "latest records" range queries.
+        // A single unique descending index serves both uniqueness enforcement and query performance.
         builder.HasIndex(h => new { FundId = h.IsinId, h.NavDate })
             .HasDatabaseName("UX_FundHistoryRecords_FundId_NavDate")
-            .IsUnique();
+            .IsUnique()
+            .IsDescending(false, true);
     }
 }
