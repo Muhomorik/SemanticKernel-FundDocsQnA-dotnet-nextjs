@@ -41,7 +41,6 @@ This backend API loads pre-generated embeddings from the Preprocessor, stores th
 6. Return answer + source references
 ```
 
-```plaintext
 ## Setup Instructions
 
 ### 1. Clone and Navigate
@@ -103,18 +102,22 @@ All configuration is in `appsettings.json` under the `BackendOptions` section. S
 
 | Setting                   | Default                       | Description                                                      |
 | ------------------------- | ----------------------------- | ---------------------------------------------------------------- |
+| `LlmProvider`             | `OpenAI`                      | LLM provider ("OpenAI" or "Groq")                                |
+| `OpenAIChatModel`         | `gpt-4o-mini`                 | OpenAI chat model (when LlmProvider is "OpenAI")                 |
+| `OpenAIEmbeddingModel`    | `text-embedding-3-small`      | OpenAI embedding model                                           |
+| `GroqModel`               | `llama-3.3-70b-versatile`     | Groq LLM model (when LlmProvider is "Groq")                      |
+| `GroqApiUrl`              | `https://api.groq.com/openai/v1` | Groq API endpoint                                             |
+| `MaxSearchResults`        | `10`                          | Number of chunks to retrieve                                     |
+| `MemoryCollectionName`    | `fund-documents`              | Semantic Kernel memory collection name                           |
+| `SystemPrompt`            | (See ApplicationOptions)      | Custom LLM system prompt (optional, uses default if not provided)|
 | `VectorStorageType`       | `InMemory`                    | Vector storage backend ("InMemory" or "CosmosDb")                |
 | `EmbeddingsFilePath`      | `Data/embeddings.json`        | Path to embeddings JSON file (InMemory only)                     |
 | `CosmosDbEndpoint`        | (none)                        | Cosmos DB account endpoint (CosmosDb only)                       |
 | `CosmosDbDatabaseName`    | (none)                        | Cosmos DB database name (CosmosDb only)                          |
 | `CosmosDbContainerName`   | `embeddings`                  | Cosmos DB container name (CosmosDb only)                         |
 | `EmbeddingApiKey`         | (none)                        | API key for embedding endpoints (CosmosDb only)                  |
-| `LlmProvider`             | `OpenAI`                      | LLM provider ("OpenAI" or "Groq")                                |
-| `OpenAIChatModel`         | `gpt-4o-mini`                 | OpenAI chat model (when LlmProvider is "OpenAI")                 |
-| `OpenAIEmbeddingModel`    | `text-embedding-3-small`      | OpenAI embedding model                                           |
-| `GroqModel`               | `llama-3.3-70b-versatile`     | Groq LLM model (when LlmProvider is "Groq")                      |
-| `MaxSearchResults`        | `10`                          | Number of chunks to retrieve                                     |
-| `SystemPrompt`            | (See ApplicationOptions)      | Custom LLM system prompt (optional, uses default if not provided)|
+| `AzureSqlConnectionString`| (none)                        | Azure SQL connection string (enables fund data sync)             |
+| `AllowedOrigins`          | `["localhost:3000","localhost:3001"]` | CORS allowed origins array                                |
 
 ## Switching LLM Providers
 
@@ -307,6 +310,87 @@ Expected response:
   }
 }
 ```
+
+## Azure SQL — Fund Data Sync
+
+Persistent storage for fund profiles and historical NAV data, populated by the [YieldRaccoon](../YieldRaccoon/README.md) desktop crawler via cloud sync.
+
+**Advantages:**
+
+- Persistent fund data (survives restarts)
+- Full historical NAV series per fund
+- Supports bulk sync from YieldRaccoon crawler
+- EF Core with auto-migrations on startup
+
+**Limitations:**
+
+- Requires Azure SQL Database (free tier available)
+- Fund endpoints return `503 Service Unavailable` if not configured
+
+**Setup (Development):**
+
+```bash
+cd Backend.API
+
+# Set Azure SQL connection string
+dotnet user-secrets set "BackendOptions:AzureSqlConnectionString" "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;..."
+
+# Set API key for fund sync endpoints (shared with YieldRaccoon)
+dotnet user-secrets set "BackendOptions:EmbeddingApiKey" "your-api-key"
+```
+
+**How it works:**
+
+1. Backend auto-migrates the database on startup (EF Core)
+2. YieldRaccoon sends fund profiles via `POST /api/funds/list` (batch)
+3. YieldRaccoon sends per-fund history via `POST /api/funds/about` (with throttle)
+4. Fund profiles are upserted by ISIN; history records use insert-if-not-exists (unique on ISIN + NavDate)
+
+**Health Check:**
+
+When Azure SQL is configured, the `/health/ready` endpoint includes an Azure SQL connectivity check.
+
+### Cloud Sync (YieldRaccoon Integration)
+
+The [YieldRaccoon](../YieldRaccoon/README.md) desktop app provides a **Cloud Sync** feature to bulk-push local fund data to this backend. See [Cloud Sync documentation](../YieldRaccoon/docs/CLOUD-SYNC.md) for the full workflow.
+
+**Sync phases:**
+
+1. **Phase 1 — Batch profile sync:** Single `POST /api/funds/list` with all fund profiles
+2. **Phase 2 — Per-fund history sync:** Iterates each fund with `POST /api/funds/about` (profile + history records), with configurable throttle delay
+
+**Requirements:**
+
+- Backend API URL and API key configured in YieldRaccoon Settings
+- Azure SQL connection string configured on the backend
+- Fund data present in YieldRaccoon's local database
+
+## Security
+
+### API Key Authentication
+
+Protected endpoints (`/api/embeddings/*` and `/api/funds/*`) require an API key header:
+
+```
+Authorization: ApiKey <your-api-key>
+```
+
+The middleware uses constant-time comparison to prevent timing attacks. Returns `401 Unauthorized` if the key is missing or invalid.
+
+### Input Validation
+
+- **Question length:** 3–500 characters (enforced by model validation)
+- **SafeQuestion attribute:** Custom validator that rejects prompt injection patterns
+- **User question sanitizer:** Strips dangerous characters before LLM processing; logs suspicious removals (>10% of input removed)
+- **ISIN validation:** Value object with format validation on fund sync endpoints
+
+### Rate Limiting
+
+All API endpoints are rate-limited: **60 requests per minute** with a queue of 5. Returns `429 Too Many Requests` when exceeded.
+
+### Request Size Limit
+
+Max request body: **10 MB** (for embedding batch uploads).
 
 ## API Endpoints
 
@@ -563,11 +647,16 @@ dotnet user-secrets set "BackendOptions:LlmProvider" "Groq"
 
 **Solution:**
 
-Update `Program.cs` to include your frontend URL:
+Add your frontend URL to the `AllowedOrigins` array in `appsettings.json` or via environment variables:
 
-```csharp
-policy.WithOrigins("http://localhost:3000", "https://<your-static-web-app-name>.azurestaticapps.net")
+```bash
+# Via user secrets
+cd Backend.API
+dotnet user-secrets set "BackendOptions:AllowedOrigins:0" "http://localhost:3000"
+dotnet user-secrets set "BackendOptions:AllowedOrigins:1" "https://<your-static-web-app-name>.azurestaticapps.net"
 ```
+
+Or in Azure App Service Configuration: `BackendOptions__AllowedOrigins__0`, `BackendOptions__AllowedOrigins__1`, etc.
 
 ## Customizing the System Prompt
 
@@ -589,12 +678,13 @@ The backend follows **Domain-Driven Design** principles to ensure maintainabilit
 - **Zero external dependencies** - Pure business logic
 - **Interfaces**: Define contracts (ILlmProvider, IDocumentRepository, ISemanticSearch)
 - **Models**: Core entities (DocumentChunk, SearchResult, QuestionAnswer)
-- **Value Objects**: Immutable, validated data (DocumentMetadata, EmbeddingVector)
-- **Domain Services**: Pure computation (CosineSimilarityCalculator - deprecated, replaced by VectorStore)
+- **Value Objects**: Immutable, validated data (DocumentMetadata, EmbeddingVector, IsinId)
+- **Domain Services**: UserQuestionSanitizer (input sanitization)
+- **Fund Data**: FundProfile (aggregate root), FundHistoryRecord (child entity), IFundProfileRepository, IFundHistoryRepository
 
 **ApplicationCore Layer** (`ApplicationCore/`)
 
-- **Use cases**: QuestionAnsweringService orchestrates the RAG pipeline
+- **Use cases**: QuestionAnsweringService (RAG pipeline), FundSyncService (fund data sync)
 - **DTOs**: Data transfer objects for API communication
 - **Depends only on Domain layer** - No infrastructure concerns
 
@@ -602,14 +692,17 @@ The backend follows **Domain-Driven Design** principles to ensure maintainabilit
 
 - **Implements domain interfaces** with external dependencies
 - **LLM Providers**: OpenAiProvider, GroqProvider (implements ILlmProvider)
-- **Repository**: FileBasedDocumentRepository (implements IDocumentRepository)
-- **Search**: InMemorySemanticSearch using Semantic Kernel VectorStore (implements ISemanticSearch)
+- **Repository**: FileBasedDocumentRepository, CosmosDbDocumentRepository (implements IDocumentRepository)
+- **Search**: InMemorySemanticSearch, CosmosDbSemanticSearch (implements ISemanticSearch)
+- **Fund Data**: EfCoreFundProfileRepository, EfCoreFundHistoryRepository (EF Core + Azure SQL)
+- **Persistence**: FundDataDbContext (EF Core DbContext with auto-migrations)
 - **Adapters**: SemanticKernelEmbeddingGenerator (adapts Semantic Kernel to domain interface)
 - **Models**: DocumentChunkRecord (VectorStore record with SK attributes)
 
 **Presentation Layer** (`Controllers/`)
 
-- **Thin controllers**: Validation and delegation only
+- **Thin controllers**: Validation and delegation only (AskController, FundsController, EmbeddingsController)
+- **Middleware**: ApiKeyAuthenticationMiddleware (protects fund + embedding endpoints)
 - **No business logic** - delegates to ApplicationCore services
 
 **Dependency Flow**: `Presentation → ApplicationCore → Domain ← Infrastructure`
