@@ -27,7 +27,7 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         _context.Dispose();
     }
 
-    // ===== Insert =====
+    #region Insert
 
     [Test]
     public async Task UpsertAsync_NewProfile_InsertsIntoDatabase()
@@ -91,7 +91,9 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         });
     }
 
-    // ===== Update =====
+    #endregion
+
+    #region Update
 
     [Test]
     public async Task UpsertAsync_ExistingProfile_UpdatesMutableFields()
@@ -129,7 +131,9 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         });
     }
 
-    // ===== FirstSeenAt Preservation =====
+    #endregion
+
+    #region FirstSeenAt Preservation
 
     [Test]
     public async Task UpsertAsync_ExistingProfile_PreservesFirstSeenAt()
@@ -165,7 +169,9 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         Assert.That(stored!.FirstSeenAt, Is.EqualTo(originalFirstSeen));
     }
 
-    // ===== AboutFundLastVisitedAt Preservation =====
+    #endregion
+
+    #region AboutFundLastVisitedAt Preservation
 
     [Test]
     public async Task UpsertAsync_CrawlUpdateWithNullAboutFundLastVisitedAt_PreservesExistingTimestamp()
@@ -295,7 +301,49 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         Assert.That(stored!.AboutFundLastVisitedAt, Is.Null);
     }
 
-    // ===== Multiple Profiles =====
+    #endregion
+
+    #region CrawlerLastUpdatedAt Preservation
+
+    [Test]
+    public async Task UpsertAsync_AboutUpdateWithNullCrawlerLastUpdatedAt_PreservesExistingTimestamp()
+    {
+        // Arrange — original profile has CrawlerLastUpdatedAt set (from a prior list sync)
+        var isinId = IsinId.Create("SE0008613939");
+        var originalCrawlerUpdatedAt = new DateTimeOffset(2026, 2, 27, 14, 30, 0, TimeSpan.Zero);
+
+        var original = new FundProfile
+        {
+            Id = isinId,
+            Name = "Original",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = originalCrawlerUpdatedAt
+        };
+        await _sut.UpsertAsync(original);
+        await _sut.SaveChangesAsync();
+
+        // About-fund update comes in with null CrawlerLastUpdatedAt (about endpoint nulls it out)
+        var aboutUpdate = new FundProfile
+        {
+            Id = isinId,
+            Name = "About Update",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = null
+        };
+
+        // Act
+        await _sut.UpsertAsync(aboutUpdate);
+        await _sut.SaveChangesAsync();
+
+        // Assert — the original timestamp must survive the about-fund update
+        var stored = await _context.FundProfiles.FindAsync(isinId);
+        Assert.That(stored!.CrawlerLastUpdatedAt, Is.EqualTo(originalCrawlerUpdatedAt),
+            "About-fund update with null CrawlerLastUpdatedAt must not wipe the existing value");
+    }
+
+    #endregion
+
+    #region Multiple Profiles
 
     [Test]
     public async Task UpsertAsync_MultipleDifferentProfiles_InsertsAll()
@@ -314,7 +362,9 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
         Assert.That(count, Is.EqualTo(2));
     }
 
-    // ===== Helpers =====
+    #endregion
+
+    #region Helpers
 
     private static FundProfile CreateProfile(string isin, string name)
     {
@@ -326,4 +376,6 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
             CrawlerLastUpdatedAt = DateTimeOffset.UtcNow
         };
     }
+
+    #endregion
 }

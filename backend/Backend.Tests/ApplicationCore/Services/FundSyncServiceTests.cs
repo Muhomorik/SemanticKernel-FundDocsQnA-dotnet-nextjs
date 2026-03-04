@@ -32,7 +32,7 @@ public class FundSyncServiceTests
             Mock.Of<ILogger<FundSyncService>>());
     }
 
-    // ===== SyncFromFundListAsync =====
+    #region SyncFromFundListAsync
 
     [Test]
     public async Task SyncFromFundListAsync_ValidFunds_UpsertProfilesAndHistory()
@@ -141,7 +141,9 @@ public class FundSyncServiceTests
         });
     }
 
-    // ===== SyncFromFundAboutAsync =====
+    #endregion
+
+    #region SyncFromFundAboutAsync
 
     [Test]
     public async Task SyncFromFundAboutAsync_ValidProfile_UpsertsProfileAndHistory()
@@ -249,7 +251,7 @@ public class FundSyncServiceTests
     }
 
     [Test]
-    public async Task SyncFromFundAboutAsync_SetsAboutFundLastVisitedAt()
+    public async Task SyncFromFundAboutAsync_DoesNotSetTimestamps()
     {
         // Arrange
         FundProfile? capturedProfile = null;
@@ -265,11 +267,19 @@ public class FundSyncServiceTests
         // Act
         await _sut.SyncFromFundAboutAsync(request);
 
-        // Assert
-        Assert.That(capturedProfile?.AboutFundLastVisitedAt, Is.Not.Null);
+        // Assert — about endpoint explicitly nulls out timestamps so the repository preserves existing values
+        Assert.Multiple(() =>
+        {
+            Assert.That(capturedProfile?.CrawlerLastUpdatedAt, Is.Null,
+                "About endpoint must null CrawlerLastUpdatedAt so repository preserves existing value");
+            Assert.That(capturedProfile?.AboutFundLastVisitedAt, Is.Null,
+                "About endpoint must null AboutFundLastVisitedAt so repository preserves existing value");
+        });
     }
 
-    // ===== Helpers =====
+    #endregion
+
+    #region Helpers
 
     private static ApiFundDto CreateValidFundDto(string isin, string name)
     {
@@ -280,7 +290,11 @@ public class FundSyncServiceTests
             Nav = 100.50m,
             NavDate = "2025-01-15",
             Category = "Equity",
-            Capital = 1000000m
+            Capital = 1000000m,
+            FirstSeenAt = "2025-01-01T00:00:00+00:00",
+            CrawlerLastUpdatedAt = "2025-01-15T12:00:00+00:00",
         };
     }
+
+    #endregion
 }
