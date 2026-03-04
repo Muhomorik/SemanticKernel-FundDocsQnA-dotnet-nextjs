@@ -91,7 +91,7 @@ Last Updated: 2026-03-04 (YieldRaccoon: Cloud Sync window for on-demand bulk syn
 | Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
 | Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
 | API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, health checks, Swagger |
-| Fund Data Sync | ✅ | EF Core + Azure SQL: FundProfiles + FundHistoryRecords tables, auto-migration, upsert/insert-only patterns |
+| Fund Data Sync | ✅ | EF Core + Azure SQL: FundProfiles + FundHistoryRecords tables, auto-migration, upsert/insert-only patterns, transient retry policy |
 | Authentication | ✅ | API key authentication for embedding + fund data endpoints |
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |

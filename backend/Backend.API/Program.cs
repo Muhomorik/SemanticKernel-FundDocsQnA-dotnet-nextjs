@@ -361,7 +361,9 @@ var hasAzureSql = !string.IsNullOrWhiteSpace(backendOptions.AzureSqlConnectionSt
 if (hasAzureSql)
 {
     builder.Services.AddDbContext<FundDataDbContext>(options =>
-        options.UseSqlServer(backendOptions.AzureSqlConnectionString));
+        options.UseSqlServer(
+            backendOptions.AzureSqlConnectionString,
+            sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
     builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
     builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
