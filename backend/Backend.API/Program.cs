@@ -355,20 +355,33 @@ if (hasApiKeys)
 }
 
 // ========================================
-// 5.5 Fund Data Services (Azure SQL - Conditional)
+// 5.5 Fund Data Services (Azure SQL)
 // ========================================
+// Always register so FundsController can be constructed by DI.
+// The controller returns 503 when Azure SQL is not configured;
+// the DbContext factory throws InvalidOperationException as a safety net.
 var hasAzureSql = !string.IsNullOrWhiteSpace(backendOptions.AzureSqlConnectionString);
+
 if (hasAzureSql)
 {
+    Console.WriteLine($"Azure SQL: Configured (fund data sync enabled)");
     builder.Services.AddDbContext<FundDataDbContext>(options =>
         options.UseSqlServer(
             backendOptions.AzureSqlConnectionString,
             sqlOptions => sqlOptions.EnableRetryOnFailure()));
-
-    builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
-    builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
-    builder.Services.AddScoped<IFundSyncService, FundSyncService>();
 }
+else
+{
+    Console.WriteLine("Azure SQL: Not configured (fund data sync endpoints will return 503)");
+    builder.Services.AddDbContext<FundDataDbContext>(options =>
+        throw new InvalidOperationException(
+            "Azure SQL connection string not configured. " +
+            "Set via: dotnet user-secrets set 'BackendOptions:AzureSqlConnectionString' '<connection-string>'"));
+}
+
+builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
+builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
+builder.Services.AddScoped<IFundSyncService, FundSyncService>();
 
 // ========================================
 // 6. ASP.NET Core Services Configuration
@@ -586,7 +599,6 @@ switch (backendOptions.LlmProvider)
 }
 
 Console.WriteLine($"OpenAI Embedding Model: {backendOptions.OpenAIEmbeddingModel}");
-Console.WriteLine($"Azure SQL: {(hasAzureSql ? "Configured (fund data sync enabled)" : "Not configured")}");
 
 // Run the application
 app.Run();
