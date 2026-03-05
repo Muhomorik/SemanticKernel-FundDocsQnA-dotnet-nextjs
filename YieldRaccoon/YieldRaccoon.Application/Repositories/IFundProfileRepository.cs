@@ -74,6 +74,18 @@ public interface IFundProfileRepository
         string? companyName, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Checks whether a fund profile exists for the given ISIN.
+    /// </summary>
+    /// <remarks>
+    /// Used by chart ingestion to guard against FK violations when saving history records
+    /// for a fund whose profile has not been crawled yet (a normal situation).
+    /// </remarks>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if the profile exists; otherwise <c>false</c>.</returns>
+    Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.
     /// </summary>
     /// <remarks>

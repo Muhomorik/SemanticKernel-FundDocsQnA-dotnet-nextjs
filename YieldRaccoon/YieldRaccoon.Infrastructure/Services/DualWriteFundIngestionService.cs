@@ -76,7 +76,21 @@ public class DualWriteFundIngestionService : IFundIngestionService
                 catch (ArgumentException) { continue; }
 
                 var profile = await _profileRepository.GetByIsinAsync(isinId);
-                apiFunds.Add(profile != null ? profile.ToApiFundDto() : dto.ToApiFundDto());
+
+                // Always start from the DTO (which carries Nav/NavDate from the listing page).
+                // FundProfile does not have Nav/NavDate — using profile.ToApiFundDto() would
+                // produce null values, causing the backend to silently skip history records.
+                var apiDto = dto.ToApiFundDto();
+                if (profile != null)
+                {
+                    apiDto = apiDto with
+                    {
+                        FirstSeenAt = profile.FirstSeenAt.ToString("O"),
+                        CrawlerLastUpdatedAt = profile.CrawlerLastUpdatedAt?.ToString("O"),
+                        AboutFundLastVisitedAt = profile.AboutFundLastVisitedAt?.ToString("O"),
+                    };
+                }
+                apiFunds.Add(apiDto);
             }
 
             if (apiFunds.Count == 0)

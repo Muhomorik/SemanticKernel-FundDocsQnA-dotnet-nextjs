@@ -8,7 +8,10 @@ using YieldRaccoon.Application.DTOs;
 using YieldRaccoon.Application.DTOs.Api;
 using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Models;
+using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
+using YieldRaccoon.Domain.Entities;
+using YieldRaccoon.Domain.ValueObjects;
 using YieldRaccoon.Infrastructure.Services;
 using YieldRaccoon.Infrastructure.Tests.AutoFixture;
 
@@ -193,6 +196,100 @@ public class DualWriteFundIngestionService_IngestBatchAsyncTests
         Assert.That(received, Is.Not.Null);
         Assert.That(received!.IsSuccess, Is.False);
         Assert.That(received.Message, Does.Contain("Rate limited"));
+    }
+
+    [Test]
+    public async Task IngestBatchAsync_ProfileExists_ApiRequestStillContainsNavAndNavDate()
+    {
+        // Arrange — profile exists in SQLite, DTO has Nav/NavDate snapshot
+        var isin = "SE0001234567";
+        var funds = new List<FundDataDto>
+        {
+            new() { Isin = isin, Name = "Fund With NAV", Nav = 123.45m, NavDate = "2026-03-01" }
+        };
+
+        var profile = new FundProfile
+        {
+            Id = IsinId.Create(isin),
+            Name = "Fund With NAV",
+            FirstSeenAt = DateTimeOffset.UtcNow.AddDays(-30),
+            CrawlerLastUpdatedAt = DateTimeOffset.UtcNow.AddHours(-1),
+        };
+
+        var profileRepoMock = _fixture.Freeze<Mock<IFundProfileRepository>>();
+        profileRepoMock
+            .Setup(r => r.GetByIsinAsync(It.IsAny<IsinId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+
+        _sut = _fixture.Create<DualWriteFundIngestionService>();
+
+        _innerMock.Setup(x => x.IngestBatchAsync(It.IsAny<IEnumerable<FundDataDto>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        FundListSyncRequest? capturedRequest = null;
+        _apiClientMock.Setup(x => x.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<FundListSyncRequest, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", ProfilesProcessed = 1 });
+
+        // Act
+        await _sut.IngestBatchAsync(funds);
+        await Task.Delay(200);
+
+        // Assert — Nav and NavDate must come from the DTO, not be null
+        Assert.That(capturedRequest, Is.Not.Null);
+        Assert.That(capturedRequest!.Funds, Has.Count.EqualTo(1));
+        Assert.That(capturedRequest.Funds[0].Nav, Is.EqualTo(123.45m));
+        Assert.That(capturedRequest.Funds[0].NavDate, Is.EqualTo("2026-03-01"));
+    }
+
+    [Test]
+    public async Task IngestBatchAsync_ProfileExists_ApiRequestContainsProfileTimestamps()
+    {
+        // Arrange — profile has authoritative timestamps that should overlay the DTO
+        var isin = "SE0009876543";
+        var firstSeen = new DateTimeOffset(2025, 6, 15, 10, 0, 0, TimeSpan.Zero);
+        var lastUpdated = new DateTimeOffset(2026, 3, 1, 14, 30, 0, TimeSpan.Zero);
+        var lastVisited = new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero);
+
+        var funds = new List<FundDataDto>
+        {
+            new() { Isin = isin, Name = "Timestamp Fund", Nav = 100m, NavDate = "2026-03-01" }
+        };
+
+        var profile = new FundProfile
+        {
+            Id = IsinId.Create(isin),
+            Name = "Timestamp Fund",
+            FirstSeenAt = firstSeen,
+            CrawlerLastUpdatedAt = lastUpdated,
+            AboutFundLastVisitedAt = lastVisited,
+        };
+
+        var profileRepoMock = _fixture.Freeze<Mock<IFundProfileRepository>>();
+        profileRepoMock
+            .Setup(r => r.GetByIsinAsync(It.IsAny<IsinId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+
+        _sut = _fixture.Create<DualWriteFundIngestionService>();
+
+        _innerMock.Setup(x => x.IngestBatchAsync(It.IsAny<IEnumerable<FundDataDto>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        FundListSyncRequest? capturedRequest = null;
+        _apiClientMock.Setup(x => x.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<FundListSyncRequest, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", ProfilesProcessed = 1 });
+
+        // Act
+        await _sut.IngestBatchAsync(funds);
+        await Task.Delay(200);
+
+        // Assert — timestamps come from the persisted profile
+        Assert.That(capturedRequest, Is.Not.Null);
+        var apiDto = capturedRequest!.Funds[0];
+        Assert.That(apiDto.FirstSeenAt, Is.EqualTo(firstSeen.ToString("O")));
+        Assert.That(apiDto.CrawlerLastUpdatedAt, Is.EqualTo(lastUpdated.ToString("O")));
+        Assert.That(apiDto.AboutFundLastVisitedAt, Is.EqualTo(lastVisited.ToString("O")));
     }
 
     private List<FundDataDto> CreateValidFunds(int count)

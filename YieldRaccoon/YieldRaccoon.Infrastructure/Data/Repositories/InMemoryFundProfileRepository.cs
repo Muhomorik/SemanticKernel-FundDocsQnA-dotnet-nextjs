@@ -94,6 +94,12 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_profiles.ContainsKey(isinId));
+    }
+
+    /// <inheritdoc />
     public Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {

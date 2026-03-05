@@ -19,6 +19,7 @@ public class AboutFundChartIngestionService_IngestChartDataAsyncTests
     private IFixture _fixture = null!;
     private Mock<ILogger> _loggerMock = null!;
     private Mock<IFundHistoryRepository> _repositoryMock = null!;
+    private Mock<IFundProfileRepository> _profileRepositoryMock = null!;
     private AboutFundChartIngestionService _sut = null!;
 
     [SetUp]
@@ -30,6 +31,13 @@ public class AboutFundChartIngestionService_IngestChartDataAsyncTests
 
         _loggerMock = _fixture.Freeze<Mock<ILogger>>();
         _repositoryMock = _fixture.Freeze<Mock<IFundHistoryRepository>>();
+
+        // Default: profile exists — all existing tests keep passing
+        _profileRepositoryMock = _fixture.Freeze<Mock<IFundProfileRepository>>();
+        _profileRepositoryMock
+            .Setup(r => r.ExistsByIsinAsync(It.IsAny<IsinId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         _sut = _fixture.Create<AboutFundChartIngestionService>();
     }
 
@@ -333,6 +341,90 @@ public class AboutFundChartIngestionService_IngestChartDataAsyncTests
 
         // Assert
         Assert.That(result, Is.EqualTo(1));
+    }
+
+    #endregion
+
+    #region Profile existence guard
+
+    [Test]
+    public async Task IngestChartDataAsync_ProfileNotFound_ReturnsZeroAndSkipsRepository()
+    {
+        // Arrange — profile does not exist (normal situation for manually navigated funds)
+        _profileRepositoryMock
+            .Setup(r => r.ExistsByIsinAsync(It.IsAny<IsinId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        const string chartJson = """
+            {
+              "id": "1",
+              "dataSerie": [{ "x": 1771369200000, "y": 457.83 }]
+            }
+            """;
+
+        var pageData = new AboutFundPageData
+        {
+            OrderBookId = _fixture.Create<OrderBookId>(),
+            Chart1Month = AboutFundFetchSlot.Succeeded(chartJson)
+        };
+        var isinId = _fixture.Create<IsinId>();
+
+        // Act
+        var result = await _sut.IngestChartDataAsync(pageData, isinId);
+
+        // Assert — returns 0, never touches history repository
+        Assert.That(result, Is.EqualTo(0));
+        _repositoryMock.Verify(
+            r => r.AddRangeIfNotExistsAsync(
+                It.IsAny<IEnumerable<FundHistoryRecord>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        _repositoryMock.Verify(
+            r => r.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task IngestChartDataAsync_ProfileExists_ProcessesNormally()
+    {
+        // Arrange — profile exists (explicitly verify the guard passes)
+        _profileRepositoryMock
+            .Setup(r => r.ExistsByIsinAsync(It.IsAny<IsinId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        const string chartJson = """
+            {
+              "id": "1",
+              "dataSerie": [{ "x": 1771369200000, "y": 457.83 }]
+            }
+            """;
+
+        var pageData = new AboutFundPageData
+        {
+            OrderBookId = _fixture.Create<OrderBookId>(),
+            Chart1Month = AboutFundFetchSlot.Succeeded(chartJson)
+        };
+        var isinId = _fixture.Create<IsinId>();
+
+        _repositoryMock
+            .Setup(r => r.AddRangeIfNotExistsAsync(
+                It.IsAny<IEnumerable<FundHistoryRecord>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _sut.IngestChartDataAsync(pageData, isinId);
+
+        // Assert — record persisted
+        Assert.That(result, Is.EqualTo(1));
+        _repositoryMock.Verify(
+            r => r.AddRangeIfNotExistsAsync(
+                It.IsAny<IEnumerable<FundHistoryRecord>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repositoryMock.Verify(
+            r => r.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     #endregion

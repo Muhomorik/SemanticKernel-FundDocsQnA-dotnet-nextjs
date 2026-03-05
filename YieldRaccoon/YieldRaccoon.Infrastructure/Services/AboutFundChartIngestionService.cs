@@ -16,6 +16,7 @@ namespace YieldRaccoon.Infrastructure.Services;
 /// <para>
 /// Implements the full ingestion pipeline:
 /// <list type="number">
+///   <item>Checks that the parent <see cref="FundProfile"/> exists (FK guard).</item>
 ///   <item>Extracts raw JSON from each succeeded <see cref="AboutFundFetchSlot"/> on the page data.</item>
 ///   <item>Deserializes each JSON payload into an internal anti-corruption model.</item>
 ///   <item>Merges all data points across 7 overlapping time periods, deduplicating by NAV date
@@ -33,18 +34,22 @@ public class AboutFundChartIngestionService : IAboutFundChartIngestionService
 {
     private readonly ILogger _logger;
     private readonly IFundHistoryRepository _historyRepository;
+    private readonly IFundProfileRepository _profileRepository;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundChartIngestionService"/> class.
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="historyRepository">The fund history repository for persistence.</param>
+    /// <param name="profileRepository">The fund profile repository for existence checks.</param>
     public AboutFundChartIngestionService(
         ILogger logger,
-        IFundHistoryRepository historyRepository)
+        IFundHistoryRepository historyRepository,
+        IFundProfileRepository profileRepository)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _historyRepository = historyRepository ?? throw new ArgumentNullException(nameof(historyRepository));
+        _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
     }
 
     /// <inheritdoc />
@@ -53,6 +58,15 @@ public class AboutFundChartIngestionService : IAboutFundChartIngestionService
         IsinId isinId,
         CancellationToken cancellationToken = default)
     {
+        // Guard: history records have FK to FundProfile — missing profile is a normal
+        // situation (fund navigated manually but not yet crawled).
+        if (!await _profileRepository.ExistsByIsinAsync(isinId, cancellationToken))
+        {
+            _logger.Debug("No fund profile for ISIN {0} (OrderBookId: {1}) — skipping chart ingestion",
+                isinId.Isin, pageData.OrderBookId);
+            return 0;
+        }
+
         var succeededSlots = GetSucceededSlots(pageData);
 
         if (succeededSlots.Count == 0)

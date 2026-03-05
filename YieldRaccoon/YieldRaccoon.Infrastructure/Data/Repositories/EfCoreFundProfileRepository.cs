@@ -123,6 +123,12 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public async Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
+    {
+        return await _context.FundProfiles.AnyAsync(fp => fp.Id == isinId, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {
