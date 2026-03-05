@@ -95,8 +95,9 @@ public record BackendOptions
     public string CosmosDbContainerName { get; init; } = "embeddings";
 
     /// <summary>
-    /// Gets or sets the API key for authenticating Preprocessor requests to embedding endpoints.
-    /// Required when VectorStorageType is CosmosDb.
+    /// Gets or sets the API key for authenticating requests to protected endpoints
+    /// (<c>/api/embeddings</c> and <c>/api/funds</c>).
+    /// Required when VectorStorageType is CosmosDb or when using the fund sync API.
     /// Should be stored in Azure Key Vault in production.
     /// Can be overridden by BackendOptions__EmbeddingApiKey environment variable.
     /// </summary>
