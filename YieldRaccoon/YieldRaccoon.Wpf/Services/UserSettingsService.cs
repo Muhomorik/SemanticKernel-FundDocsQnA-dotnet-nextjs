@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using NLog;
 using YieldRaccoon.Wpf.Configuration;
 
@@ -10,11 +11,8 @@ namespace YieldRaccoon.Wpf.Services;
 /// </summary>
 public class UserSettingsService : IUserSettingsService
 {
-
-// TODO: we are doing what??? use proper way with 
-// dotnet add package System.Configuration.ConfigurationManager
-// refactor your UserSettingsService to use ApplicationSettingsBase instead of manual JSON
-// add note to the view that this is singleton and requires program restart to apply changes.
+    // JSON in %LocalAppData% chosen over ApplicationSettingsBase — version-agnostic storage,
+    // no settings lost on assembly version change. Singleton; changes require app restart.
 
     private readonly ILogger _logger;
     private readonly string _settingsFilePath;
@@ -27,17 +25,25 @@ public class UserSettingsService : IUserSettingsService
     /// Initializes a new instance of the <see cref="UserSettingsService"/> class.
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
-    public UserSettingsService(ILogger logger)
+    /// <param name="settingsFilePath">
+    /// Optional override for the settings file path. When null, defaults to
+    /// <c>%LocalAppData%/YieldRaccoon/settings.json</c>. Used for testing.
+    /// </param>
+    public UserSettingsService(ILogger logger, string? settingsFilePath = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        _settingsFilePath = Path.Combine(localAppData, AppFolderName, SettingsFileName);
+        _settingsFilePath = settingsFilePath
+            ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                AppFolderName,
+                SettingsFileName);
 
         _jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter() }
         };
 
         _logger.Debug($"User settings file path: {_settingsFilePath}");

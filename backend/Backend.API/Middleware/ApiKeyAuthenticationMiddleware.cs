@@ -3,8 +3,8 @@ using Backend.API.Configuration;
 namespace Backend.API.Middleware;
 
 /// <summary>
-/// Middleware for validating API key authentication on embedding management endpoints.
-/// Only active when VectorStorageType is CosmosDb.
+/// Middleware for validating API key authentication on protected endpoints.
+/// Protects /api/embeddings (when CosmosDb is enabled) and /api/funds (when Azure SQL is configured).
 /// Expected header format: Authorization: ApiKey {key}
 /// </summary>
 public class ApiKeyAuthenticationMiddleware
@@ -24,15 +24,18 @@ public class ApiKeyAuthenticationMiddleware
 
     public async Task InvokeAsync(HttpContext context, BackendOptions options)
     {
-        // Only protect /api/embeddings endpoints
-        if (!context.Request.Path.StartsWithSegments("/api/embeddings", StringComparison.OrdinalIgnoreCase))
+        var isEmbeddingsPath = context.Request.Path.StartsWithSegments("/api/embeddings", StringComparison.OrdinalIgnoreCase);
+        var isFundsPath = context.Request.Path.StartsWithSegments("/api/funds", StringComparison.OrdinalIgnoreCase);
+
+        // Only protect /api/embeddings and /api/funds endpoints
+        if (!isEmbeddingsPath && !isFundsPath)
         {
             await _next(context);
             return;
         }
 
-        // Only apply authentication when Cosmos DB storage is enabled
-        if (options.VectorStorageType != VectorStorageType.CosmosDb)
+        // For embeddings: only apply auth when Cosmos DB storage is enabled
+        if (isEmbeddingsPath && options.VectorStorageType != VectorStorageType.CosmosDb)
         {
             await _next(context);
             return;

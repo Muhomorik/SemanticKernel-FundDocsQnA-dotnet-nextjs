@@ -63,7 +63,8 @@ YieldRaccoon.sln
 │   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
 │   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
-│                                     # IAboutFundChartIngestionService, IRandomDelayProvider
+│                                     # IAboutFundChartIngestionService, IFundDataExportService,
+│                                     # IRandomDelayProvider
 │
 ├── YieldRaccoon.Infrastructure/      # Technical concerns
 │   ├── Data/                         # EF Core DbContext, configurations, value converters
@@ -71,183 +72,31 @@ YieldRaccoon.sln
 │   ├── EventStore/                   # InMemoryCrawlEventStore, InMemoryAboutFundEventStore
 │   ├── Models/                       # Anti-corruption layer (chart API response shapes)
 │   └── Services/                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
-│                                     # ChartIngestionService, RandomDelayProvider, FundDetailsUrlBuilder
+│                                     # ChartIngestionService, FundDataExportService,
+│                                     # RandomDelayProvider, FundDetailsUrlBuilder
 │
 └── YieldRaccoon.Wpf/                 # WPF UI
     ├── Modules/                      # Autofac DI modules (NLogModule, PresentationModule)
     ├── ViewModels/                   # DevExpress MVVM ViewModels
+    ├── Models/                       # ExportPeriod, InterceptedFund, InterceptedHttpRequest
     ├── Behaviors/                    # WebView2 behaviors (privacy refresh, auto-scroll)
-    ├── Views/                        # XAML views
-    ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService
+    ├── Views/                        # XAML views (MainWindow, AboutFundWindow, ExportWindow, SettingsWindow)
+    ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService,
+    │                                 # ExportWindowService
     └── Configuration/                # DatabaseOptions, YieldRaccoonOptions (FastMode, AutoStartOverview)
 ```
 
-## Database Persistence
+## Fund Data Export
 
-Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
+Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database or offline analysis. The original database is never modified. See [FUND-DATA-EXPORT.md](docs/FUND-DATA-EXPORT.md) for the full pipeline, filter options, and architecture.
 
-```json
-{
-  "Database": {
-    "Provider": "SQLite",
-    "ConnectionString": "Data Source=YieldRaccoon.db"
-  }
-}
-```
+## Fund Statistics Export
 
-| Provider | Description |
-| ---------- | ------------- |
-| `InMemory` | Session-scoped cache only (default) |
-| `SQLite` | Persistent local database |
+Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
 
-**Default SQLite file location:**
+## Cloud Sync
 
-- File name: `YieldRaccoon.db`
-- Location: Same folder as the executable
-  - Development: `YieldRaccoon.Wpf/bin/Debug/net9.0-windows/YieldRaccoon.db`
-  - Published: Application installation folder
-
-**Database Tables:**
-
-| Table | Purpose |
-| ------- | --------- |
-| `FundProfiles` | Static fund data (name, fees, ESG scores, visit tracking) - keyed by ISIN |
-| `FundHistoryRecords` | Time-series data (NAV, owners, ratings) - FK to FundProfiles, unique per (FundId, NavDate) |
-
-<details>
-<summary><strong>SQLite Schema</strong></summary>
-
-```sql
-CREATE TABLE FundProfiles (
-    Isin                     TEXT    NOT NULL
-                                     CONSTRAINT PK_FundProfiles PRIMARY KEY,
-    Name                     TEXT    NOT NULL,
-    OrderbookId              TEXT,
-    Category                 TEXT,
-    CompanyName              TEXT,
-    FundType                 TEXT,
-    IsIndexFund              INTEGER,
-    CurrencyCode             TEXT,
-    ManagedType              TEXT,
-    StartDate                TEXT,
-    Buyable                  INTEGER,
-    HasCashDividends         INTEGER,
-    HasCurrencyExchangeFee   INTEGER,
-    RecommendedHoldingPeriod TEXT,
-    ManagementFee            REAL,
-    TotalFee                 REAL,
-    TransactionFee           REAL,
-    OngoingFee               REAL,
-    MinimumBuy               REAL,
-    Capital                  REAL,
-    NumberOfOwners           INTEGER,
-    Rating                   INTEGER,
-    Risk                     INTEGER,
-    SharpeRatio              REAL,
-    StandardDeviation        REAL,
-    SustainabilityLevel      TEXT,
-    SustainabilityRating     INTEGER,
-    EsgScore                 REAL,
-    EnvironmentalScore       REAL,
-    SocialScore              REAL,
-    GovernanceScore          REAL,
-    LowCarbon                INTEGER,
-    EuArticleType            TEXT,
-    FirstSeenAt              TEXT    NOT NULL,
-    CrawlerLastUpdatedAt     TEXT,
-    AboutFundLastVisitedAt   TEXT
-);
-
-CREATE TABLE FundHistoryRecords (
-    Id                INTEGER NOT NULL
-                              CONSTRAINT PK_FundHistoryRecords PRIMARY KEY,
-    FundId            TEXT    NOT NULL,
-    Nav               REAL,
-    NavDate           TEXT,
-    Capital           REAL,
-    NumberOfOwners    INTEGER,
-    Risk              INTEGER,
-    SharpeRatio       REAL,
-    StandardDeviation REAL,
-    CONSTRAINT FK_FundHistoryRecords_FundProfiles_FundId FOREIGN KEY (
-        FundId
-    )
-    REFERENCES FundProfiles (Isin) ON DELETE CASCADE
-);
-
-CREATE INDEX IX_FundHistoryRecords_FundId_NavDate
-    ON FundHistoryRecords (FundId, NavDate DESC);
-
-CREATE UNIQUE INDEX UX_FundHistoryRecords_FundId_NavDate
-    ON FundHistoryRecords (FundId, NavDate);
-```
-
-</details>
-
-<details>
-<summary><strong>Useful Views</strong></summary>
-
-**Fund profile history counts** — shows funds sorted by number of history records:
-
-```sql
-CREATE VIEW vw_FundProfileHistoryCounts AS
-SELECT
-    fp.Isin,
-    fp.OrderbookId,
-    fp.Name,
-    COUNT(fhr.Id) AS HistoryRecordCount
-FROM FundProfiles fp
-LEFT JOIN FundHistoryRecords fhr ON fhr.FundId = fp.Isin
-GROUP BY fp.Isin, fp.Name, fp.OrderbookId
-ORDER BY HistoryRecordCount DESC
-LIMIT 60;
-```
-
-**Ownership change (2 weeks)** — shows change in NumberOfOwners over the last two weeks:
-
-```sql
-CREATE VIEW vw_OwnershipChangeTwoWeeks AS
-WITH latest AS (
-    SELECT FundId, NumberOfOwners, NavDate,
-           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
-    FROM FundHistoryRecords
-    WHERE NavDate >= date('now', '-3 days')
-),
-two_weeks_ago AS (
-    SELECT FundId, NumberOfOwners, NavDate,
-           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
-    FROM FundHistoryRecords
-    WHERE NavDate <= date('now', '-14 days')
-)
-SELECT
-    p.Name,
-    l.FundId AS Isin,
-    t.NumberOfOwners AS OwnersTwoWeeksAgo,
-    l.NumberOfOwners AS OwnersNow,
-    l.NumberOfOwners - t.NumberOfOwners AS Change,
-    ROUND((l.NumberOfOwners - t.NumberOfOwners) * 100.0 / t.NumberOfOwners, 2) AS ChangePct
-FROM latest l
-JOIN two_weeks_ago t ON l.FundId = t.FundId AND t.rn = 1
-JOIN FundProfiles p ON l.FundId = p.Isin
-WHERE l.rn = 1
-  AND t.NumberOfOwners IS NOT NULL
-  AND l.NumberOfOwners IS NOT NULL;
-```
-
-Query examples:
-
-```sql
--- Biggest gainers
-SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY Change DESC;
-
--- Biggest losers
-SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY Change ASC;
-
--- Top 10 by percentage growth
-SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY ChangePct DESC LIMIT 10;
-```
-
-</details>
+Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings. See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for sync phases, error handling, and architecture.
 
 ## Repository Architecture
 
@@ -306,7 +155,7 @@ flowchart TB
 - `FundIngestionService` maps DTOs to entities before calling repositories
 - DI container resolves the correct implementation based on `DatabaseOptions.Provider`
 - InMemory repositories use `ConcurrentDictionary` for thread-safe, session-scoped storage
-- `GetFundsOrderedByHistoryCountAsync` returns funds prioritized for browsing (unvisited first, then fewest history records)
+- `GetFundsOrderedByLastVisitAsync` returns funds prioritized for browsing (never-visited first, then oldest visit date)
 - `UpdateLastVisitedAtAsync` tracks when the AboutFund orchestrator last visited a fund
 - `AddRangeIfNotExistsAsync` inserts only new history records, deduplicating by (FundId, NavDate) composite key
 
@@ -584,6 +433,277 @@ After page data collection completes, `AboutFundChartIngestionService` runs the 
 | Application | Use-case orchestration, interfaces | Repository pattern, DTOs, `EndpointPattern` URL routing |
 | Infrastructure | EF Core, chart ingestion, event publishing | Rx.NET, SQLite, anti-corruption models |
 | Presentation | WPF UI, ViewModels | DevExpress MVVM, Autofac, NLog auto-injection |
+
+## Database Persistence
+
+Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
+
+```json
+{
+  "Database": {
+    "Provider": "SQLite",
+    "ConnectionString": "Data Source=YieldRaccoon.db"
+  }
+}
+```
+
+| Provider | SQLite | Backend API | Use Case |
+| ---------- | ------ | ----------- | -------- |
+| `InMemory` | No | No | Session-scoped testing |
+| `SQLite` | Yes | No | Local development (default) |
+| `DualWrite` | Yes | Yes | Production: local + cloud sync |
+
+**Default SQLite file location:**
+
+- File name: `YieldRaccoon.db`
+- Location: Same folder as the executable
+  - Development: `YieldRaccoon.Wpf/bin/Debug/net9.0-windows/YieldRaccoon.db`
+  - Published: Application installation folder
+
+**Database Tables:**
+
+| Table | Purpose |
+| ------- | --------- |
+| `FundProfiles` | Static fund data (name, fees, ESG scores, visit tracking) - keyed by ISIN |
+| `FundHistoryRecords` | Time-series data (NAV, owners, ratings) - FK to FundProfiles, unique per (FundId, NavDate) |
+
+<details>
+<summary><strong>SQLite Schema</strong></summary>
+
+```sql
+CREATE TABLE FundProfiles (
+    Isin                     TEXT    NOT NULL
+                                     CONSTRAINT PK_FundProfiles PRIMARY KEY,
+    Name                     TEXT    NOT NULL,
+    OrderbookId              TEXT,
+    Category                 TEXT,
+    CompanyName              TEXT,
+    FundType                 TEXT,
+    IsIndexFund              INTEGER,
+    CurrencyCode             TEXT,
+    ManagedType              TEXT,
+    StartDate                TEXT,
+    Buyable                  INTEGER,
+    HasCashDividends         INTEGER,
+    HasCurrencyExchangeFee   INTEGER,
+    RecommendedHoldingPeriod TEXT,
+    ManagementFee            REAL,
+    TotalFee                 REAL,
+    TransactionFee           REAL,
+    OngoingFee               REAL,
+    MinimumBuy               REAL,
+    Capital                  REAL,
+    NumberOfOwners           INTEGER,
+    Rating                   INTEGER,
+    Risk                     INTEGER,
+    SharpeRatio              REAL,
+    StandardDeviation        REAL,
+    SustainabilityLevel      TEXT,
+    SustainabilityRating     INTEGER,
+    EsgScore                 REAL,
+    EnvironmentalScore       REAL,
+    SocialScore              REAL,
+    GovernanceScore          REAL,
+    LowCarbon                INTEGER,
+    EuArticleType            TEXT,
+    FirstSeenAt              TEXT    NOT NULL,
+    CrawlerLastUpdatedAt     TEXT,
+    AboutFundLastVisitedAt   TEXT
+);
+
+CREATE TABLE FundHistoryRecords (
+    Id                INTEGER NOT NULL
+                              CONSTRAINT PK_FundHistoryRecords PRIMARY KEY,
+    FundId            TEXT    NOT NULL,
+    Nav               REAL,
+    NavDate           TEXT,
+    Capital           REAL,
+    NumberOfOwners    INTEGER,
+    Risk              INTEGER,
+    SharpeRatio       REAL,
+    StandardDeviation REAL,
+    CONSTRAINT FK_FundHistoryRecords_FundProfiles_FundId FOREIGN KEY (
+        FundId
+    )
+    REFERENCES FundProfiles (Isin) ON DELETE CASCADE
+);
+
+CREATE INDEX IX_FundHistoryRecords_FundId_NavDate
+    ON FundHistoryRecords (FundId, NavDate DESC);
+
+CREATE UNIQUE INDEX UX_FundHistoryRecords_FundId_NavDate
+    ON FundHistoryRecords (FundId, NavDate);
+```
+
+</details>
+
+<details>
+<summary><strong>Useful Views</strong></summary>
+
+**Fund profile history counts** — shows funds sorted by number of history records:
+
+```sql
+CREATE VIEW vw_FundProfileHistoryCounts AS
+SELECT
+    fp.Isin,
+    fp.OrderbookId,
+    fp.Name,
+    COUNT(fhr.Id) AS HistoryRecordCount
+FROM FundProfiles fp
+LEFT JOIN FundHistoryRecords fhr ON fhr.FundId = fp.Isin
+GROUP BY fp.Isin, fp.Name, fp.OrderbookId
+ORDER BY HistoryRecordCount DESC
+LIMIT 60;
+```
+
+**Ownership change (2 weeks)** — shows change in NumberOfOwners over the last two weeks:
+
+```sql
+CREATE VIEW vw_OwnershipChangeTwoWeeks AS
+WITH latest AS (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate >= date('now', '-3 days')
+),
+two_weeks_ago AS (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate <= date('now', '-14 days')
+)
+SELECT
+    p.Name,
+    l.FundId AS Isin,
+    t.NumberOfOwners AS OwnersTwoWeeksAgo,
+    l.NumberOfOwners AS OwnersNow,
+    l.NumberOfOwners - t.NumberOfOwners AS Change,
+    ROUND((l.NumberOfOwners - t.NumberOfOwners) * 100.0 / t.NumberOfOwners, 2) AS ChangePct
+FROM latest l
+JOIN two_weeks_ago t ON l.FundId = t.FundId AND t.rn = 1
+JOIN FundProfiles p ON l.FundId = p.Isin
+WHERE l.rn = 1
+  AND t.NumberOfOwners IS NOT NULL
+  AND l.NumberOfOwners IS NOT NULL;
+```
+
+Query examples:
+
+```sql
+-- Biggest gainers
+SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY Change DESC;
+
+-- Biggest losers
+SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY Change ASC;
+
+-- Top 10 by percentage growth
+SELECT * FROM vw_OwnershipChangeTwoWeeks ORDER BY ChangePct DESC LIMIT 10;
+```
+
+**Ownership change (between two dates)** — shows change in NumberOfOwners between two specific dates (edit the dates in the view definition):
+
+```sql
+DROP VIEW IF EXISTS vw_OwnershipChangeSinceDate;
+```
+
+```sql
+CREATE VIEW vw_OwnershipChangeSinceDate AS
+SELECT
+    p.Name,
+    l.FundId AS Isin,
+    b.NumberOfOwners AS OwnersAtBaseline,
+    l.NumberOfOwners AS OwnersNow,
+    l.NumberOfOwners - b.NumberOfOwners AS Change,
+    ROUND((l.NumberOfOwners - b.NumberOfOwners) * 100.0 / b.NumberOfOwners, 2) AS ChangePct
+FROM (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate <= '2026-02-26'  -- ← change to target date
+) l
+JOIN (
+    SELECT FundId, NumberOfOwners, NavDate,
+           ROW_NUMBER() OVER (PARTITION BY FundId ORDER BY NavDate DESC) AS rn
+    FROM FundHistoryRecords
+    WHERE NavDate <= '2026-02-12'  -- ← change to baseline date
+) b ON l.FundId = b.FundId AND b.rn = 1
+JOIN FundProfiles p ON l.FundId = p.Isin
+WHERE l.rn = 1
+  AND b.NumberOfOwners >= 100
+  AND l.NumberOfOwners >= 100;
+```
+
+Query examples:
+
+```sql
+-- Top 10 gainers between Jan 15 and Mar 1
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY Change DESC LIMIT 50;
+
+-- Top 10 losers
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY Change ASC LIMIT 50;
+
+-- Top 10 by percentage growth
+SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY ChangePct DESC LIMIT 50;
+```
+
+</details>
+
+## DualWrite Provider
+
+When `DualWrite` is configured, fund data is written to both SQLite (local) and the Backend API (cloud). The SQLite write always completes first and returns to the caller immediately. The Backend API sync runs asynchronously (fire-and-forget) and never blocks or prevents local persistence.
+
+This is implemented via the **Decorator pattern** at the service level:
+
+- `DualWriteFundIngestionService` wraps `FundIngestionService` for crawl batch sync
+- `DualWriteChartIngestionService` wraps `AboutFundChartIngestionService` for about-fund chart sync
+
+```mermaid
+sequenceDiagram
+    participant Crawler as Crawl Session
+    participant DW as DualWriteFundIngestionService
+    participant SQLite as FundIngestionService (SQLite)
+    participant API as Backend API
+    participant StatusBar as Status Bar
+
+    Crawler->>DW: IngestBatchAsync(funds)
+    DW->>SQLite: IngestBatchAsync(funds)
+    SQLite-->>DW: count (persisted locally)
+    DW-->>Crawler: return count
+
+    par Backend Sync (fire-and-forget)
+        DW->>API: POST /api/funds/list
+        alt Success
+            API-->>DW: FundSyncResponse
+            DW->>StatusBar: Synced N funds
+        else Backend offline / error
+            API--xDW: Exception
+            DW->>StatusBar: Sync error message
+        end
+    end
+```
+
+**Error handling:**
+
+- SQLite always writes first — exceptions propagate normally to callers
+- Backend API calls are fire-and-forget — wrapped in try/catch, never block
+- **Rate limiting (429):** `FundSyncApiClient` retries with exponential backoff (2s, 4s, 8s), respects `Retry-After` header. After 3 retries, publishes "Rate limited" status to the status bar
+- All errors logged at Error/Warn level via NLog
+- Errors surface in status bar via Rx observable (green/red cloud icon + message)
+
+**Configuration:**
+
+```json
+{
+  "Database": {
+    "Provider": "DualWrite",
+    "ConnectionString": "Data Source=YieldRaccoon.db",
+    "BackendApiUrl": "https://your-app.azurewebsites.net",
+    "BackendApiKey": "your-api-key"
+  }
+}
+```
+
+Or via Settings UI: Database tab > Provider = DualWrite, then configure Backend API URL and API Key.
 
 ## Configuration (User Secrets)
 

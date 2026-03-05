@@ -91,6 +91,22 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// </summary>
     private AboutFundCollectionProgress? _latestCollectionProgress;
 
+    /// <summary>
+    /// ISIN resolved for the manually-navigated fund. Used for per-slot persistence in manual mode.
+    /// </summary>
+    private IsinId? _manualIsinId;
+
+    /// <summary>
+    /// Fund name resolved during manual collection, for display purposes.
+    /// </summary>
+    private string? _manualFundName;
+
+    /// <summary>
+    /// Subscription to <see cref="IAboutFundPageDataCollector.SlotUpdated"/> for per-slot persistence
+    /// in manual collection mode. Disposed when manual mode ends.
+    /// </summary>
+    private IDisposable? _manualSlotSubscription;
+
     private bool _disposed;
 
     #endregion
@@ -113,6 +129,11 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// <inheritdoc/>
     public IObservable<Uri> NavigateToUrl => _navigateToUrl.AsObservable();
 
+    /// <summary>
+    /// 80 calls a day allows us to make a full loop in a month.
+    /// </summary>
+    private const int ScheduleLimit = 80;
+    
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundOrchestrator"/> class.
     /// </summary>
@@ -156,7 +177,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync()
     {
         _logger.Info("Loading fund schedule from database");
-        _schedule = await _fundProfileRepository.GetFundsOrderedByHistoryCountAsync(20);
+        _schedule = await _fundProfileRepository.GetFundsOrderedByLastVisitAsync(ScheduleLimit);
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;
     }
@@ -165,6 +186,13 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     public async Task<AboutFundSessionId> StartSessionAsync()
     {
         _logger.Info("Starting new about-fund browsing session");
+
+        // Cancel any active manual collection — automated mode takes over
+        if (_phase == AboutFundSessionPhase.ManualCollecting)
+        {
+            _logger.Info("Cancelling active manual collection before starting automated session");
+            CancelManualCollection();
+        }
 
         // Load schedule if not already loaded
         if (_schedule.Count == 0) await LoadScheduleAsync();
@@ -212,6 +240,15 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// <inheritdoc/>
     public void CancelSession(string reason)
     {
+        // Handle manual collection cancellation (no session ID in manual mode)
+        if (_phase == AboutFundSessionPhase.ManualCollecting)
+        {
+            _logger.Info("Cancelling manual collection: {0}", reason);
+            CancelManualCollection();
+            RefreshState();
+            return;
+        }
+
         if (_currentSessionId == null)
         {
             _logger.Warn("CancelSession called but no session is active");
@@ -283,6 +320,143 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     {
         _autoAdvanceEnabled = enabled;
         _logger.Info("Auto-advance {0}", enabled ? "enabled" : "disabled");
+    }
+
+    /// <inheritdoc/>
+    public async Task StartManualCollectionAsync(Uri url)
+    {
+        _logger.Info("Manual navigation requested: {0}", url);
+
+        // If an automated session is active, just navigate without starting manual collection
+        if (_phase is AboutFundSessionPhase.Collecting or AboutFundSessionPhase.DelayBeforeNavigation)
+        {
+            _logger.Info("Automated session active — navigating without manual collection");
+            _navigateToUrl.OnNext(url);
+            return;
+        }
+
+        // Clean up any previous manual collection
+        CancelManualCollection();
+
+        // Try to parse OrderBookId from the URL
+        if (!_urlBuilder.TryParseOrderBookId(url, out var orderBookId))
+        {
+            _logger.Info("URL does not match fund template — navigating without collection");
+            _navigateToUrl.OnNext(url);
+            return;
+        }
+
+        _logger.Info("Parsed OrderBookId={0} from URL", orderBookId);
+
+        // Resolve ISIN: check loaded schedule first, then fall back to DB
+        var isinString = FindIsinInSchedule(orderBookId)
+                         ?? await _fundProfileRepository.GetIsinByOrderBookIdAsync(orderBookId);
+
+        if (string.IsNullOrWhiteSpace(isinString))
+        {
+            _logger.Warn("No ISIN found for OrderBookId={0} — navigating without persistence", orderBookId);
+            _navigateToUrl.OnNext(url);
+            return;
+        }
+
+        _manualIsinId = IsinId.Create(isinString);
+        _currentOrderBookId = orderBookId;
+        _manualFundName = FindFundNameInSchedule(orderBookId);
+
+        // Start passive collection (no timers, no scheduled interactions)
+        _collector.BeginPassiveCollection(orderBookId);
+
+        // Subscribe to per-slot updates for incremental persistence
+        _manualSlotSubscription = _collector.SlotUpdated.Subscribe(OnManualSlotUpdated);
+
+        _phase = AboutFundSessionPhase.ManualCollecting;
+
+        // Seed initial progress so the control panel has slot data immediately (all pending)
+        _latestCollectionProgress = new AboutFundCollectionProgress
+        {
+            OrderBookId = orderBookId,
+            Steps = [],
+            TotalDuration = TimeSpan.Zero,
+            PageData = new AboutFundPageData { OrderBookId = orderBookId }
+        };
+
+        _logger.Info("Manual collection started for OrderBookId={0} (ISIN: {1})", orderBookId, isinString);
+
+        RefreshState();
+        _navigateToUrl.OnNext(url);
+    }
+
+    /// <summary>
+    /// Called when a slot resolves during manual collection. Persists chart data incrementally.
+    /// </summary>
+    private void OnManualSlotUpdated(AboutFundPageData pageData)
+    {
+        if (_phase != AboutFundSessionPhase.ManualCollecting || _manualIsinId == null)
+            return;
+
+        _logger.Debug("Manual slot updated for {0} — persisting ({1}/{2} resolved)",
+            pageData.OrderBookId, pageData.ResolvedCount, pageData.TotalSlots);
+
+        PersistChartDataForManualAsync(pageData);
+    }
+
+    /// <summary>
+    /// Persists chart data during manual collection using the pre-resolved ISIN.
+    /// </summary>
+    private async void PersistChartDataForManualAsync(AboutFundPageData pageData)
+    {
+        try
+        {
+            if (_manualIsinId == null) return;
+
+            var count = await _chartIngestionService.IngestChartDataAsync(pageData, _manualIsinId.Value);
+
+            _logger.Info("Manual chart ingestion for {0}: {1} new records persisted",
+                pageData.OrderBookId, count);
+
+            await _fundProfileRepository.UpdateLastVisitedAtAsync(_manualIsinId.Value, DateTimeOffset.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to persist manual chart data for {0}", pageData.OrderBookId);
+        }
+    }
+
+    /// <summary>
+    /// Cleans up manual collection state and subscriptions.
+    /// </summary>
+    private void CancelManualCollection()
+    {
+        _manualSlotSubscription?.Dispose();
+        _manualSlotSubscription = null;
+        _manualIsinId = null;
+        _manualFundName = null;
+
+        if (_phase == AboutFundSessionPhase.ManualCollecting)
+        {
+            _collector.CancelCollection();
+            _currentOrderBookId = null;
+            _latestCollectionProgress = null;
+            _phase = AboutFundSessionPhase.Idle;
+        }
+    }
+
+    /// <summary>
+    /// Searches the loaded schedule for an ISIN matching the given OrderBookId.
+    /// </summary>
+    private string? FindIsinInSchedule(OrderBookId orderBookId)
+    {
+        var index = GetScheduleIndex(orderBookId);
+        return index >= 0 ? _schedule[index].Isin : null;
+    }
+
+    /// <summary>
+    /// Searches the loaded schedule for a fund name matching the given OrderBookId.
+    /// </summary>
+    private string? FindFundNameInSchedule(OrderBookId orderBookId)
+    {
+        var index = GetScheduleIndex(orderBookId);
+        return index >= 0 ? _schedule[index].Name : null;
     }
 
     #region Navigation scheduling
@@ -543,6 +717,23 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// </summary>
     private AboutFundSessionState ProjectState()
     {
+        // Manual collection mode — no session ID, minimal state
+        if (_phase == AboutFundSessionPhase.ManualCollecting)
+        {
+            return new AboutFundSessionState
+            {
+                IsActive = true,
+                Phase = AboutFundSessionPhase.ManualCollecting,
+                CurrentOrderBookId = _currentOrderBookId,
+                CurrentFundName = _manualFundName,
+                CurrentIsin = _manualIsinId?.Isin,
+                StatusMessage = _manualFundName != null
+                    ? $"Manual: {_manualFundName}"
+                    : "Manual collection",
+                CollectionProgress = _latestCollectionProgress
+            };
+        }
+
         if (_currentSessionId == null || _phase == AboutFundSessionPhase.Idle)
             return AboutFundSessionState.Inactive;
 
@@ -597,6 +788,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         {
             IsActive = _phase is AboutFundSessionPhase.DelayBeforeNavigation
                 or AboutFundSessionPhase.Collecting,
+            Phase = _phase,
             SessionId = sessionId,
             CurrentOrderBookId = _currentOrderBookId,
             TotalFunds = _schedule.Count,
@@ -682,6 +874,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
 
         _logger.Debug("AboutFundOrchestrator disposing");
 
+        CancelManualCollection();
         CancelScheduledVisits();
         _collector.CancelCollection();
         _disposables.Dispose();

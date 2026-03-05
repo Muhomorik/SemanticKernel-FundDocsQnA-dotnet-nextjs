@@ -95,12 +95,16 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
 
     private readonly Subject<AboutFundPageData> _completed = new();
     private readonly Subject<AboutFundCollectionProgress> _stateChanged = new();
+    private readonly Subject<AboutFundPageData> _slotUpdated = new();
 
     /// <inheritdoc />
     public IObservable<AboutFundPageData> Completed => _completed.AsObservable();
 
     /// <inheritdoc />
     public IObservable<AboutFundCollectionProgress> StateChanged => _stateChanged.AsObservable();
+
+    /// <inheritdoc />
+    public IObservable<AboutFundPageData> SlotUpdated => _slotUpdated.AsObservable();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundPageDataCollector"/> class.
@@ -157,6 +161,46 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         var result = ScheduleInteractions(schedule);
         EmitProgress();
         return result;
+    }
+
+    /// <inheritdoc />
+    public void BeginPassiveCollection(OrderBookId orderBookId)
+    {
+        // Cancel all scheduled interactions from any previous collection
+        _scheduledInteractions?.Dispose();
+        _scheduledInteractions = null;
+
+        AboutFundPageData? previousData = null;
+
+        lock (_lock)
+        {
+            // Force-complete previous collection so the parent can decide what to do with partial data
+            if (_current != null && _phase != CollectionPhase.Completed)
+            {
+                _logger.Info("Force-completing collection for {0} (new passive: {1})",
+                    _current.OrderBookId, orderBookId);
+                _phase = CollectionPhase.Completed;
+                previousData = _current;
+            }
+
+            _current = new AboutFundPageData
+            {
+                OrderBookId = orderBookId
+            };
+            _phase = CollectionPhase.Interacting;
+            _steps.Clear();
+            _collectionStartedAt = _scheduler.Now;
+            _totalDuration = TimeSpan.Zero;
+        }
+
+        // Emit outside lock — parent decides whether to use partial data
+        if (previousData != null)
+            _completed.OnNext(previousData);
+
+        _logger.Debug("Begin passive collection for OrderBookId={0}", orderBookId);
+
+        // Emit initial progress so subscribers get an immediate snapshot (all slots pending)
+        EmitProgress();
     }
 
     /// <inheritdoc />
@@ -246,10 +290,14 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
     }
 
     /// <summary>
-    /// Updates a slot on the current collection and emits progress.
+    /// Updates a slot on the current collection, emits progress, and emits on
+    /// <see cref="SlotUpdated"/> when a slot transitions from Pending to resolved.
     /// </summary>
     private void UpdateSlot(AboutFundDataSlot slot, Func<AboutFundPageData, AboutFundPageData> update)
     {
+        bool wasNewResolution;
+        AboutFundPageData? snapshot;
+
         lock (_lock)
         {
             if (_current == null)
@@ -258,12 +306,34 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
                 return;
             }
 
+            var wasPending = !GetSlot(_current, slot).IsResolved;
             _current = update(_current);
+            wasNewResolution = wasPending && GetSlot(_current, slot).IsResolved;
+            snapshot = wasNewResolution ? _current : null;
         }
 
         // Emit progress immediately so UI sees slot changes without waiting for the 1s tick
         EmitProgress();
+
+        // Emit on SlotUpdated only for new Pending → Resolved transitions
+        if (snapshot != null)
+            _slotUpdated.OnNext(snapshot);
     }
+
+    /// <summary>
+    /// Returns the <see cref="AboutFundFetchSlot"/> for a given <see cref="AboutFundDataSlot"/> identifier.
+    /// </summary>
+    private static AboutFundFetchSlot GetSlot(AboutFundPageData pageData, AboutFundDataSlot slot) => slot switch
+    {
+        AboutFundDataSlot.Chart1Month => pageData.Chart1Month,
+        AboutFundDataSlot.Chart3Months => pageData.Chart3Months,
+        AboutFundDataSlot.ChartYearToDate => pageData.ChartYearToDate,
+        AboutFundDataSlot.Chart1Year => pageData.Chart1Year,
+        AboutFundDataSlot.Chart3Years => pageData.Chart3Years,
+        AboutFundDataSlot.Chart5Years => pageData.Chart5Years,
+        AboutFundDataSlot.ChartMax => pageData.ChartMax,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null)
+    };
 
     #endregion
 
@@ -456,6 +526,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         _scheduledInteractions?.Dispose();
         _completed.Dispose();
         _stateChanged.Dispose();
+        _slotUpdated.Dispose();
         _disposed = true;
     }
 }

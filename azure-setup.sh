@@ -10,7 +10,7 @@ set -e
 
 # Configuration
 RESOURCE_GROUP="rg-funddocs-backend"
-LOCATION="eastus"
+LOCATION="swedencentral"
 APP_SERVICE_PLAN="plan-funddocs"
 APP_SERVICE_NAME="funddocs-backend-api"
 KEY_VAULT_NAME="kv-funddocs-$(openssl rand -hex 4)"

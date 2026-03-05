@@ -30,16 +30,60 @@ public interface IFundProfileRepository
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets fund profiles ordered by history record count (ascending), limited to a specified count.
+    /// Gets fund profiles ordered by last visit date ascending (never-visited first),
+    /// limited to a specified count.
     /// </summary>
     /// <remarks>
-    /// Used by the about-fund browsing feature to find funds with the least historical data.
+    /// Used by the about-fund browsing feature to prioritize funds with the oldest
+    /// (or missing) visit data. Funds with null <c>AboutFundLastVisitedAt</c> sort first.
     /// </remarks>
     /// <param name="limit">Maximum number of funds to return.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Funds with their history record counts, ordered ascending.</returns>
-    Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+    /// <returns>Funds ordered by last visit date ascending, never-visited first.</returns>
+    Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the ISIN for a fund identified by its OrderBookId.
+    /// </summary>
+    /// <remarks>
+    /// Used by manual collection mode to resolve the ISIN needed for chart data persistence
+    /// when the fund may not be in the pre-loaded schedule.
+    /// </remarks>
+    /// <param name="orderBookId">The fund's OrderBookId from the external URL.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The fund's ISIN string, or <c>null</c> if no matching profile was found.</returns>
+    Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a fund profile by its ISIN identifier.
+    /// </summary>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The fund profile, or <c>null</c> if not found.</returns>
+    Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets fund profiles optionally filtered by company name, with history records eagerly loaded.
+    /// Returns all profiles when <paramref name="companyName"/> is <c>null</c> or empty.
+    /// </summary>
+    /// <param name="companyName">Optional company name substring filter (case-insensitive).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Fund profiles with their history records.</returns>
+    Task<IReadOnlyList<FundProfile>> GetByCompanyNameFilterAsync(
+        string? companyName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks whether a fund profile exists for the given ISIN.
+    /// </summary>
+    /// <remarks>
+    /// Used by chart ingestion to guard against FK violations when saving history records
+    /// for a fund whose profile has not been crawled yet (a normal situation).
+    /// </remarks>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if the profile exists; otherwise <c>false</c>.</returns>
+    Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the <see cref="FundProfile.AboutFundLastVisitedAt"/> timestamp for the given fund.

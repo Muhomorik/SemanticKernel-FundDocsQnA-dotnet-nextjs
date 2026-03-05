@@ -15,8 +15,14 @@ public enum AboutFundSessionPhase
     /// <summary>Random delay countdown before the next fund navigation.</summary>
     DelayBeforeNavigation,
 
-    /// <summary>Fund page visit in progress — collector is running interactions.</summary>
+    /// <summary>Fund page visit in progress — collector is running scheduled interactions.</summary>
     Collecting,
+
+    /// <summary>
+    /// Manual collection mode — user navigated to a fund page and is clicking buttons themselves.
+    /// No scheduled interactions or timers; responses are persisted per-slot as they arrive.
+    /// </summary>
+    ManualCollecting,
 
     /// <summary>All funds visited, session finished.</summary>
     Completed

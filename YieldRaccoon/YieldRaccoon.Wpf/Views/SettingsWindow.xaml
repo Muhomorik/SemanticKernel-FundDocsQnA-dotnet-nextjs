@@ -4,23 +4,27 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:mahShared="http://metro.mahapps.com/winfx/xaml/shared"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Settings"
     Width="550"
-    Height="280"
-    Icon="/Resources/YieldRaccoon.ico"
+    Height="440"
     MinWidth="450"
-    MinHeight="250"
+    MinHeight="400"
+    d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel,
+                                     IsDesignTimeCreatable=True}"
+    Icon="/Resources/YieldRaccoon.ico"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
     TitleCharacterCasing="Normal"
     WindowStartupLocation="CenterOwner"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel, IsDesignTimeCreatable=True}">
+    mc:Ignorable="d">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -28,72 +32,127 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Database Location Section -->
-        <TextBlock
-            Grid.Row="0"
+        <!--  Database Provider Section  -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Database provider" />
+            <ComboBox
+                Width="280"
+                HorizontalAlignment="Left"
+                ItemsSource="{Binding AvailableProviders}"
+                SelectedItem="{Binding SelectedProvider}" />
+        </StackPanel>
+
+        <!--  Database Location Section (visible only for SQLite/DualWrite)  -->
+        <StackPanel
+            Grid.Row="1"
             Margin="0,0,0,8"
-            Style="{StaticResource yr.TitleStyle}"
-            Text="Database Location" />
+            Visibility="{Binding IsDatabasePathVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Database location" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+                <TextBox
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    mah:TextBoxHelper.Watermark="Database file path..."
+                    Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
 
-            <TextBox
-                Grid.Column="0"
-                Margin="0,0,8,0"
-                mah:TextBoxHelper.Watermark="Database file path..."
-                Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" />
+                <Button
+                    Grid.Column="1"
+                    Width="80"
+                    Command="{Binding BrowseCommand}"
+                    Content="Browse..."
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </Grid>
+        </StackPanel>
 
-            <Button
-                Grid.Column="1"
-                Width="80"
-                Command="{Binding BrowseCommand}"
-                Content="Browse..."
-                Style="{StaticResource yr.ButtonStyle}" />
-        </Grid>
-
-        <!-- Info text -->
-        <TextBlock
+        <!--  Backend API Section (visible only for DualWrite)  -->
+        <StackPanel
             Grid.Row="2"
             Margin="0,0,0,8"
-            Style="{StaticResource yr.SmallStyle}"
+            Visibility="{Binding IsBackendApiVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Backend API URL" />
+            <TextBox
+                Margin="0,0,0,8"
+                mah:TextBoxHelper.Watermark="https://your-app.azurewebsites.net"
+                Text="{Binding BackendApiUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="API key" />
+            <PasswordBox
+                Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
+                mah:TextBoxHelper.Watermark="Enter API key..."
+                mahShared:PasswordBoxBindingBehavior.Password="{Binding BackendApiKey, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+        </StackPanel>
+
+        <!--  Info text  -->
+        <TextBlock
+            Grid.Row="3"
+            Margin="0,0,0,8"
             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+            Style="{StaticResource yr.SmallStyle}"
             TextWrapping="Wrap">
             <Run Text="Settings file:" />
             <Run Text="{Binding SettingsFilePath, Mode=OneWay}" />
         </TextBlock>
 
-        <!-- Restart warning -->
-        <TextBlock
-            Grid.Row="3"
-            Margin="{StaticResource yr.ItemSpacing}"
-            VerticalAlignment="Top"
-            FontWeight="SemiBold"
-            Foreground="{DynamicResource MahApps.Brushes.Accent}"
-            Text="{Binding RestartRequiredMessage}"
-            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
-        <!-- Buttons -->
+        <!--  Restart warning  -->
         <StackPanel
             Grid.Row="4"
-            HorizontalAlignment="Right"
-            Orientation="Horizontal">
-            <Button
-                Width="80"
-                Margin="0,0,8,0"
-                Command="{Binding SaveCommand}"
-                Content="Save"
-                IsDefault="True"
-                Style="{StaticResource yr.ButtonAccentStyle}" />
-            <Button
-                Width="80"
-                Command="{Binding CancelCommand}"
-                Content="Cancel"
-                IsCancel="True"
-                Style="{StaticResource yr.ButtonStyle}" />
+            Margin="{StaticResource yr.ItemSpacing}"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock
+                Margin="0,0,4,0"
+                VerticalAlignment="Center"
+                FontFamily="Segoe Fluent Icons"
+                FontSize="14"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Text="&#xE7BA;" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="{StaticResource yr.WarningBrush}"
+                Style="{StaticResource yr.CaptionStyle}"
+                Text="Restart required for changes to take effect" />
         </StackPanel>
+
+        <!--  Buttons  -->
+        <Grid Grid.Row="6">
+            <Button
+                HorizontalAlignment="Left"
+                Command="{Binding ResetToDefaultCommand}"
+                Content="Reset to default"
+                Style="{StaticResource yr.ButtonStyle}" />
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button
+                    Width="80"
+                    Margin="0,0,8,0"
+                    Command="{Binding SaveCommand}"
+                    Content="Save"
+                    IsDefault="True"
+                    Style="{StaticResource yr.ButtonAccentStyle}" />
+                <Button
+                    Width="80"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    IsCancel="True"
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </mah:MetroWindow>

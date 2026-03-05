@@ -202,7 +202,8 @@ public partial class App
             var json = File.ReadAllText(settingsPath);
             var settings = JsonSerializer.Deserialize<UserSettings>(json, new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
             });
 
             Logger.Info($"Loaded user settings from {settingsPath}");
@@ -222,21 +223,39 @@ public partial class App
     /// <param name="userSettings">User settings containing overrides.</param>
     private static void ApplyUserSettings(DatabaseOptions databaseOptions, UserSettings userSettings)
     {
+        if (userSettings.DatabaseProvider.HasValue)
+        {
+            databaseOptions.Provider = userSettings.DatabaseProvider.Value;
+            Logger.Info($"Applied user database provider: {userSettings.DatabaseProvider.Value}");
+        }
+
         if (!string.IsNullOrWhiteSpace(userSettings.DatabasePath))
         {
             databaseOptions.ConnectionString = $"Data Source={userSettings.DatabasePath}";
             Logger.Info($"Applied user database path: {userSettings.DatabasePath}");
         }
+
+        if (!string.IsNullOrWhiteSpace(userSettings.BackendApiUrl))
+        {
+            databaseOptions.BackendApiUrl = userSettings.BackendApiUrl;
+            Logger.Info($"Applied user Backend API URL: {userSettings.BackendApiUrl}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userSettings.BackendApiKey))
+        {
+            databaseOptions.BackendApiKey = userSettings.BackendApiKey;
+            Logger.Info("Applied user Backend API key (value hidden)");
+        }
     }
 
     /// <summary>
-    /// Initializes the database when using SQLite provider.
+    /// Initializes the database when using a persistent provider (SQLite or DualWrite).
     /// Ensures the database and tables are created.
     /// </summary>
     /// <param name="databaseOptions">The database configuration options.</param>
     private async Task InitializeDatabaseAsync(DatabaseOptions databaseOptions)
     {
-        if (databaseOptions.Provider != DatabaseProvider.SQLite)
+        if (databaseOptions.Provider == DatabaseProvider.InMemory)
         {
             Logger.Debug("Database initialization skipped (using InMemory provider)");
             return;

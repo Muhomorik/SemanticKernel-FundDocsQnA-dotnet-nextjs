@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-02-22 (YieldRaccoon README.md major update: Rewrote sections for 7-slot/8-step collection architecture, three-tier scheduling, chart ingestion pipeline, IsinId/OrderBookId value objects, updated schema and diagrams)
+Last Updated: 2026-03-04 (YieldRaccoon: HTTP 429 rate-limit handling with retry, backoff, and GUI feedback)
 
 **Tech Stack:**
 
@@ -90,12 +90,13 @@ Last Updated: 2026-02-22 (YieldRaccoon README.md major update: Rewrote sections 
 | LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
 | Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
 | Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
-| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), health checks, Swagger |
-| Authentication | ✅ | API key authentication for embedding endpoints (Cosmos DB only) |
+| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, health checks, Swagger |
+| Fund Data Sync | ✅ | EF Core + Azure SQL: FundProfiles + FundHistoryRecords tables, auto-migration, upsert/insert-only patterns, transient retry policy |
+| Authentication | ✅ | API key authentication for embedding + fund data endpoints |
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
-| Unit Tests | ✅ | 69 tests passing (Domain, ApplicationCore, Infrastructure) |
+| Unit Tests | ✅ | 122 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data) |
 | Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
@@ -106,8 +107,39 @@ Last Updated: 2026-02-22 (YieldRaccoon README.md major update: Rewrote sections 
 | Custom Validation | ✅ | [SafeQuestion] detects injection patterns |
 | Input Sanitization | ✅ | Removes control chars, normalizes whitespace |
 | System Prompt | ✅ | Hardened with anti-jailbreak instructions |
-| Rate Limiting | ✅ | 10 req/min/IP, 2 request queue |
+| Rate Limiting | ✅ | 60 req/min, queue of 5, `Retry-After: 5` header on 429 |
 | Request Size Limits | ✅ | 10KB max body size |
+
+### Fund Data Sync (Azure SQL) ✅ COMPLETED (2026-03-02)
+
+Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. EF Core with SQL Server provider, auto-migration on startup, API key authentication.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `IsinId` value object (12-char ISIN validation) | ✅ |
+| **Domain** | `FundHistoryRecordId` value object (auto-increment long) | ✅ |
+| **Domain** | `FundProfile` aggregate root (~35 properties, keyed by ISIN) | ✅ |
+| **Domain** | `FundHistoryRecord` entity (Nav, NavDate, Capital, Risk metrics) | ✅ |
+| **Domain** | `IFundProfileRepository` / `IFundHistoryRepository` interfaces | ✅ |
+| **ApplicationCore** | API DTOs mirrored from YieldRaccoon (5 files) | ✅ |
+| **ApplicationCore** | `IFundSyncService` / `FundSyncService` (DTO→entity mapping, validation) | ✅ |
+| **Infrastructure** | `FundDataDbContext` (EF Core, SQL Server types) | ✅ |
+| **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, single unique descending index) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository` (upsert, preserves FirstSeenAt) | ✅ |
+| **Infrastructure** | `EfCoreFundHistoryRepository` (batch-load upsert + insert-if-not-exists) | ✅ |
+| **Controller** | `POST /api/funds/list` (batch crawl session sync) | ✅ |
+| **Controller** | `POST /api/funds/about` (single fund + chart history) | ✅ |
+| **Middleware** | `ApiKeyAuthenticationMiddleware` expanded for `/api/funds` | ✅ |
+| **Health** | `AzureSqlHealthCheck` (connectivity + profile count) | ✅ |
+| **Migration** | `InitialFundData` (FundProfiles + FundHistoryRecords tables) | ✅ |
+| **Tests** | `IsinIdTests` (8), `FundHistoryRecordIdTests` (7), `FundSyncServiceTests` (17), `EfCoreFundProfileRepository_UpsertAsyncTests` (9), `EfCoreFundHistoryRepository_UpsertRangeAsyncTests` (6), `EfCoreFundHistoryRepository_InsertIfNotExistsRangeAsyncTests` (6) | ✅ |
+
+**Endpoints:**
+
+| Method | Path | Purpose |
+| -------- | ------ | --------- |
+| POST | `/api/funds/list` | Batch upsert profiles + daily snapshots from fund list crawl |
+| POST | `/api/funds/about` | Upsert profile + insert-only chart history from fund detail page |
 
 ### Planned Features
 
@@ -652,10 +684,156 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 | **Orchestrator** | `PersistChartDataAsync` in `AboutFundOrchestrator` (async void, resolves ISIN from schedule) | ✅ |
 | **DI** | Autofac registration in `PresentationModule` with NLog logger | ✅ |
 
+### Fund Data Export ✅ COMPLETED (2026-02-24)
+
+Export window allowing users to filter the fund database by company name and time period, saving the filtered result as a standalone SQLite `.db` file. Original database is never modified — the pipeline copies first, then filters the copy.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundDataExportService` interface (ExportAsync with company + cutoff) | ✅ |
+| **Infrastructure** | `FundDataExportService` (File.Copy → WAL checkpoint → DELETE non-matching → VACUUM) | ✅ |
+| **Presentation** | `ExportWindow.xaml` (period dropdown, company field, browse output, progress, status) | ✅ |
+| **Presentation** | `ExportWindowViewModel` (AsyncCommand, SaveFileDialog, auto-filename generation) | ✅ |
+| **Presentation** | `ExportPeriod` model record (1 week, 2 weeks, 1 month, 3 months) | ✅ |
+| **Presentation** | `IExportWindowService` / `ExportWindowService` (modal dialog via Autofac) | ✅ |
+| **MainWindow** | Export button in title bar (between AboutFund and Settings) | ✅ |
+| **DI** | `PresentationModule` registrations for service + window service | ✅ |
+| **Tests** | `FundDataExportServiceTests` — 9 tests (company filter, orphan removal, cutoff, case-insensitive, file creation, source untouched, no-match, null company, source not found) | ✅ |
+
+**Export Pipeline (SQLite only):**
+
+1. `File.Copy` source → destination (+ WAL/SHM journal files if present)
+2. `PRAGMA wal_checkpoint(TRUNCATE)` — merge WAL into main file
+3. `DELETE FROM FundProfiles WHERE CompanyName IS NULL OR LOWER(CompanyName) != LOWER(@company)`
+4. `DELETE FROM FundHistoryRecords WHERE FundId NOT IN (SELECT Isin FROM FundProfiles)`
+5. `DELETE FROM FundHistoryRecords WHERE NavDate < @cutoff`
+6. `PRAGMA journal_mode=DELETE` — switch from WAL to classic mode (checkpoints pending changes)
+7. `VACUUM` — reclaim disk space (operates directly on main file, not WAL)
+8. Close connection + clear connection pool
+9. Clean up leftover `-wal` / `-shm` journal files
+
+### Fund Statistics CSV Export ✅ COMPLETED (2026-02-26)
+
+Compute 13 summary statistics per fund per time window from daily NAV data and export as CSV for exploratory data analysis with Claude. Each fund produces multiple rows — one per non-overlapping window. Source database is read-only (never modified). Uses MathNet.Numerics v5.0.0 for statistical computations.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundStatisticsCsvExportService` interface (ExportAsync with window size, company, min owners, cutoff date, progress) | ✅ |
+| **Infrastructure** | `FundStatisticsCalculator` (static, pure math: 13 stats from `decimal[]` NAV values) | ✅ |
+| **Infrastructure** | `FundSummaryStatistics` (internal record: 13 stats + isin + name + period dates) | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` (read-only SQLite → windowing → stats → CSV, with cutoff date filtering) | ✅ |
+| **Presentation** | `FundStatisticsExportWindow.xaml` (window size, lookback, min owners, company, browse output, progress bar) | ✅ |
+| **Presentation** | `FundStatisticsExportWindowViewModel` (AsyncCommand, SaveFileDialog, auto-filename, progress reporting) | ✅ |
+| **Presentation** | `IFundStatisticsExportWindowService` / `FundStatisticsExportWindowService` (modal dialog via Autofac) | ✅ |
+| **MainWindow** | `OpenFundStatisticsExportCommand` on `MainWindowViewModel` | ✅ |
+| **DI** | `PresentationModule` registrations for export service + window service | ✅ |
+| **Tests** | `FundStatisticsCalculatorTests` — 19 tests (returns, volatility, drawdowns, Sharpe, skewness, edge cases) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` — usage guide with Claude prompt templates | ✅ |
+
+**13 Statistics:** total_return_pct, ann_volatility, max_drawdown_pct, current_drawdown_pct, sharpe_ratio, best_day_pct, worst_day_pct, pct_positive_days, skewness, first_nav, last_nav, nav_high, nav_low
+
+**Window sizes:** 1 week (7d), 2 weeks (14d, default), 3 weeks (21d), 1 month (30d), 3 months (90d)
+
+**Lookback periods:** 1 month, 2 months, 3 months, 6 months (default), 1 year
+
+### Fund Metadata CSV Export ✅ COMPLETED (2026-03-01)
+
+Export fund profile metadata (fees, risk metrics, classifications) as a companion CSV alongside the statistics export. Only funds with `Buyable = 1` are included in both statistics and metadata exports.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundMetadataCsvExportService` interface (ExportAsync with company, min owners) | ✅ |
+| **Infrastructure** | `FundMetadataCsvExportService` (read-only SQLite → single query → 17-column CSV, Buyable filter) | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` updated with `Buyable = 1` filter | ✅ |
+| **Presentation** | `MetadataOutputPath` property + `BrowseMetadataCommand` on `FundStatisticsExportWindowViewModel` | ✅ |
+| **Presentation** | New "Metadata output file" field in `FundStatisticsExportWindow.xaml` | ✅ |
+| **DI** | `PresentationModule` registration for metadata export service | ✅ |
+| **Tests** | `FundMetadataCsvExportServiceTests` — 13 tests (Buyable filter, company filter, owners, CSV format, edge cases) | ✅ |
+| **Tests** | `FundStatisticsCsvExportServiceTests` — 3 tests (Buyable filter on statistics export) | ✅ |
+
+**Metadata columns (17):** isin, name, company_name, currency_code, category, fund_type, is_index_fund, managed_type, total_fee, management_fee, risk, rating, sharpe_ratio, standard_deviation, recommended_holding_period, capital, number_of_owners
+
+**Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
+
+### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
+
+Added manual collection mode: navigate to any fund URL, manually click period buttons in the browser, and each intercepted API response is saved to the database immediately — no session, no timers, no scheduler. The existing interception pipeline (`WebView2 → AboutFundResponseInterceptor → collector → URL pattern matching → slot routing`) now supports passive collection with per-slot persistence.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `TryParseOrderBookId` on `IFundDetailsUrlBuilder` (extract OrderBookId from URL) | ✅ |
+| **Application** | `GetIsinByOrderBookIdAsync` on `IFundProfileRepository` (DB lookup) | ✅ |
+| **Application** | `BeginPassiveCollection` + `SlotUpdated` on `IAboutFundPageDataCollector` | ✅ |
+| **Application** | `StartManualCollectionAsync` on `IAboutFundOrchestrator` | ✅ |
+| **Application** | `ManualCollecting` value in `AboutFundSessionPhase` enum | ✅ |
+| **Application** | `Phase` property on `AboutFundSessionState` | ✅ |
+| **Infrastructure** | `FundDetailsUrlBuilder.TryParseOrderBookId` (URL template prefix/suffix parsing) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository.GetIsinByOrderBookIdAsync` (SQLite query) | ✅ |
+| **Infrastructure** | `AboutFundPageDataCollector` passive collection + `SlotUpdated` observable | ✅ |
+| **Infrastructure** | `AboutFundOrchestrator` manual mode (parse URL → ISIN lookup → passive collection → per-slot persistence) | ✅ |
+| **Presentation** | `ExecuteNavigate` in ViewModel delegates to `StartManualCollectionAsync` | ✅ |
+| **Presentation** | Control panel: `IsManualMode` / `ShowSessionProgress` — hides timers, shows slot badges only | ✅ |
+| **Tests** | `FundDetailsUrlBuilder_TryParseOrderBookIdTests` (11 tests) | ✅ |
+| **Tests** | `AboutFundPageDataCollector_PassiveCollectionTests` (12 tests) | ✅ |
+| **Tests** | `AboutFundOrchestrator_ManualCollectionTests` (18 tests) | ✅ |
+| **Tests** | `EfCoreFundProfileRepository_GetIsinByOrderBookIdAsyncTests` (4 tests) | ✅ |
+
+**Manual Mode Flow:**
+
+1. User enters fund URL in textbox → `ExecuteNavigate` → `orchestrator.StartManualCollectionAsync(url)`
+2. Orchestrator parses `OrderBookId` from URL via `TryParseOrderBookId`
+3. Looks up ISIN: first from loaded schedule, then DB via `GetIsinByOrderBookIdAsync`
+4. Calls `collector.BeginPassiveCollection(orderBookId)` — no timers, no interactions
+5. Subscribes to `collector.SlotUpdated` — each slot resolution triggers `IngestChartDataAsync` immediately
+6. If automated session is active, URL is navigated but manual collection is skipped (automated takes precedence)
+7. Navigating to a new URL silently transitions — previous data already persisted per-slot
+
+### Cloud Sync API DTOs ✅ COMPLETED (2026-03-02)
+
+HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund data to Backend API (Azure SQL). These are the source-of-truth for the wire format — Backend has its own identical copies (no project reference).
+
+| File | Purpose |
+| ------ | ------- |
+| `ApiFundDto.cs` | Fund profile + daily snapshot (~35 fields, JSON-friendly types) |
+| `ApiFundHistoryPointDto.cs` | Single NAV chart data point (ISIN + Nav + NavDate) |
+| `FundListSyncRequest.cs` | Request for `POST /api/funds/list` (batch from crawl session) |
+| `FundAboutSyncRequest.cs` | Request for `POST /api/funds/about` (single fund + chart history) |
+| `FundSyncResponse.cs` | Response from both endpoints (success, message, counts) |
+
+### Cloud Sync Window ✅ COMPLETED (2026-03-04)
+
+On-demand bulk sync window accessible from the title bar. Lets users push all (or filtered) fund profiles + history records to the Backend API with configurable throttling. Two-phase sync: batch profile push via `POST /api/funds/list`, then per-fund history via `POST /api/funds/about` with throttle delays.
+
+| Component | Details |
+| --------- | ------- |
+| **Application** | `ICloudSyncService`, `CloudSyncProgress`, `CloudSyncResult` |
+| **Infrastructure** | `CloudSyncService` — queries funds, maps to API DTOs, two-phase sync with throttling |
+| **Presentation** | `CloudSyncWindow` / `CloudSyncWindowViewModel` — company filter, throttle, progress bar, cancellation |
+| **Window Service** | `ICloudSyncWindowService` / `CloudSyncWindowService` — modal dialog launcher |
+| **DI Refactor** | Extracted `RegisterBackendApiClient()` from `RegisterDualWriteServices()` — HttpClient + FundSyncApiClient available whenever BackendApiUrl is configured |
+| **Repository** | Added `GetByCompanyNameFilterAsync` to `IFundProfileRepository` + both implementations |
+| **Tests** | 8 unit tests in `CloudSyncService_SyncAsyncTests` (empty results, batch calls, per-fund calls, history mapping, partial failures, cancellation, progress, filter passthrough) |
+| **Docs** | [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) — feature overview, sync phases, Mermaid sequence diagram |
+
+### HTTP 429 Rate-Limit Handling ✅ COMPLETED (2026-03-04)
+
+Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` retries 429 responses with exponential backoff (2s, 4s, 8s), respects `Retry-After` header. GUI clearly shows when rate-limited.
+
+| Component | Details |
+| --------- | ------- |
+| **Application** | `RateLimitedException` — marker exception thrown after retries exhausted |
+| **Infrastructure** | `FundSyncApiClient` — `SendWithRetryAsync` with 3 retries + exponential backoff |
+| **Infrastructure** | `CloudSyncService` — catches rate-limit, reports "Rate limited" phase, 10s cooldown |
+| **Infrastructure** | `DualWriteFundIngestionService` / `DualWriteChartIngestionService` — catches rate-limit, publishes distinct status bar message |
+| **Presentation** | Default throttle bumped from 500ms to 1200ms (~50 req/min, under 60/min limit) |
+| **Backend** | Added `Retry-After: 5` header to 429 responses |
+| **Tests** | 6 retry tests in `FundSyncApiClient_RetryTests`, 2 rate-limit tests in DualWrite test classes, fixed 8 pre-existing `CloudSyncService` test failures (missing `IsConfigured` mock) |
+
 ### Future Enhancements (Planned)
 
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
+| Cloud Sync Integration | ✅ | DualWrite provider: decorator pattern on ingestion services, fire-and-forget Backend API sync, status bar indicator with Rx.NET |
 | CrawlOrchestrationService | 📅 Planned | Application service coordinating crawl sessions with Rx.NET |
 | Additional ViewModels | 📅 Planned | Create ViewModels for specific features |
 | User Controls | 📅 Planned | Break down MainWindow into smaller user controls |
@@ -681,6 +859,7 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 | CI/CD Workflows | ✅ Complete | Backend deploy, Frontend deploy, PR checks |
 | Production Deployment | ✅ Ready | Complete deployment documentation |
 | Cosmos DB Vector Database | ✅ Production Ready | Optional persistent vector storage via `cosmosdb` verb. **Local + Production deployed**: Backend API, authentication, Managed Identity RBAC, Key Vault secrets, embeddings uploaded. Free tier (1000 RU/s, 25GB) |
+| Azure SQL Database | ✅ Production Ready | Sweden Central. Free tier, serverless, auto-pause. Microsoft Entra-only auth, Managed Identity. Connection string in Key Vault. **Backend EF Core integrated**: FundProfiles + FundHistoryRecords tables, auto-migration, fund data sync endpoints (`/api/funds/list`, `/api/funds/about`). |
 
 ### Deployment Setup Complete
 
@@ -708,13 +887,13 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 
 | Test Suite | Status | Coverage |
 | ------------- | -------- | ---------- |
-| Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests, deprecated), UserQuestionSanitizer (13 tests), models, value objects |
-| ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (10 tests), RAG pipeline orchestration |
-| Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (5 tests), DocumentChunkMapper (4 tests), VectorStore integration |
+| Domain Layer Tests | ✅ Complete | CosineSimilarityCalculator (6 tests, deprecated), UserQuestionSanitizer (13 tests), models, value objects, IsinId (8 tests), FundHistoryRecordId (7 tests) |
+| ApplicationCore Tests | ✅ Complete | QuestionAnsweringService (10 tests), FundSyncService (17 tests), RAG pipeline orchestration |
+| Infrastructure Tests | ✅ Complete | InMemorySemanticSearch (5 tests), DocumentChunkMapper (4 tests), VectorStore integration, EfCoreFundProfileRepository (9 tests), EfCoreFundHistoryRepository (12 tests) |
 | Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
 | Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
-| **Total Backend Tests** | **✅ 69 Complete** | 69 tests passing (includes VectorStore migration) |
+| **Total Backend Tests** | **✅ 122 Complete** | 122 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository tests) |
 
 ### Frontend
 

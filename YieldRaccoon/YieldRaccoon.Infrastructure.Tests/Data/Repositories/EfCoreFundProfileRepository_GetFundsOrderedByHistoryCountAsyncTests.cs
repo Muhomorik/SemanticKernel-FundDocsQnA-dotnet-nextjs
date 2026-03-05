@@ -12,7 +12,7 @@ namespace YieldRaccoon.Infrastructure.Tests.Data.Repositories;
 
 [TestFixture]
 [TestOf(typeof(EfCoreFundProfileRepository))]
-public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
+public class EfCoreFundProfileRepository_GetFundsOrderedByLastVisitAsyncTests
 {
     private IFixture _fixture = null!;
     private YieldRaccoonDbContext _context = null!;
@@ -70,26 +70,26 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     #region Filtering
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NoProfiles_ReturnsEmptyList()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NoProfiles_ReturnsEmptyList()
     {
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result, Is.Empty);
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NullOrderbookId_ExcludedFromResults()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NullOrderbookId_ExcludedFromResults()
     {
         // Arrange
         await CreateProfileAsync(orderbookId: null);
         await CreateProfileAsync(orderbookId: "OB-001");
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -97,15 +97,15 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_AllProfilesLackOrderbookId_ReturnsEmptyList()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_AllProfilesLackOrderbookId_ReturnsEmptyList()
     {
         // Arrange
         await CreateProfileAsync(orderbookId: null);
         await CreateProfileAsync(orderbookId: null);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -116,8 +116,8 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     #region Projection
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_ProjectsAllFields()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_ProjectsAllFields()
     {
         // Arrange
         var visitedAt = DateTimeOffset.UtcNow;
@@ -127,7 +127,7 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
             historyRecordCount: 3);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -140,28 +140,28 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NullLastVisitedAt_ProjectsAsNull()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NullLastVisitedAt_ProjectsAsNull()
     {
         // Arrange
         await CreateProfileAsync(lastVisitedAt: null);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result[0].LastVisitedAt, Is.Null);
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NoHistoryRecords_CountIsZero()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NoHistoryRecords_CountIsZero()
     {
         // Arrange
         await CreateProfileAsync(historyRecordCount: 0);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result[0].HistoryRecordCount, Is.EqualTo(0));
@@ -172,15 +172,15 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     #region Ordering
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_NullLastVisitedAt_SortsBeforeVisited()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NullLastVisitedAt_SortsBeforeVisited()
     {
         // Arrange
         await CreateProfileAsync(orderbookId: "OB-VISITED", lastVisitedAt: DateTimeOffset.UtcNow);
         await CreateProfileAsync(orderbookId: "OB-NEVER");
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-NEVER")),
@@ -189,29 +189,8 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_SameVisitStatus_OrdersByHistoryCountAscending()
-    {
-        // Arrange — all never-visited, different history counts
-        await CreateProfileAsync(orderbookId: "OB-MANY", historyRecordCount: 10);
-        await CreateProfileAsync(orderbookId: "OB-FEW", historyRecordCount: 2);
-        await CreateProfileAsync(orderbookId: "OB-SOME", historyRecordCount: 5);
-
-        // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
-
-        // Assert
-        Assert.That(result.Select(r => r.OrderBookId), Is.EqualTo(new[]
-        {
-            OrderBookId.Create("OB-FEW"),
-            OrderBookId.Create("OB-SOME"),
-            OrderBookId.Create("OB-MANY")
-        }));
-    }
-
-    [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_EarlierVisit_SortsBeforeLaterVisit()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_EarlierVisit_SortsBeforeLaterVisit()
     {
         // Arrange
         var earlier = DateTimeOffset.UtcNow.AddHours(-2);
@@ -221,7 +200,7 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
         await CreateProfileAsync(orderbookId: "OB-EARLIER", lastVisitedAt: earlier);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-EARLIER")),
@@ -230,8 +209,8 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_CombinedOrdering_VisitTimeTakesPrecedenceOverHistoryCount()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_NeverVisited_SortsBeforeVisited_RegardlessOfHistoryCount()
     {
         // Arrange — visited fund has fewer records, but should still sort after never-visited
         await CreateProfileAsync(orderbookId: "OB-VISITED-FEW",
@@ -240,7 +219,7 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
             historyRecordCount: 100);
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync();
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
 
         // Assert
         Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-NEVER-MANY")),
@@ -252,30 +231,30 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByHistoryCountAsyncTests
     #region Limit
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_MoreProfilesThanLimit_ReturnsLimitedCount()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_MoreProfilesThanLimit_ReturnsLimitedCount()
     {
         // Arrange
         for (var i = 0; i < 5; i++)
             await CreateProfileAsync(orderbookId: $"OB-{i:D3}");
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync(limit: 3);
+        var result = await _sut.GetFundsOrderedByLastVisitAsync(limit: 3);
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(3));
     }
 
     [Test]
-    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByHistoryCountAsync))]
-    public async Task GetFundsOrderedByHistoryCountAsync_FewerProfilesThanLimit_ReturnsAll()
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_FewerProfilesThanLimit_ReturnsAll()
     {
         // Arrange
         await CreateProfileAsync(orderbookId: "OB-001");
         await CreateProfileAsync(orderbookId: "OB-002");
 
         // Act
-        var result = await _sut.GetFundsOrderedByHistoryCountAsync(limit: 60);
+        var result = await _sut.GetFundsOrderedByLastVisitAsync(limit: 60);
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));

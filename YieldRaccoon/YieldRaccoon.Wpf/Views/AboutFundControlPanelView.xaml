@@ -77,11 +77,11 @@
                 Style="{StaticResource yr.ButtonStyle}" />
         </StackPanel>
 
-        <!--  Session Progress (visible when session is active)  -->
+        <!--  Session Progress (visible during automated sessions, hidden in manual mode)  -->
         <StackPanel
             Grid.Row="3"
             Margin="{StaticResource yr.SectionSpacing}"
-            Visibility="{Binding IsSessionActive, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+            Visibility="{Binding ShowSessionProgress, Converter={dxmvvm:BooleanToVisibilityConverter}}">
 
             <TextBlock Style="{StaticResource yr.SubheaderStyle}" Text="Session progress" />
 
@@ -112,7 +112,7 @@
                     Foreground="{DynamicResource MahApps.Brushes.Gray2}"
                     Style="{StaticResource yr.CaptionStyle}">
                     <Run Text="ETA " />
-                    <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=mm\\:ss}" />
+                    <Run FontWeight="Bold" Text="{Binding EstimatedTimeRemaining, Mode=OneWay, StringFormat=hh\\:mm\\:ss}" />
                 </TextBlock>
             </Grid>
 
@@ -196,8 +196,11 @@
                         <Run Text="{Binding CurrentOrderBookId, Mode=OneWay}" />
                     </TextBlock>
 
-                    <!--  Interactions header + progress  -->
-                    <Grid Grid.Row="2" Margin="{StaticResource yr.SubsectionSpacing}">
+                    <!--  Interactions header + progress (hidden in manual mode)  -->
+                    <Grid
+                        Grid.Row="2"
+                        Margin="{StaticResource yr.SubsectionSpacing}"
+                        Visibility="{Binding IsManualMode, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -214,8 +217,11 @@
                         </TextBlock>
                     </Grid>
 
-                    <!--  Steps progress bar + list  -->
-                    <StackPanel Grid.Row="3">
+                    <!--  Steps progress bar + list (hidden in manual mode)  -->
+                    <StackPanel
+                        Grid.Row="3"
+                        Visibility="{Binding IsManualMode, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}"
+                        >
                         <mah:MetroProgressBar
                             Height="3"
                             Maximum="{Binding TotalStepsCount}"
@@ -372,8 +378,12 @@
                         </ItemsControl>
                     </StackPanel>
 
-                    <!--  Timing footer  -->
-                    <Grid Grid.Row="6" Margin="{StaticResource yr.ItemSpacing}">
+                    <!--  Timing footer (hidden in manual mode)  -->
+                    <Grid
+                        Grid.Row="6"
+                        Margin="{StaticResource yr.ItemSpacing}"
+                        Visibility="{Binding IsManualMode, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}"
+                        >
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />

@@ -6,10 +6,11 @@
 
 ### Secrets (API Keys)
 
-| Key                              | Environment Variable | Where to Get                                          | Local Dev    | Production       | Required                    |
-| -------------------------------- | -------------------- | ----------------------------------------------------- | ------------ | ---------------- | --------------------------- |
-| `BackendOptions:OpenAIApiKey`    | `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com)    | User Secrets | Azure Key Vault  | Yes                         |
-| `BackendOptions:GroqApiKey`      | `GROQ_API_KEY`       | [console.groq.com](https://console.groq.com)          | User Secrets | Azure Key Vault  | Only if LlmProvider=Groq    |
+| Key                                       | Environment Variable | Where to Get                                          | Local Dev    | Production       | Required                    |
+| ----------------------------------------- | -------------------- | ----------------------------------------------------- | ------------ | ---------------- | --------------------------- |
+| `BackendOptions:OpenAIApiKey`             | `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com)    | User Secrets | Azure Key Vault  | Yes                         |
+| `BackendOptions:GroqApiKey`               | `GROQ_API_KEY`       | [console.groq.com](https://console.groq.com)          | User Secrets | Azure Key Vault  | Only if LlmProvider=Groq    |
+| `BackendOptions:AzureSqlConnectionString` | —                    | See below                                             | User Secrets | Azure Key Vault  | Only if using Azure SQL     |
 
 ### Environment Variables
 
@@ -95,6 +96,34 @@ az keyvault secret set \
   --vault-name "your-keyvault-name" \
   --name "BackendOptions--OpenAIApiKey" \
   --value "sk-proj-your_key_here"
+```
+
+### Azure SQL Connection String
+
+**Purpose:** Passwordless connection to Azure SQL Database for YieldRaccoon fund data (FundProfiles, FundHistoryRecords).
+
+**Connection string format:**
+
+```text
+Server=tcp:<your-sql-server>.database.windows.net,1433;Database=<your-sql-database>;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;
+```
+
+No passwords — `Authentication=Active Directory Default` uses `DefaultAzureCredential` (Managed Identity in Azure, VS/CLI login locally).
+
+**Local Development:**
+
+```bash
+cd backend/Backend.API
+dotnet user-secrets set "BackendOptions:AzureSqlConnectionString" "Server=tcp:<your-sql-server>.database.windows.net,1433;Database=<your-sql-database>;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;"
+```
+
+**Production (Azure Key Vault):**
+
+```bash
+az keyvault secret set \
+  --vault-name "<your-keyvault>" \
+  --name "BackendOptions--AzureSqlConnectionString" \
+  --value "Server=tcp:<your-sql-server>.database.windows.net,1433;Database=<your-sql-database>;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;"
 ```
 
 ---
@@ -727,6 +756,7 @@ Secrets are stored in Azure Key Vault and accessed via Managed Identity:
 |-------------------|-----------------------|
 | `BackendOptions:GroqApiKey` | `BackendOptions--GroqApiKey` |
 | `BackendOptions:OpenAIApiKey` | `BackendOptions--OpenAIApiKey` |
+| `BackendOptions:AzureSqlConnectionString` | `BackendOptions--AzureSqlConnectionString` |
 
 **Update production secrets:**
 

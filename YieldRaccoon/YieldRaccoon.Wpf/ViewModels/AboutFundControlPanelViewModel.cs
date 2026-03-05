@@ -125,6 +125,25 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets whether the current activity is manual collection (user-driven, no timers).
+    /// </summary>
+    public bool IsManualMode
+    {
+        get => GetProperty(() => IsManualMode);
+        set => SetProperty(() => IsManualMode, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the automated session progress section should be shown.
+    /// True when an automated session is active (not manual mode).
+    /// </summary>
+    public bool ShowSessionProgress
+    {
+        get => GetProperty(() => ShowSessionProgress);
+        set => SetProperty(() => ShowSessionProgress, value);
+    }
+
+    /// <summary>
     /// Gets or sets the number of completed interaction steps.
     /// </summary>
     public int CompletedStepsCount
@@ -316,6 +335,8 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     public void OnSessionStateChanged(AboutFundSessionState state)
     {
         IsSessionActive = state.IsActive;
+        IsManualMode = state.Phase == AboutFundSessionPhase.ManualCollecting;
+        ShowSessionProgress = state.IsActive && !IsManualMode;
         TotalFunds = state.TotalFunds;
         StatusMessage = state.StatusMessage;
         IsDelayInProgress = state.IsDelayInProgress;

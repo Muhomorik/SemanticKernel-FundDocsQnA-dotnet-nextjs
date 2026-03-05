@@ -18,4 +18,16 @@ public interface IFundDetailsUrlBuilder
     /// <param name="orderBookId">The fund's OrderBookId used in the external URL.</param>
     /// <returns>A validated <see cref="Uri"/> for the fund detail page.</returns>
     Uri BuildUrl(OrderBookId orderBookId);
+
+    /// <summary>
+    /// Attempts to extract the <see cref="OrderBookId"/> from a fund detail page URL.
+    /// </summary>
+    /// <remarks>
+    /// Reverse of <see cref="BuildUrl"/>: splits the URL template at the <c>{0}</c> placeholder
+    /// and extracts the segment between the prefix and suffix.
+    /// </remarks>
+    /// <param name="url">The URL to parse.</param>
+    /// <param name="orderBookId">When successful, the extracted OrderBookId; otherwise, <c>default</c>.</param>
+    /// <returns><c>true</c> if the URL matches the template and an OrderBookId was extracted; <c>false</c> otherwise.</returns>
+    bool TryParseOrderBookId(Uri url, out OrderBookId orderBookId);
 }

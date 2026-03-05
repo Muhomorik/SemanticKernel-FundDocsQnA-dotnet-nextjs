@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -8,6 +9,7 @@ using DevExpress.Mvvm;
 using NLog;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Services;
+using YieldRaccoon.Infrastructure.Services;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Mappers;
 using YieldRaccoon.Wpf.Models;
@@ -38,10 +40,19 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ICrawlSessionOrchestrator _orchestrator;
     private readonly ISettingsDialogService _settingsDialogService;
     private readonly IAboutFundWindowService _aboutFundWindowService;
+    private readonly IExportWindowService _exportWindowService;
+    private readonly IFundStatisticsExportWindowService _fundStatisticsExportWindowService;
+    private readonly ICloudSyncWindowService _cloudSyncWindowService;
+    private readonly IBackendSyncStatusProvider _backendSyncStatusProvider;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
     #region UI State Properties
+
+    /// <summary>
+    /// Gets the display name of the active database provider (e.g., "InMemory", "SQLite").
+    /// </summary>
+    public string DatabaseProviderName { get; }
 
     /// <summary>
     /// Gets or sets the window title.
@@ -207,6 +218,33 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Backend Sync Properties
+
+    /// <summary>
+    /// Gets whether the backend sync status indicator should be visible (DualWrite mode only).
+    /// </summary>
+    public bool IsBackendSyncVisible { get; }
+
+    /// <summary>
+    /// Gets or sets the backend sync status message for the status bar.
+    /// </summary>
+    public string BackendSyncMessage
+    {
+        get => GetProperty(() => BackendSyncMessage);
+        set => SetProperty(() => BackendSyncMessage, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the last backend sync was successful (drives icon color).
+    /// </summary>
+    public bool IsBackendSyncHealthy
+    {
+        get => GetProperty(() => IsBackendSyncHealthy);
+        set => SetProperty(() => IsBackendSyncHealthy, value);
+    }
+
+    #endregion
+
     #region Privacy Mode Properties
 
     /// <summary>
@@ -279,6 +317,21 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ICommand OpenAboutFundCommand { get; }
 
+    /// <summary>
+    /// Gets the command to open the Export window.
+    /// </summary>
+    public ICommand OpenExportCommand { get; }
+
+    /// <summary>
+    /// Gets the command to open the Fund Statistics Export window.
+    /// </summary>
+    public ICommand OpenFundStatisticsExportCommand { get; }
+
+    /// <summary>
+    /// Gets the command to open the Cloud Sync window.
+    /// </summary>
+    public ICommand OpenCloudSyncCommand { get; }
+
     #endregion
 
     #region Events
@@ -311,14 +364,24 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="options">Configuration options containing URLs for fund pages.</param>
     /// <param name="orchestrator">Orchestrator for session lifecycle and batch workflow.</param>
     /// <param name="settingsDialogService">Service for showing the settings dialog.</param>
-    /// <param name="aboutFundWindowService"></param>
+    /// <param name="aboutFundWindowService">Service for showing the AboutFund browser window.</param>
+    /// <param name="exportWindowService">Service for showing the Export window.</param>
+    /// <param name="fundStatisticsExportWindowService">Service for showing the Fund Statistics Export window.</param>
+    /// <param name="cloudSyncWindowService">Service for showing the Cloud Sync window.</param>
+    /// <param name="databaseOptions">Database configuration options for provider display.</param>
+    /// <param name="backendSyncStatusProvider">Provider for backend sync status notifications.</param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
         YieldRaccoonOptions options,
         ICrawlSessionOrchestrator orchestrator,
         ISettingsDialogService settingsDialogService,
-        IAboutFundWindowService aboutFundWindowService)
+        IAboutFundWindowService aboutFundWindowService,
+        IExportWindowService exportWindowService,
+        IFundStatisticsExportWindowService fundStatisticsExportWindowService,
+        ICloudSyncWindowService cloudSyncWindowService,
+        DatabaseOptions databaseOptions,
+        IBackendSyncStatusProvider backendSyncStatusProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -326,8 +389,27 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
         _aboutFundWindowService =
             aboutFundWindowService ?? throw new ArgumentNullException(nameof(aboutFundWindowService));
+        _exportWindowService =
+            exportWindowService ?? throw new ArgumentNullException(nameof(exportWindowService));
+        _fundStatisticsExportWindowService =
+            fundStatisticsExportWindowService ?? throw new ArgumentNullException(nameof(fundStatisticsExportWindowService));
+        _cloudSyncWindowService =
+            cloudSyncWindowService ?? throw new ArgumentNullException(nameof(cloudSyncWindowService));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+
+        _backendSyncStatusProvider =
+            backendSyncStatusProvider ?? throw new ArgumentNullException(nameof(backendSyncStatusProvider));
+
+        ArgumentNullException.ThrowIfNull(databaseOptions);
+        var dbPath = Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""));
+        DatabaseProviderName = databaseOptions.Provider switch
+        {
+            DatabaseProvider.SQLite => $"SQLite — {dbPath}",
+            DatabaseProvider.DualWrite => $"DualWrite — {dbPath}",
+            _ => "InMemory"
+        };
+        IsBackendSyncVisible = databaseOptions.Provider is DatabaseProvider.DualWrite;
 
         _logger.Info("MainWindowViewModel constructor called");
 
@@ -351,6 +433,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         SessionStatusMessage = string.Empty;
         DelayCountdown = 0;
         IsPrivacyMode = false;
+        BackendSyncMessage = string.Empty;
+        IsBackendSyncHealthy = true;
 
         // Initialize commands with CommandManager integration enabled
         RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
@@ -361,6 +445,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
         OpenSettingsCommand = new DelegateCommand(ExecuteOpenSettings);
         OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
+        OpenExportCommand = new DelegateCommand(ExecuteOpenExport);
+        OpenFundStatisticsExportCommand = new DelegateCommand(ExecuteOpenFundStatisticsExport);
+        OpenCloudSyncCommand = new DelegateCommand(ExecuteOpenCloudSync);
 
         // Set up subscriptions to orchestrator streams
         SetupOrchestratorSubscriptions();
@@ -379,7 +466,13 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _orchestrator = null!; // Design-time only
         _settingsDialogService = null!; // Design-time only
         _aboutFundWindowService = null!; // Design-time only
+        _exportWindowService = null!; // Design-time only
+        _fundStatisticsExportWindowService = null!; // Design-time only
+        _cloudSyncWindowService = null!; // Design-time only
+        _backendSyncStatusProvider = new NullBackendSyncStatusProvider();
 
+        DatabaseProviderName = "InMemory";
+        IsBackendSyncVisible = false;
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
         BrowserUrl = "https://example.com";
@@ -408,6 +501,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadedCommand = new DelegateCommand(() => { });
         OpenSettingsCommand = new DelegateCommand(() => { });
         OpenAboutFundCommand = new DelegateCommand(() => { });
+        OpenExportCommand = new DelegateCommand(() => { });
+        OpenFundStatisticsExportCommand = new DelegateCommand(() => { });
+        OpenCloudSyncCommand = new DelegateCommand(() => { });
     }
 
     #region Orchestrator Subscriptions
@@ -445,6 +541,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _orchestrator.SessionCompleted
             .ObserveOn(_uiScheduler)
             .Subscribe(OnSessionCompleted)
+            .DisposeWith(_disposables);
+
+        // Backend sync status (DualWrite mode — NullProvider emits nothing for other modes)
+        _backendSyncStatusProvider.Status
+            .ObserveOn(_uiScheduler)
+            .Subscribe(OnBackendSyncStatusChanged)
             .DisposeWith(_disposables);
 
         _logger.Debug("Orchestrator subscriptions configured");
@@ -508,6 +610,20 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
+    /// Handles backend sync status changes from the DualWrite decorators.
+    /// </summary>
+    private void OnBackendSyncStatusChanged(BackendSyncStatus status)
+    {
+        BackendSyncMessage = status.Message;
+        IsBackendSyncHealthy = status.IsSuccess;
+
+        if (status.IsSuccess)
+            _logger.Debug("Backend sync: {0}", status.Message);
+        else
+            _logger.Warn("Backend sync error: {0}", status.Message);
+    }
+
+    /// <summary>
     /// Handles session completed events from the orchestrator.
     /// </summary>
     private void OnSessionCompleted(SessionCompletedInfo info)
@@ -560,6 +676,36 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _logger.Debug("Open AboutFund window command executed");
         _aboutFundWindowService.ShowAboutFundWindow();
+    }
+
+    /// <summary>
+    /// Executes the open Export command.
+    /// Shows the Export window via the window service.
+    /// </summary>
+    private void ExecuteOpenExport()
+    {
+        _logger.Debug("Open Export window command executed");
+        _exportWindowService.ShowExportWindow();
+    }
+
+    /// <summary>
+    /// Executes the open Fund Statistics Export command.
+    /// Shows the Fund Statistics Export window via the window service.
+    /// </summary>
+    private void ExecuteOpenFundStatisticsExport()
+    {
+        _logger.Debug("Open Fund Statistics Export window command executed");
+        _fundStatisticsExportWindowService.ShowFundStatisticsExportWindow();
+    }
+
+    /// <summary>
+    /// Executes the open Cloud Sync command.
+    /// Shows the Cloud Sync window via the window service.
+    /// </summary>
+    private void ExecuteOpenCloudSync()
+    {
+        _logger.Debug("Open Cloud Sync window command executed");
+        _cloudSyncWindowService.ShowCloudSyncWindow();
     }
 
     /// <summary>

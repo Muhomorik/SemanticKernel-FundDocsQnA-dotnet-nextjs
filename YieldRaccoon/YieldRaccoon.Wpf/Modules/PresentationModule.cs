@@ -1,4 +1,6 @@
+using System.Net.Http;
 using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -79,6 +81,36 @@ public class PresentationModule : Module
         builder.RegisterType<AboutFundWindowService>()
             .As<IAboutFundWindowService>()
             .SingleInstance();
+
+        // Export window service registration
+        // Register window service for showing Export window from ViewModels
+        builder.RegisterType<ExportWindowService>()
+            .As<IExportWindowService>()
+            .InstancePerDependency();
+
+        // Export data service registration
+        // Exports filtered fund data to standalone SQLite database files
+        builder.RegisterType<FundDataExportService>()
+            .As<IFundDataExportService>()
+            .InstancePerDependency();
+
+        // Fund statistics CSV export service registration
+        // Computes summary statistics from fund NAV data and exports to CSV
+        builder.RegisterType<FundStatisticsCsvExportService>()
+            .As<IFundStatisticsCsvExportService>()
+            .InstancePerDependency();
+
+        // Fund metadata CSV export service registration
+        // Exports fund profile metadata (fees, risk metrics, classifications) to CSV
+        builder.RegisterType<FundMetadataCsvExportService>()
+            .As<IFundMetadataCsvExportService>()
+            .InstancePerDependency();
+
+        // Fund statistics export window service registration
+        // Register window service for showing the statistics export window from ViewModels
+        builder.RegisterType<FundStatisticsExportWindowService>()
+            .As<IFundStatisticsExportWindowService>()
+            .InstancePerDependency();
 
         // Session scheduler registration
         // Register session scheduler for pre-calculating batch timings with randomized delays
@@ -171,6 +203,15 @@ public class PresentationModule : Module
             .As<IAboutFundResponseInterceptor>()
             .InstancePerDependency();
 
+        // Cloud sync window service registration
+        // Register window service for showing Cloud Sync window from ViewModels
+        builder.RegisterType<CloudSyncWindowService>()
+            .As<ICloudSyncWindowService>()
+            .InstancePerDependency();
+
+        // Backend API client registration (available when BackendApiUrl is configured)
+        RegisterBackendApiClient(builder);
+
         // Database provider registration
         RegisterDatabaseProvider(builder);
 
@@ -210,7 +251,7 @@ public class PresentationModule : Module
     /// </summary>
     private void RegisterDatabaseProvider(ContainerBuilder builder)
     {
-        if (_databaseOptions.Provider == DatabaseProvider.SQLite)
+        if (_databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite)
         {
             // Register DbContext with SQLite provider
             builder.Register(ctx =>
@@ -243,13 +284,108 @@ public class PresentationModule : Module
                 .SingleInstance();
         }
 
-        // Register ingestion service (works with both provider types via interfaces)
+        if (_databaseOptions.Provider is DatabaseProvider.DualWrite)
+        {
+            RegisterDualWriteServices(builder);
+        }
+        else
+        {
+            // Non-DualWrite: register services directly, no-op sync status provider
+            builder.RegisterType<FundIngestionService>()
+                .As<IFundIngestionService>()
+                .InstancePerDependency();
+
+            builder.RegisterType<AboutFundChartIngestionService>()
+                .As<IAboutFundChartIngestionService>()
+                .InstancePerDependency();
+
+            builder.RegisterType<NullBackendSyncStatusProvider>()
+                .As<IBackendSyncStatusProvider>()
+                .SingleInstance();
+        }
+    }
+
+    /// <summary>
+    /// Registers the pre-configured HttpClient and FundSyncApiClient for Backend API access.
+    /// Called whenever <see cref="DatabaseOptions.BackendApiUrl"/> is configured,
+    /// regardless of the provider — needed by both DualWrite mode and Cloud Sync.
+    /// </summary>
+    private void RegisterBackendApiClient(ContainerBuilder builder)
+    {
+        // Pre-configured HttpClient for Backend API
+        // BaseAddress is null when BackendApiUrl is not configured — callers must guard
+        builder.Register(ctx =>
+            {
+                var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+
+                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl))
+                {
+                    client.BaseAddress = new Uri(_databaseOptions.BackendApiUrl);
+
+                    if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiKey))
+                        client.DefaultRequestHeaders.Add("Authorization", $"ApiKey {_databaseOptions.BackendApiKey}");
+                }
+
+                return client;
+            })
+            .SingleInstance();
+
+        // Backend API client
+        builder.RegisterType<FundSyncApiClient>()
+            .As<IFundSyncApiClient>()
+            .SingleInstance();
+
+        // Cloud sync service registration
+        // Orchestrates bulk-syncing local fund data to the Backend API
+        builder.RegisterType<CloudSyncService>()
+            .As<ICloudSyncService>()
+            .InstancePerDependency();
+    }
+
+    /// <summary>
+    /// Registers DualWrite infrastructure: inner SQLite services with named keys,
+    /// sync status stream, and decorator services.
+    /// HttpClient and FundSyncApiClient are registered by <see cref="RegisterBackendApiClient"/>.
+    /// </summary>
+    private void RegisterDualWriteServices(ContainerBuilder builder)
+    {
+        // Shared Rx Subject for sync status notifications (singleton)
+        builder.Register(ctx => new Subject<BackendSyncStatus>())
+            .AsSelf()
+            .SingleInstance();
+
+        // BackendSyncStatusProvider wraps the Subject for ViewModel consumption
+        builder.RegisterType<BackendSyncStatusProvider>()
+            .As<IBackendSyncStatusProvider>()
+            .SingleInstance();
+
+        // Inner SQLite services — registered with named keys so decorators can resolve them
         builder.RegisterType<FundIngestionService>()
+            .Named<IFundIngestionService>("sqlite")
+            .InstancePerDependency();
+
+        builder.RegisterType<AboutFundChartIngestionService>()
+            .Named<IAboutFundChartIngestionService>("sqlite")
+            .InstancePerDependency();
+
+        // DualWrite decorators — resolve inner services by named key
+        // NLogModule injects ILogger via pipeline middleware, which doesn't apply to lambda
+        // registrations — use LogManager.GetLogger() directly instead of ctx.Resolve<ILogger>()
+        builder.Register(ctx => new DualWriteFundIngestionService(
+                LogManager.GetLogger(typeof(DualWriteFundIngestionService).FullName!),
+                ctx.ResolveNamed<IFundIngestionService>("sqlite"),
+                ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<IFundProfileRepository>(),
+                ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IFundIngestionService>()
             .InstancePerDependency();
 
-        // Register chart ingestion service for about-fund page data persistence
-        builder.RegisterType<AboutFundChartIngestionService>()
+        builder.Register(ctx => new DualWriteChartIngestionService(
+                LogManager.GetLogger(typeof(DualWriteChartIngestionService).FullName!),
+                ctx.ResolveNamed<IAboutFundChartIngestionService>("sqlite"),
+                ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<IFundProfileRepository>(),
+                ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IAboutFundChartIngestionService>()
             .InstancePerDependency();
     }

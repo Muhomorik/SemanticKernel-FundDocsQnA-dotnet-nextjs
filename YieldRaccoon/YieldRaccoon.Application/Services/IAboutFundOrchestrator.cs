@@ -85,5 +85,24 @@ public interface IAboutFundOrchestrator : IDisposable
     /// <returns>The list of funds scheduled for browsing.</returns>
     Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync();
 
+    /// <summary>
+    /// Starts manual collection mode: parses the OrderBookId from the URL, begins passive
+    /// response tracking, and persists chart data incrementally after each slot resolves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Unlike <see cref="StartSessionAsync"/>, this does not create a session, schedule
+    /// interactions, or use timers. The user navigates and clicks period buttons manually;
+    /// intercepted responses are routed to slots and persisted via
+    /// <see cref="IAboutFundChartIngestionService"/> after each slot resolves.
+    /// </para>
+    /// <para>
+    /// If an automated session is active, the URL is still navigated but manual collection
+    /// is not started (automated mode takes precedence).
+    /// </para>
+    /// </remarks>
+    /// <param name="url">The fund detail page URL to navigate to.</param>
+    Task StartManualCollectionAsync(Uri url);
+
     #endregion
 }

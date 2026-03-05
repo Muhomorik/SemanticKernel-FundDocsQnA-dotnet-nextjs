@@ -37,7 +37,7 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByHistoryCountAsync(
+    public Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default)
     {
         // In-memory implementation returns all profiles with zero history count
@@ -53,11 +53,50 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
                 LastVisitedAt = fp.AboutFundLastVisitedAt
             })
             .OrderBy(f => f.LastVisitedAt)
-            .ThenBy(f => f.Name)
             .Take(limit)
             .ToList();
 
         return Task.FromResult<IReadOnlyList<AboutFundScheduleItem>>(items);
+    }
+
+    /// <inheritdoc />
+    public Task<string?> GetIsinByOrderBookIdAsync(OrderBookId orderBookId,
+        CancellationToken cancellationToken = default)
+    {
+        var isin = _profiles.Values
+            .FirstOrDefault(fp => fp.OrderbookId == orderBookId.Value)
+            ?.Id.Isin;
+
+        return Task.FromResult(isin);
+    }
+
+    /// <inheritdoc />
+    public Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
+    {
+        _profiles.TryGetValue(isinId, out var profile);
+        return Task.FromResult(profile);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<FundProfile>> GetByCompanyNameFilterAsync(
+        string? companyName, CancellationToken cancellationToken = default)
+    {
+        IEnumerable<FundProfile> profiles = _profiles.Values;
+
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            var filter = companyName.Trim();
+            profiles = profiles.Where(fp => fp.CompanyName != null
+                                            && fp.CompanyName.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return Task.FromResult<IReadOnlyList<FundProfile>>(profiles.ToList());
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_profiles.ContainsKey(isinId));
     }
 
     /// <inheritdoc />

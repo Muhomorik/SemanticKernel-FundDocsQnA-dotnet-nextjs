@@ -1,4 +1,5 @@
 using YieldRaccoon.Application.Models;
+using YieldRaccoon.Domain.ValueObjects;
 
 namespace YieldRaccoon.Application.Services;
 
@@ -46,6 +47,18 @@ public interface IAboutFundPageDataCollector
     IObservable<AboutFundCollectionProgress> StateChanged { get; }
 
     /// <summary>
+    /// Emits a snapshot of the current <see cref="AboutFundPageData"/> each time a slot
+    /// transitions from <see cref="Domain.ValueObjects.AboutFundFetchStatus.Pending"/>
+    /// to <see cref="Domain.ValueObjects.AboutFundFetchStatus.Succeeded"/> or
+    /// <see cref="Domain.ValueObjects.AboutFundFetchStatus.Failed"/>.
+    /// </summary>
+    /// <remarks>
+    /// Used by the orchestrator for per-slot persistence in manual collection mode.
+    /// Does not fire for repeated updates to an already-resolved slot.
+    /// </remarks>
+    IObservable<AboutFundPageData> SlotUpdated { get; }
+
+    /// <summary>
     /// Begins collecting data for a new fund page visit using pre-calculated step timings.
     /// Schedules interaction timers at the prescribed absolute times and starts execution.
     /// </summary>
@@ -63,6 +76,25 @@ public interface IAboutFundPageDataCollector
     /// </summary>
     /// <param name="request">The intercepted HTTP request/response data.</param>
     void NotifyResponseCaptured(AboutFundInterceptedRequest request);
+
+    /// <summary>
+    /// Begins tracking responses for a fund without scheduling any page interactions.
+    /// Used for manual collection where the user clicks buttons themselves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Creates an empty <see cref="AboutFundPageData"/> accumulator and accepts
+    /// incoming responses via <see cref="NotifyResponseCaptured"/>, but does not
+    /// schedule any timers or page interactions. The collection stays open until
+    /// a new collection begins or <see cref="CancelCollection"/> is called.
+    /// </para>
+    /// <para>
+    /// If a previous collection is active, it is force-completed and emitted
+    /// on <see cref="Completed"/> before the new passive collection starts.
+    /// </para>
+    /// </remarks>
+    /// <param name="orderBookId">The fund's OrderBookId for the page being visited.</param>
+    void BeginPassiveCollection(OrderBookId orderBookId);
 
     /// <summary>
     /// Cancels the active collection, disposing all scheduled interaction timers
