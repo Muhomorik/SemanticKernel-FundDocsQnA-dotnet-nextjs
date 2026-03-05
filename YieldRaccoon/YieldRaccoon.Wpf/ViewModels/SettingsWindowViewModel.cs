@@ -113,6 +113,8 @@ public class SettingsWindowViewModel : ViewModelBase
                 RaisePropertyChanged(() => RestartRequiredMessage);
                 RaisePropertyChanged(() => IsDatabasePathVisible);
                 RaisePropertyChanged(() => IsBackendApiVisible);
+                RaisePropertyChanged(() => IsBackendApiUrlInvalid);
+                RaisePropertyChanged(() => BackendApiUrlError);
             }
         }
     }
@@ -143,9 +145,23 @@ public class SettingsWindowViewModel : ViewModelBase
             {
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
+                RaisePropertyChanged(() => IsBackendApiUrlInvalid);
+                RaisePropertyChanged(() => BackendApiUrlError);
             }
         }
     }
+
+    /// <summary>
+    /// Gets whether the Backend API URL is non-empty but invalid.
+    /// </summary>
+    public bool IsBackendApiUrlInvalid =>
+        IsBackendApiVisible && !string.IsNullOrWhiteSpace(BackendApiUrl) && !IsValidAbsoluteUrl(BackendApiUrl);
+
+    /// <summary>
+    /// Gets the validation error message for the Backend API URL.
+    /// </summary>
+    public string BackendApiUrlError =>
+        IsBackendApiUrlInvalid ? "Invalid URL — expected format: https://your-app.azurewebsites.net" : string.Empty;
 
     /// <summary>
     /// Gets or sets the Backend API key.
@@ -278,7 +294,7 @@ public class SettingsWindowViewModel : ViewModelBase
 
     private bool CanExecuteSave()
     {
-        return !string.IsNullOrWhiteSpace(DatabasePath);
+        return !string.IsNullOrWhiteSpace(DatabasePath) && !IsBackendApiUrlInvalid;
     }
 
     private void ExecuteSave()
@@ -322,6 +338,10 @@ public class SettingsWindowViewModel : ViewModelBase
         new DatabaseProviderOption(DatabaseProvider.SQLite, "SQLite"),
         new DatabaseProviderOption(DatabaseProvider.DualWrite, "DualWrite (SQLite + Azure SQL)")
     ];
+
+    private static bool IsValidAbsoluteUrl(string url) =>
+        Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
+        && uri.Scheme is "http" or "https";
 
     /// <summary>
     /// Extracts the database file path from an SQLite connection string.

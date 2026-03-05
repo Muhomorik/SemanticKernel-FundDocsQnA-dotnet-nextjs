@@ -85,9 +85,16 @@
                 Style="{StaticResource yr.SubheaderStyle}"
                 Text="Backend API URL" />
             <TextBox
-                Margin="0,0,0,8"
+                Margin="0,0,0,4"
                 mah:TextBoxHelper.Watermark="https://your-app.azurewebsites.net"
                 Text="{Binding BackendApiUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock
+                Margin="0,0,0,8"
+                Foreground="{StaticResource yr.ErrorBrush}"
+                Style="{StaticResource yr.SmallStyle}"
+                Text="{Binding BackendApiUrlError}"
+                Visibility="{Binding IsBackendApiUrlInvalid, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
             <TextBlock
                 Margin="{StaticResource yr.LabelSpacing}"
