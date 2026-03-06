@@ -129,6 +129,67 @@ public class FundDataPlugin
                 fp.EuArticleType))
             .ToArrayAsync();
     }
+
+    [KernelFunction("get_top_performing_funds")]
+    [Description("Gets the top performing funds ranked by NAV (Net Asset Value) percentage change over a given number of days. Use for questions about best/worst performing funds. Positive change = gain, negative = loss. Results are sorted by change descending (best first).")]
+    public async Task<FundPerformanceResult[]> GetTopPerformingFundsAsync(
+        [Description("Number of days to look back from today (e.g. 7 for a week, 30 for a month, 365 for a year)")] int days,
+        [Description("Optional fund category filter (e.g. 'Equity', 'Emerging Markets', 'Technology')")] string? category = null,
+        [Description("Maximum number of results to return")] int limit = QueryLimits.TopPerformingFunds)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-days));
+
+        // Fetch records with NAV data in the window
+        var query = context.FundHistoryRecords
+            .Where(r => r.NavDate != null && r.NavDate >= cutoff && r.Nav != null);
+
+        // Load into memory for grouping (works with both InMemory and SQL Server)
+        var records = await query
+            .Select(r => new { r.IsinId, r.Nav, r.NavDate })
+            .ToListAsync();
+
+        // Load fund profiles for name/category lookup
+        var profileQuery = context.FundProfiles.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(category))
+            profileQuery = profileQuery.Where(fp => fp.Category != null && fp.Category.Contains(category));
+
+        var profiles = await profileQuery
+            .Select(fp => new { fp.Id, fp.Name, fp.Category })
+            .ToDictionaryAsync(fp => fp.Id.Isin);
+
+        // Compute per-fund performance
+        var results = records
+            .GroupBy(r => r.IsinId.Isin)
+            .Where(g => profiles.ContainsKey(g.Key) && g.Count() >= 2)
+            .Select(g =>
+            {
+                var ordered = g.OrderBy(r => r.NavDate).ToList();
+                var first = ordered.First();
+                var last = ordered.Last();
+                var startNav = first.Nav!.Value;
+                var endNav = last.Nav!.Value;
+                var pctChange = startNav != 0 ? Math.Round((endNav - startNav) / startNav * 100, 2) : 0;
+                var profile = profiles[g.Key];
+
+                return new FundPerformanceResult(
+                    Isin: g.Key,
+                    Name: profile.Name,
+                    Category: profile.Category,
+                    StartNav: startNav,
+                    EndNav: endNav,
+                    PercentChange: pctChange,
+                    StartDate: first.NavDate!.Value,
+                    EndDate: last.NavDate!.Value);
+            })
+            .OrderByDescending(r => r.PercentChange)
+            .Take(limit)
+            .ToArray();
+
+        return results;
+    }
 }
 
 /// <summary>
