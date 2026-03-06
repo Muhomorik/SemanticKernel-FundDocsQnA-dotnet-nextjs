@@ -79,6 +79,56 @@ public class FundDataPlugin
             Rating: fund.Rating,
             CurrencyCode: fund.CurrencyCode);
     }
+
+    [KernelFunction("search_funds")]
+    [Description("Search for funds matching multiple optional criteria. All provided filters are combined with AND logic. Returns up to 'limit' matching funds.")]
+    public async Task<FundSearchResult[]> SearchFundsAsync(
+        [Description("Optional fund name substring to filter by (case-insensitive)")] string? name = null,
+        [Description("Optional fund category to filter by (e.g. 'Equity', 'Fixed Income', 'Emerging Markets')")] string? category = null,
+        [Description("Optional maximum risk level (1-7, inclusive). Funds with risk <= this value are returned.")] int? maxRisk = null,
+        [Description("Optional management type filter: 'ACTIVE' or 'PASSIVE'")] string? managedType = null,
+        [Description("Optional minimum sustainability rating (1-5). Funds with rating >= this value are returned.")] int? minSustainabilityRating = null,
+        [Description("Optional EU SFDR article type filter (e.g. 'Article 8', 'Article 9')")] string? euArticleType = null,
+        [Description("Maximum number of results to return")] int limit = QueryLimits.SearchResults)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var query = context.FundProfiles.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+            query = query.Where(fp => fp.Name.Contains(name));
+
+        if (!string.IsNullOrWhiteSpace(category))
+            query = query.Where(fp => fp.Category != null && fp.Category.Contains(category));
+
+        if (maxRisk.HasValue)
+            query = query.Where(fp => fp.Risk != null && fp.Risk <= maxRisk.Value);
+
+        if (!string.IsNullOrWhiteSpace(managedType))
+            query = query.Where(fp => fp.ManagedType != null && fp.ManagedType.ToUpper() == managedType.ToUpper());
+
+        if (minSustainabilityRating.HasValue)
+            query = query.Where(fp => fp.SustainabilityRating != null && fp.SustainabilityRating >= minSustainabilityRating.Value);
+
+        if (!string.IsNullOrWhiteSpace(euArticleType))
+            query = query.Where(fp => fp.EuArticleType != null && fp.EuArticleType.Contains(euArticleType));
+
+        return await query
+            .OrderBy(fp => fp.Name)
+            .Take(limit)
+            .Select(fp => new FundSearchResult(
+                fp.Id.Isin,
+                fp.Name,
+                fp.Category,
+                fp.Risk,
+                fp.ManagedType,
+                fp.SustainabilityRating,
+                fp.ManagementFee,
+                fp.TotalFee,
+                fp.EuArticleType))
+            .ToArrayAsync();
+    }
 }
 
 /// <summary>
