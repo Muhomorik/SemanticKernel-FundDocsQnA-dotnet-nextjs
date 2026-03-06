@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 
 using Backend.API.Infrastructure.FundData;
+using Backend.API.Infrastructure.FundData.Plugins.Results;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
@@ -38,6 +40,44 @@ public class FundDataPlugin
             .Distinct()
             .OrderBy(c => c)
             .ToArrayAsync();
+    }
+
+    [KernelFunction("get_fund_profile")]
+    [Description("Gets detailed profile information for a single fund. Search by ISIN code (e.g. SE0008613939) or by fund name (partial match). Returns fees, risk, ESG scores, sustainability ratings, and other metadata.")]
+    public async Task<FundProfileResult?> GetFundProfileAsync(
+        [Description("Fund name (partial, case-insensitive) or ISIN code (12 characters, e.g. SE0008613939)")] string nameOrIsin)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var isIsin = Regex.IsMatch(nameOrIsin, @"^[A-Z]{2}[A-Z0-9]{9}[0-9]$");
+
+        var fund = isIsin
+            ? await context.FundProfiles.FirstOrDefaultAsync(fp => fp.Id.Isin == nameOrIsin)
+            : await context.FundProfiles.FirstOrDefaultAsync(fp => fp.Name.Contains(nameOrIsin));
+
+        if (fund is null) return null;
+
+        return new FundProfileResult(
+            Isin: fund.Id.Isin,
+            Name: fund.Name,
+            Category: fund.Category,
+            CompanyName: fund.CompanyName,
+            ManagedType: fund.ManagedType,
+            Risk: fund.Risk,
+            ManagementFee: fund.ManagementFee,
+            TotalFee: fund.TotalFee,
+            EsgScore: fund.EsgScore,
+            SustainabilityRating: fund.SustainabilityRating,
+            SustainabilityLevel: fund.SustainabilityLevel,
+            EnvironmentalScore: fund.EnvironmentalScore,
+            SocialScore: fund.SocialScore,
+            GovernanceScore: fund.GovernanceScore,
+            EuArticleType: fund.EuArticleType,
+            NumberOfOwners: fund.NumberOfOwners,
+            Capital: fund.Capital,
+            Rating: fund.Rating,
+            CurrencyCode: fund.CurrencyCode);
     }
 }
 
