@@ -365,7 +365,7 @@ var hasAzureSql = !string.IsNullOrWhiteSpace(backendOptions.AzureSqlConnectionSt
 if (hasAzureSql)
 {
     Console.WriteLine($"Azure SQL: Configured (fund data sync enabled)");
-    builder.Services.AddDbContext<FundDataDbContext>(options =>
+    builder.Services.AddDbContextFactory<FundDataDbContext>(options =>
         options.UseSqlServer(
             backendOptions.AzureSqlConnectionString,
             sqlOptions => sqlOptions.EnableRetryOnFailure()));
@@ -373,7 +373,7 @@ if (hasAzureSql)
 else
 {
     Console.WriteLine("Azure SQL: Not configured (fund data sync endpoints will return 503)");
-    builder.Services.AddDbContext<FundDataDbContext>(options =>
+    builder.Services.AddDbContextFactory<FundDataDbContext>(options =>
         throw new InvalidOperationException(
             "Azure SQL connection string not configured. " +
             "Set via: dotnet user-secrets set 'BackendOptions:AzureSqlConnectionString' '<connection-string>'"));
