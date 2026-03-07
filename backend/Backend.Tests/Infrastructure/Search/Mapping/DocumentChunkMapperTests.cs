@@ -5,6 +5,8 @@ using Backend.API.Infrastructure.Search.Models;
 namespace Backend.Tests.Infrastructure.Search.Mapping;
 
 [TestFixture]
+[Category("Unit")]
+[Category("SemanticSearch")]
 public class DocumentChunkMapperTests
 {
     private const int VectorDimensions = 1536;

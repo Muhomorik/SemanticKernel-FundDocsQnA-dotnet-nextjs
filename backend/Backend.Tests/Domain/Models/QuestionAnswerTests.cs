@@ -8,6 +8,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.Models;
 
 [TestFixture]
+[Category("Unit")]
+[Category("QuestionAnswering")]
 public class QuestionAnswerTests
 {
     private IFixture _fixture;

@@ -7,6 +7,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.ValueObjects;
 
 [TestFixture]
+[Category("Unit")]
+[Category("SemanticSearch")]
 public class EmbeddingVectorTests
 {
     private IFixture _fixture;

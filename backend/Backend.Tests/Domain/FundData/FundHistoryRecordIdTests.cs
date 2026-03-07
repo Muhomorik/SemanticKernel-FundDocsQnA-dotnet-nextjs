@@ -4,6 +4,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.FundData;
 
 [TestFixture]
+[Category("Unit")]
+[Category("FundData")]
 public class FundHistoryRecordIdTests
 {
     [Test]

@@ -30,6 +30,8 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 /// (via plugin functions) AND document context (via RAG retrieval from real PRIIP/KID PDFs).
 /// </summary>
 [TestFixture, Explicit("Requires OpenAI API key")]
+[Category("Integration")]
+[Category("FundData.Plugin")]
 public class HybridQueryTests
 {
     private Kernel _kernel = null!;

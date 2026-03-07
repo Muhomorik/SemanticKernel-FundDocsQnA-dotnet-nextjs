@@ -8,6 +8,8 @@ using System.ComponentModel.DataAnnotations;
 namespace Backend.Tests.ApplicationCore.Validation;
 
 [TestFixture]
+[Category("Unit")]
+[Category("Security")]
 public class SafeQuestionAttributeTests
 {
     private IFixture _fixture;

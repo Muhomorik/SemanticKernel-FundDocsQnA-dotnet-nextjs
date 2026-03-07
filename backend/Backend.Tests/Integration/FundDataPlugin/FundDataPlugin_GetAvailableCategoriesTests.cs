@@ -19,6 +19,8 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 /// picks the right function, and returns an answer containing seeded category data.
 /// </summary>
 [TestFixture]
+[Category("Integration")]
+[Category("FundData.Plugin")]
 public class FundDataPlugin_GetAvailableCategoriesTests
 {
     private Kernel _kernel = null!;

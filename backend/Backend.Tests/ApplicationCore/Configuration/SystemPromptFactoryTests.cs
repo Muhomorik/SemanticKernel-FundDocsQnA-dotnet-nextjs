@@ -7,6 +7,8 @@ using Backend.Tests.TestInfrastructure;
 namespace Backend.Tests.ApplicationCore.Configuration;
 
 [TestFixture]
+[Category("Unit")]
+[Category("QuestionAnswering")]
 public class SystemPromptFactoryTests
 {
     private IFixture _fixture = null!;

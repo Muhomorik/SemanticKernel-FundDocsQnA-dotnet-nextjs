@@ -14,6 +14,8 @@ using NUnit.Framework;
 namespace Backend.Tests.ApplicationCore.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("QuestionAnswering")]
 public class QuestionAnsweringServiceTests
 {
     private IFixture _fixture;

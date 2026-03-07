@@ -7,6 +7,8 @@ using NUnit.Framework;
 namespace Backend.Tests.ApplicationCore.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("QuestionAnswering")]
 public class RagPromptBuilderTests
 {
     private IFixture _fixture = null!;

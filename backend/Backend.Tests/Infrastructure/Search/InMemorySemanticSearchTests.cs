@@ -14,6 +14,8 @@ using Moq;
 namespace Backend.Tests.Infrastructure.Search;
 
 [TestFixture]
+[Category("Unit")]
+[Category("SemanticSearch")]
 public class InMemorySemanticSearchTests
 {
     private IFixture _fixture;

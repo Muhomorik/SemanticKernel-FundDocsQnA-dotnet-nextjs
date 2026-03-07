@@ -18,6 +18,8 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 /// Tests 3 example queries from the plan document.
 /// </summary>
 [TestFixture]
+[Category("Integration")]
+[Category("FundData.Plugin")]
 public class FundDataPlugin_GetTopPerformingFundsTests
 {
     private Kernel _kernel = null!;

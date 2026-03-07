@@ -11,6 +11,8 @@ using NUnit.Framework;
 namespace Backend.Tests.ApplicationCore.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("FundData")]
 public class FundSyncServiceTests
 {
     private IFixture _fixture;
