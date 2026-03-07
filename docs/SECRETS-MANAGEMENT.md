@@ -81,7 +81,7 @@ az keyvault secret set \
 **Important:**
 
 - Use the same embedding model (`text-embedding-3-small`) as used during preprocessing for vector space compatibility
-- Default chat model is `gpt-4o-mini` (~$0.15 per 1M input tokens)
+- Default chat model is `gpt-4.1-mini` (~$0.15 per 1M input tokens)
 
 **Local Development:**
 
@@ -333,7 +333,7 @@ Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 | `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                               | Path to embeddings file                                                                      |
 | `BackendOptions:LlmProvider`             | `OpenAI`                                             | LLM provider ("OpenAI" or "Groq")                                                            |
 | `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                             | OpenAI embedding model                                                                       |
-| `BackendOptions:OpenAIChatModel`         | `gpt-4o-mini`                                        | OpenAI chat model (when LlmProvider is "OpenAI")                                             |
+| `BackendOptions:OpenAIChatModel`         | `gpt-4.1-mini`                                       | OpenAI chat model (when LlmProvider is "OpenAI")                                             |
 | `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                            | Groq LLM model (when LlmProvider is "Groq")                                                  |
 | `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                     | Groq API endpoint (when LlmProvider is "Groq")                                               |
 | `BackendOptions:MaxSearchResults`        | `10`                                                 | Number of chunks to retrieve                                                                 |
@@ -400,7 +400,7 @@ The backend supports two LLM providers for question answering:
 - Broader model selection
 - Official API support
 
-**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4o-mini)
+**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4.1-mini)
 
 **Setup (Local Development):**
 
@@ -408,7 +408,7 @@ The backend supports two LLM providers for question answering:
 cd backend/Backend.API
 dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"
-dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4o-mini"
+dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4.1-mini"
 ```
 
 **Setup (Production):**
