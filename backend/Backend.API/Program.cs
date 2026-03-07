@@ -350,6 +350,7 @@ if (hasApiKeys)
         sp.GetRequiredService<LlmProviderFactory>().CreateProvider());
 
     // ApplicationCore layer - Application services
+    builder.Services.AddSingleton<IRagPromptBuilder, RagPromptBuilder>();
     builder.Services.AddSingleton<IQuestionAnsweringService,
         QuestionAnsweringService>();
 }
