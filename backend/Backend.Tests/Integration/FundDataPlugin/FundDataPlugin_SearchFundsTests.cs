@@ -18,6 +18,7 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 /// Tests 3 example queries from the plan document.
 /// </summary>
 [TestFixture]
+[Explicit("Requires OpenAI API key")]
 [Category("Integration")]
 [Category("FundData.Plugin")]
 public class FundDataPlugin_SearchFundsTests

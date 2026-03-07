@@ -19,6 +19,7 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 /// picks the right function, and returns an answer containing seeded category data.
 /// </summary>
 [TestFixture]
+[Explicit("Requires OpenAI API key")]
 [Category("Integration")]
 [Category("FundData.Plugin")]
 public class FundDataPlugin_GetAvailableCategoriesTests
