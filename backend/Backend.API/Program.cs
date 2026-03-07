@@ -488,6 +488,22 @@ builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServe
 var app = builder.Build();
 
 // ========================================
+// 6.5 Register FundDataPlugin on Kernel
+// ========================================
+if (hasApiKeys && hasAzureSql)
+{
+    var kernel = app.Services.GetRequiredService<Kernel>();
+    var dbContextFactory = app.Services.GetRequiredService<IDbContextFactory<FundDataDbContext>>();
+    var fundDataPlugin = new Backend.API.Infrastructure.FundData.Plugins.FundDataPlugin(dbContextFactory);
+    kernel.Plugins.AddFromObject(fundDataPlugin, "FundData");
+    Console.WriteLine($"✓ FundDataPlugin registered on Kernel ({kernel.Plugins.Count} plugin(s))");
+}
+else
+{
+    Console.WriteLine("⚠ FundDataPlugin not registered (hasApiKeys: {0}, hasAzureSql: {1})", hasApiKeys, hasAzureSql);
+}
+
+// ========================================
 // 7. Initialize Repository (DDD Architecture)
 // ========================================
 // Load embeddings on startup (fail fast if there are configuration issues)
