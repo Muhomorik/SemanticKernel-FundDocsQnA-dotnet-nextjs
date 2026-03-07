@@ -17,7 +17,7 @@ This backend API loads pre-generated embeddings from the Preprocessor, stores th
 
 - **ASP.NET Core 9** - Web API framework
 - **Semantic Kernel 1.68.0** - AI orchestration with InMemoryVectorStore
-- **OpenAI** - Query embeddings (text-embedding-3-small) + Chat completion (gpt-4o-mini, default)
+- **OpenAI** - Query embeddings (text-embedding-3-small) + Chat completion (gpt-4.1-mini, default)
 - **Groq** - Optional cloud LLM (llama-3.3-70b-versatile, free tier)
 - **Azure Application Insights** - Monitoring and telemetry (free tier)
 - **Azure Key Vault** - Secrets management (production)
@@ -37,7 +37,7 @@ This backend API loads pre-generated embeddings from the Preprocessor, stores th
 2. Generate embedding for question (OpenAI text-embedding-3-small)
 3. Semantic search via InMemoryVectorStore (built-in cosine similarity)
 4. Build context from top K results
-5. Send context + question to LLM (OpenAI gpt-4o-mini or Groq llama-3.3-70b-versatile)
+5. Send context + question to LLM (OpenAI gpt-4.1-mini or Groq llama-3.3-70b-versatile)
 6. Return answer + source references
 ```
 
@@ -103,7 +103,7 @@ All configuration is in `appsettings.json` under the `BackendOptions` section. S
 | Setting                   | Default                       | Description                                                      |
 | ------------------------- | ----------------------------- | ---------------------------------------------------------------- |
 | `LlmProvider`             | `OpenAI`                      | LLM provider ("OpenAI" or "Groq")                                |
-| `OpenAIChatModel`         | `gpt-4o-mini`                 | OpenAI chat model (when LlmProvider is "OpenAI")                 |
+| `OpenAIChatModel`         | `gpt-4.1-mini`                | OpenAI chat model (when LlmProvider is "OpenAI")                 |
 | `OpenAIEmbeddingModel`    | `text-embedding-3-small`      | OpenAI embedding model                                           |
 | `GroqModel`               | `llama-3.3-70b-versatile`     | Groq LLM model (when LlmProvider is "Groq")                      |
 | `GroqApiUrl`              | `https://api.groq.com/openai/v1` | Groq API endpoint                                             |
@@ -132,7 +132,7 @@ The backend supports two LLM providers for chat completion:
 - Broader model selection
 - Official API support
 
-**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4o-mini)
+**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4.1-mini)
 
 **Setup:**
 
@@ -140,7 +140,7 @@ The backend supports two LLM providers for chat completion:
 cd Backend.API
 dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"
-dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4o-mini"
+dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4.1-mini"
 ```
 
 ### Groq (Free Tier Alternative)

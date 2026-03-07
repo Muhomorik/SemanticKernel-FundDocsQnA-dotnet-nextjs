@@ -15,7 +15,7 @@ public interface IOpenAiConfiguration
     /// <summary>
     /// Gets the OpenAI chat completion model name.
     /// </summary>
-    /// <example>Example: "gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"</example>
+    /// <example>Example: "gpt-4.1-mini", "gpt-4o", "gpt-4.1"</example>
     string ChatModel { get; }
 
     /// <summary>

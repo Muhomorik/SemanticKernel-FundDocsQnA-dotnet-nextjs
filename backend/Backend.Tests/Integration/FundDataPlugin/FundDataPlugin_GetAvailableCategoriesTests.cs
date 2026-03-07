@@ -1,11 +1,10 @@
 using AutoFixture;
-using AutoFixture.AutoMoq;
 
+using Backend.API.Configuration;
 using Backend.API.Domain.FundData.Models;
 using Backend.API.Domain.FundData.ValueObjects;
 using Backend.Tests.TestInfrastructure;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -22,26 +21,17 @@ namespace Backend.Tests.Integration.FundDataPlugin;
 [TestFixture]
 public class FundDataPlugin_GetAvailableCategoriesTests
 {
-    private IFixture _fixture = null!;
     private Kernel _kernel = null!;
     private IChatCompletionService _chat = null!;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        _fixture = new Fixture()
-            .Customize(new AutoMoqCustomization())
-            .Customize(new BackendDomainCustomization());
+        var fixture = new Fixture()
+            .Customize(new BackendDomainCustomization())
+            .Customize(new IntegrationTestCustomization());
 
-        var config = new ConfigurationBuilder()
-            .AddUserSecrets<FundDataPlugin_GetAvailableCategoriesTests>()
-            .Build();
-
-        var apiKey = config["BackendOptions:OpenAIApiKey"]
-                     ?? throw new InvalidOperationException(
-                         "OpenAI API key not configured for integration tests. " +
-                         "Set via: cd backend/Backend.Tests && " +
-                         "dotnet user-secrets set 'BackendOptions:OpenAIApiKey' 'sk-...'");
+        var options = fixture.Create<BackendOptions>();
 
         // Seed test data with specific categories
         var dbFactory = new TestFundDataDbContextFactory("categories-test");
@@ -58,7 +48,7 @@ public class FundDataPlugin_GetAvailableCategoriesTests
         var plugin = new FundDataPluginImpl(dbFactory);
 
         var builder = Kernel.CreateBuilder();
-        builder.AddOpenAIChatCompletion("gpt-4o-mini", apiKey);
+        builder.AddOpenAIChatCompletion(options.OpenAIChatModel, options.OpenAIApiKey);
         _kernel = builder.Build();
         _kernel.Plugins.AddFromObject(plugin, "FundData");
 

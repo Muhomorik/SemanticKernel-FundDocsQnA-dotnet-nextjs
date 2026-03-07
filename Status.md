@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-04 (YieldRaccoon: HTTP 429 rate-limit handling with retry, backoff, and GUI feedback)
+Last Updated: 2026-03-07 (Backend: FundDataPlugin — Semantic Kernel function calling + hybrid RAG integration tests)
 
 **Tech Stack:**
 
@@ -87,7 +87,7 @@ Last Updated: 2026-03-04 (YieldRaccoon: HTTP 429 rate-limit handling with retry,
 | Solution Structure | ✅ | Backend.sln with API and Tests projects |
 | DDD Architecture | ✅ | Domain, ApplicationCore, Infrastructure layers |
 | RAG Pipeline | ✅ | DocumentRepository → VectorStore → LLM Provider |
-| LLM Providers | ✅ | OpenAI (gpt-4o-mini) default, Groq optional |
+| LLM Providers | ✅ | OpenAI (gpt-4.1-mini) default, Groq optional |
 | Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
 | Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
 | API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, health checks, Swagger |
@@ -96,7 +96,7 @@ Last Updated: 2026-03-04 (YieldRaccoon: HTTP 429 rate-limit handling with retry,
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
-| Unit Tests | ✅ | 122 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data) |
+| Unit Tests | ✅ | 140 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data, FundDataPlugin integration) |
 | Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
@@ -140,6 +140,25 @@ Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. 
 | -------- | ------ | --------- |
 | POST | `/api/funds/list` | Batch upsert profiles + daily snapshots from fund list crawl |
 | POST | `/api/funds/about` | Upsert profile + insert-only chart history from fund detail page |
+
+### FundDataPlugin — Semantic Kernel Function Calling ✅ COMPLETED (2026-03-07)
+
+LLM can now answer structured fund data queries (performance, ownership, categories, profiles, search) via Semantic Kernel function calling, alongside RAG-based document Q&A. Six `[KernelFunction]` methods registered on the Kernel, called automatically by the LLM when the question requires structured data.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Infrastructure** | `FundDataPlugin` (6 kernel functions: categories, profile, search, performance, owner change, category performance) | ✅ |
+| **Infrastructure** | Result records: `FundProfileResult`, `FundSearchResult`, `FundPerformanceResult`, `FundOwnerChangeResult`, `CategoryPerformanceResult` | ✅ |
+| **Infrastructure** | `OpenAiProvider` updated with `Kernel` + `FunctionChoiceBehavior.Auto()` | ✅ |
+| **ApplicationCore** | `SystemPromptFactory` hybrid prompt (RAG + function-calling instructions) | ✅ |
+| **Program.cs** | `FundDataPlugin` registered on Kernel via `AddFromObject()` after `app.Build()` | ✅ |
+| **Program.cs** | `AddDbContextFactory<FundDataDbContext>` (singleton plugin + scoped DbContext) | ✅ |
+| **Tests** | 14 plugin-only SK integration tests (Tasks 1-6) | ✅ |
+| **Tests** | 10 hybrid integration tests (function calling + real RAG over 15 SEB fund factsheet embeddings) | ✅ |
+| **Tests** | `SystemPromptFactoryTests` (3 tests) | ✅ |
+| **Tests** | `TestDataPaths` helper, `TestFundDataDbContextFactory`, `test_embeddings.json` (287 chunks) | ✅ |
+
+**Design:** [FUND-DATA-QUERY-PLAN.md](FUND-DATA-QUERY-PLAN.md) | **Plan:** `.claude/plans/curried-riding-hoare.md`
 
 ### Planned Features
 
@@ -850,7 +869,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
 | Local Development | ✅ Working | Preprocessor and Backend run locally |
-| OpenAI API | ✅ Configured | Embeddings (text-embedding-3-small) + Chat (gpt-4o-mini, default) |
+| OpenAI API | ✅ Configured | Embeddings (text-embedding-3-small) + Chat (gpt-4.1-mini, default) |
 | Groq API | ✅ Configured | Optional free tier LLM (llama-3.3-70b-versatile) |
 | Azure App Service | ✅ Ready | Backend API hosting (F1 Free tier) |
 | Azure Static Web Apps | ✅ Ready | Frontend hosting (Free tier) |
@@ -893,7 +912,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 | Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
 | Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
-| **Total Backend Tests** | **✅ 122 Complete** | 122 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository tests) |
+| **Total Backend Tests** | **✅ 140 Complete** | 140 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository + FundDataPlugin integration tests) |
 
 ### Frontend
 
@@ -1009,7 +1028,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 - **Azure App Service F1**: $0/month (free tier, with limitations)
 - **Application Insights**: $0/month (5GB free tier)
 - **Azure Key Vault**: ~$0.03/month (10K operations free, then $0.03 per 10K)
-- **OpenAI Chat (gpt-4o-mini)**: ~$0.50/month (100 questions/day estimate, ~$0.15 per 1M input tokens)
+- **OpenAI Chat (gpt-4.1-mini)**: ~$0.50/month (100 questions/day estimate, ~$0.15 per 1M input tokens)
 - **OpenAI Embeddings**: ~$0.003/month (100 questions/day estimate)
 
 **Total Production Cost: ~$0.53/month**

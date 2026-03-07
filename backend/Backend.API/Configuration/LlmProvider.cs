@@ -6,7 +6,7 @@ namespace Backend.API.Configuration;
 public enum LlmProvider
 {
     /// <summary>
-    /// OpenAI provider (gpt-4o-mini, default).
+    /// OpenAI provider (gpt-4.1-mini, default).
     /// </summary>
     OpenAI,
 

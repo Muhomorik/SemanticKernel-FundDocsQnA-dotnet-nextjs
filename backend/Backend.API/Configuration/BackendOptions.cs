@@ -33,7 +33,7 @@ public record BackendOptions
     /// Gets or sets the OpenAI chat model name.
     /// Only used when LlmProvider is set to LlmProvider.OpenAI.
     /// </summary>
-    public string OpenAIChatModel { get; init; } = "gpt-4o-mini";
+    public string OpenAIChatModel { get; init; } = "gpt-4.1-mini";
 
     /// <summary>
     /// Gets or sets the Groq API key for LLM chat completion.

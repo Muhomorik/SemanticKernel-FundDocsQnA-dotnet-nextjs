@@ -1,22 +1,28 @@
+using AutoFixture;
+
 using Backend.API.ApplicationCore.Configuration;
 using Backend.API.Configuration;
+using Backend.Tests.TestInfrastructure;
 
 namespace Backend.Tests.ApplicationCore.Configuration;
 
 [TestFixture]
 public class SystemPromptFactoryTests
 {
+    private IFixture _fixture = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _fixture = new Fixture()
+            .Customize(new BackendDomainCustomization());
+    }
+
     [Test]
     public void Create_NoCustomPrompt_ContainsFunctionCallingInstructions()
     {
         // Arrange
-        var options = new BackendOptions
-        {
-            EmbeddingsFilePath = "",
-            OpenAIApiKey = "",
-            OpenAIEmbeddingModel = "",
-            MemoryCollectionName = ""
-        };
+        var options = _fixture.Create<BackendOptions>();
 
         // Act
         var prompt = SystemPromptFactory.Create(options);
@@ -33,13 +39,7 @@ public class SystemPromptFactoryTests
     public void Create_NoCustomPrompt_ContainsSecurityInstructions()
     {
         // Arrange
-        var options = new BackendOptions
-        {
-            EmbeddingsFilePath = "",
-            OpenAIApiKey = "",
-            OpenAIEmbeddingModel = "",
-            MemoryCollectionName = ""
-        };
+        var options = _fixture.Create<BackendOptions>();
 
         // Act
         var prompt = SystemPromptFactory.Create(options);
@@ -55,14 +55,7 @@ public class SystemPromptFactoryTests
     {
         // Arrange
         var customPrompt = "You are a custom assistant.";
-        var options = new BackendOptions
-        {
-            EmbeddingsFilePath = "",
-            OpenAIApiKey = "",
-            OpenAIEmbeddingModel = "",
-            MemoryCollectionName = "",
-            SystemPrompt = customPrompt
-        };
+        var options = _fixture.Create<BackendOptions>() with { SystemPrompt = customPrompt };
 
         // Act
         var prompt = SystemPromptFactory.Create(options);

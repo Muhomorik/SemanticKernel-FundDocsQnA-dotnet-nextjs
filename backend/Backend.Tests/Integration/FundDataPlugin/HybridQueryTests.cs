@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using AutoFixture;
+
 using Backend.API.ApplicationCore.Configuration;
 using Backend.API.ApplicationCore.Services;
 using Backend.API.Configuration;
@@ -12,7 +14,6 @@ using Backend.API.Infrastructure.Persistence.Models;
 using Backend.API.Infrastructure.Search;
 using Backend.Tests.TestInfrastructure;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -39,33 +40,20 @@ public class HybridQueryTests
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        var config = new ConfigurationBuilder()
-            .AddUserSecrets<HybridQueryTests>()
-            .Build();
+        var fixture = new Fixture()
+            .Customize(new BackendDomainCustomization())
+            .Customize(new IntegrationTestCustomization());
 
-        var apiKey = config["BackendOptions:OpenAIApiKey"]
-                     ?? throw new InvalidOperationException(
-                         "OpenAI API key not configured. " +
-                         "Set via: cd backend/Backend.Tests && " +
-                         "dotnet user-secrets set 'BackendOptions:OpenAIApiKey' 'sk-...'");
+        var options = fixture.Create<BackendOptions>();
+        var applicationOptions = fixture.Create<ApplicationOptions>();
 
-        var chatModel = config["BackendOptions:OpenAIChatModel"] ?? "gpt-4o-mini";
-        var embeddingModel = config["BackendOptions:OpenAIEmbeddingModel"] ?? "text-embedding-3-small";
-
-        // Real system prompt from SystemPromptFactory
-        _systemPrompt = SystemPromptFactory.Create(new BackendOptions
-        {
-            OpenAIApiKey = apiKey,
-            OpenAIEmbeddingModel = embeddingModel,
-            EmbeddingsFilePath = TestDataPaths.TestEmbeddingsJson,
-            MemoryCollectionName = "fund-documents"
-        });
+        _systemPrompt = applicationOptions.SystemPrompt;
 
         // Kernel with OpenAI chat + embeddings from config
         var builder = Kernel.CreateBuilder();
-        builder.AddOpenAIChatCompletion(chatModel, apiKey);
+        builder.AddOpenAIChatCompletion(options.OpenAIChatModel, options.OpenAIApiKey);
 #pragma warning disable SKEXP0010
-        builder.AddOpenAIEmbeddingGenerator(embeddingModel, apiKey);
+        builder.AddOpenAIEmbeddingGenerator(options.OpenAIEmbeddingModel, options.OpenAIApiKey);
 #pragma warning restore SKEXP0010
         _kernel = builder.Build();
 
