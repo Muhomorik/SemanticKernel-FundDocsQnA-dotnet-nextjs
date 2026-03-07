@@ -247,6 +247,54 @@ public class FundDataPlugin
 
         return results;
     }
+
+    [KernelFunction("get_category_performance")]
+    [Description("Gets fund categories ranked by average NAV percentage change over a given number of days. Shows how entire sectors/categories performed. Use for questions comparing category performance.")]
+    public async Task<CategoryPerformanceResult[]> GetCategoryPerformanceAsync(
+        [Description("Number of days to look back from today (e.g. 7 for a week, 30 for a month, 365 for a year)")] int days,
+        [Description("Maximum number of categories to return")] int limit = QueryLimits.CategoriesPerformance)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-days));
+
+        var records = await context.FundHistoryRecords
+            .Where(r => r.NavDate != null && r.NavDate >= cutoff && r.Nav != null)
+            .Select(r => new { r.IsinId, r.Nav, r.NavDate })
+            .ToListAsync();
+
+        var profiles = await context.FundProfiles
+            .Where(fp => fp.Category != null)
+            .Select(fp => new { fp.Id, fp.Category })
+            .ToDictionaryAsync(fp => fp.Id.Isin);
+
+        // Compute per-fund % change, then average by category
+        var perFundChanges = records
+            .GroupBy(r => r.IsinId.Isin)
+            .Where(g => profiles.ContainsKey(g.Key) && g.Count() >= 2)
+            .Select(g =>
+            {
+                var ordered = g.OrderBy(r => r.NavDate).ToList();
+                var startNav = ordered.First().Nav!.Value;
+                var endNav = ordered.Last().Nav!.Value;
+                var pctChange = startNav != 0 ? (endNav - startNav) / startNav * 100 : 0;
+                return new { Category = profiles[g.Key].Category!, PctChange = pctChange };
+            })
+            .ToList();
+
+        var results = perFundChanges
+            .GroupBy(f => f.Category)
+            .Select(g => new CategoryPerformanceResult(
+                Category: g.Key,
+                AveragePercentChange: Math.Round(g.Average(f => f.PctChange), 2),
+                FundCount: g.Count()))
+            .OrderByDescending(r => r.AveragePercentChange)
+            .Take(limit)
+            .ToArray();
+
+        return results;
+    }
 }
 
 /// <summary>
