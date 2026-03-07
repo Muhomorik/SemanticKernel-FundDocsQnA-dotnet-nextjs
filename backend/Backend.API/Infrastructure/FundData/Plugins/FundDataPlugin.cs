@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 
+using Backend.API.Domain.FundData.ValueObjects;
 using Backend.API.Infrastructure.FundData;
 using Backend.API.Infrastructure.FundData.Plugins.Results;
 
@@ -53,7 +54,7 @@ public class FundDataPlugin
         var isIsin = Regex.IsMatch(nameOrIsin, @"^[A-Z]{2}[A-Z0-9]{9}[0-9]$");
 
         var fund = isIsin
-            ? await context.FundProfiles.FirstOrDefaultAsync(fp => fp.Id.Isin == nameOrIsin)
+            ? await context.FundProfiles.FirstOrDefaultAsync(fp => fp.Id == new IsinId(nameOrIsin))
             : await context.FundProfiles.FirstOrDefaultAsync(fp => fp.Name.Contains(nameOrIsin));
 
         if (fund is null) return null;
