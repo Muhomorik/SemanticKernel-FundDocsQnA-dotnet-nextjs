@@ -190,6 +190,63 @@ public class FundDataPlugin
 
         return results;
     }
+
+    [KernelFunction("get_funds_by_owner_change")]
+    [Description("Gets funds ranked by change in number of owners (investors) over a given number of days. Positive change = gaining investors, negative = losing investors. Results are sorted by change descending (biggest gainers first). Use for questions about investor sentiment, which funds people are buying/selling.")]
+    public async Task<FundOwnerChangeResult[]> GetFundsByOwnerChangeAsync(
+        [Description("Number of days to look back from today (e.g. 7 for a week, 30 for a month, 365 for a year)")] int days,
+        [Description("Optional fund category filter (e.g. 'Equity', 'Emerging Markets')")] string? category = null,
+        [Description("Maximum number of results to return")] int limit = QueryLimits.FundsByOwnerChange)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-days));
+
+        // Fetch records with ownership data in the window (sparse — not all records have NumberOfOwners)
+        var records = await context.FundHistoryRecords
+            .Where(r => r.NavDate != null && r.NavDate >= cutoff && r.NumberOfOwners != null)
+            .Select(r => new { r.IsinId, r.NumberOfOwners, r.NavDate })
+            .ToListAsync();
+
+        // Load fund profiles for name/category lookup
+        var profileQuery = context.FundProfiles.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(category))
+            profileQuery = profileQuery.Where(fp => fp.Category != null && fp.Category.Contains(category));
+
+        var profiles = await profileQuery
+            .Select(fp => new { fp.Id, fp.Name, fp.Category })
+            .ToDictionaryAsync(fp => fp.Id.Isin);
+
+        // Compute per-fund owner change
+        var results = records
+            .GroupBy(r => r.IsinId.Isin)
+            .Where(g => profiles.ContainsKey(g.Key) && g.Count() >= 2)
+            .Select(g =>
+            {
+                var ordered = g.OrderBy(r => r.NavDate).ToList();
+                var first = ordered.First();
+                var last = ordered.Last();
+                var startOwners = first.NumberOfOwners!.Value;
+                var endOwners = last.NumberOfOwners!.Value;
+                var profile = profiles[g.Key];
+
+                return new FundOwnerChangeResult(
+                    Isin: g.Key,
+                    Name: profile.Name,
+                    Category: profile.Category,
+                    StartOwners: startOwners,
+                    EndOwners: endOwners,
+                    OwnerChange: endOwners - startOwners,
+                    StartDate: first.NavDate!.Value,
+                    EndDate: last.NavDate!.Value);
+            })
+            .OrderByDescending(r => r.OwnerChange)
+            .Take(limit)
+            .ToArray();
+
+        return results;
+    }
 }
 
 /// <summary>
