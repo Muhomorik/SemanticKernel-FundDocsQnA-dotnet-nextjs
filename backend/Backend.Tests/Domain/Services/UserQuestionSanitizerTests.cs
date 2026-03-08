@@ -7,6 +7,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("Security")]
 public class UserQuestionSanitizerTests
 {
     private IFixture _fixture;

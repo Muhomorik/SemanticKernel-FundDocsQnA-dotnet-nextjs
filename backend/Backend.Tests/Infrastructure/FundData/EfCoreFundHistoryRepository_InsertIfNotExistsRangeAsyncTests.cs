@@ -9,6 +9,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Infrastructure.FundData;
 
 [TestFixture]
+[Category("Unit")]
+[Category("FundData.Database")]
 public class EfCoreFundHistoryRepository_InsertIfNotExistsRangeAsyncTests
 {
     private FundDataDbContext _context = null!;

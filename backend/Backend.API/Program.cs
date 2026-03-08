@@ -350,6 +350,7 @@ if (hasApiKeys)
         sp.GetRequiredService<LlmProviderFactory>().CreateProvider());
 
     // ApplicationCore layer - Application services
+    builder.Services.AddSingleton<IRagPromptBuilder, RagPromptBuilder>();
     builder.Services.AddSingleton<IQuestionAnsweringService,
         QuestionAnsweringService>();
 }
@@ -365,7 +366,7 @@ var hasAzureSql = !string.IsNullOrWhiteSpace(backendOptions.AzureSqlConnectionSt
 if (hasAzureSql)
 {
     Console.WriteLine($"Azure SQL: Configured (fund data sync enabled)");
-    builder.Services.AddDbContext<FundDataDbContext>(options =>
+    builder.Services.AddDbContextFactory<FundDataDbContext>(options =>
         options.UseSqlServer(
             backendOptions.AzureSqlConnectionString,
             sqlOptions => sqlOptions.EnableRetryOnFailure()));
@@ -373,7 +374,7 @@ if (hasAzureSql)
 else
 {
     Console.WriteLine("Azure SQL: Not configured (fund data sync endpoints will return 503)");
-    builder.Services.AddDbContext<FundDataDbContext>(options =>
+    builder.Services.AddDbContextFactory<FundDataDbContext>(options =>
         throw new InvalidOperationException(
             "Azure SQL connection string not configured. " +
             "Set via: dotnet user-secrets set 'BackendOptions:AzureSqlConnectionString' '<connection-string>'"));
@@ -486,6 +487,22 @@ builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServe
 });
 
 var app = builder.Build();
+
+// ========================================
+// 6.5 Register FundDataPlugin on Kernel
+// ========================================
+if (hasApiKeys && hasAzureSql)
+{
+    var kernel = app.Services.GetRequiredService<Kernel>();
+    var dbContextFactory = app.Services.GetRequiredService<IDbContextFactory<FundDataDbContext>>();
+    var fundDataPlugin = new Backend.API.Infrastructure.FundData.Plugins.FundDataPlugin(dbContextFactory);
+    kernel.Plugins.AddFromObject(fundDataPlugin, "FundData");
+    Console.WriteLine($"✓ FundDataPlugin registered on Kernel ({kernel.Plugins.Count} plugin(s))");
+}
+else
+{
+    Console.WriteLine("⚠ FundDataPlugin not registered (hasApiKeys: {0}, hasAzureSql: {1})", hasApiKeys, hasAzureSql);
+}
 
 // ========================================
 // 7. Initialize Repository (DDD Architecture)

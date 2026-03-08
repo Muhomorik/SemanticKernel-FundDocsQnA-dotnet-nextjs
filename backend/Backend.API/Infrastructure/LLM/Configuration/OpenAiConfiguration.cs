@@ -7,7 +7,7 @@ namespace Backend.API.Infrastructure.LLM.Configuration;
 public class OpenAiConfiguration : IOpenAiConfiguration
 {
     public string ApiKey { get; init; } = string.Empty;
-    public string ChatModel { get; init; } = "gpt-4o-mini";
+    public string ChatModel { get; init; } = "gpt-4.1-mini";
     public string EmbeddingModel { get; init; } = "text-embedding-3-small";
 
     public static OpenAiConfiguration FromBackendOptions(Backend.API.Configuration.BackendOptions options)

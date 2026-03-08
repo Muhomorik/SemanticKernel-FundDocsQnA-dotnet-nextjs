@@ -2,6 +2,8 @@
 
 Bulk-sync local fund data (profiles + history records) to the Backend API on demand. Useful for initial population of a new backend database or catch-up syncing after a period of offline crawling.
 
+![Cloud sync window](IMG-CLOUD-SYNC.png)
+
 ## Prerequisites
 
 - **Backend API URL** configured in Settings (e.g., `https://your-app.azurewebsites.net`)

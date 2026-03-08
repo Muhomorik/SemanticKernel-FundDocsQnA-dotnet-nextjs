@@ -14,6 +14,8 @@ using NUnit.Framework;
 namespace Backend.Tests.ApplicationCore.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("QuestionAnswering")]
 public class QuestionAnsweringServiceTests
 {
     private IFixture _fixture;
@@ -73,45 +75,6 @@ public class QuestionAnsweringServiceTests
         _questionSanitizerMock.Verify(x => x.Sanitize(request.Question), Times.Once);
         _semanticSearchMock.Verify(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         _llmProviderMock.Verify(x => x.GenerateChatCompletionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Test]
-    public async Task AnswerQuestionAsync_ValidQuestionWithMultipleChunks_BuildsCorrectXmlContext()
-    {
-        // Arrange
-        var request = _fixture.Create<AskQuestionRequest>();
-        var searchResults = _fixture.CreateMany<SearchResult>(3).ToList();
-        var expectedAnswer = _fixture.Create<string>();
-        var capturedUserPrompt = string.Empty;
-
-        _questionSanitizerMock
-            .Setup(x => x.Sanitize(request.Question))
-            .Returns(request.Question);
-
-        _semanticSearchMock
-            .Setup(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(searchResults);
-
-        _llmProviderMock
-            .Setup(x => x.GenerateChatCompletionAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<string, string, CancellationToken>((_, prompt, _) => capturedUserPrompt = prompt)
-            .ReturnsAsync(expectedAnswer);
-
-        // Act
-        await _sut.AnswerQuestionAsync(request, CancellationToken.None);
-
-        // Assert
-        Assert.That(capturedUserPrompt, Does.Contain("<retrieved_context>"));
-        Assert.That(capturedUserPrompt, Does.Contain("</retrieved_context>"));
-        Assert.That(capturedUserPrompt, Does.Contain("<chunk"));
-        Assert.That(capturedUserPrompt, Does.Contain("<source>"));
-        Assert.That(capturedUserPrompt, Does.Contain("<page>"));
-        Assert.That(capturedUserPrompt, Does.Contain("<content>"));
-        Assert.That(capturedUserPrompt, Does.Contain("<user_question>"));
-        Assert.That(capturedUserPrompt, Does.Contain(request.Question));
     }
 
     [Test]

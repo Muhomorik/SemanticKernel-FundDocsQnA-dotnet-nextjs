@@ -14,6 +14,8 @@ namespace Backend.Tests.Integration;
 /// Tests the full validation + sanitization pipeline.
 /// </summary>
 [TestFixture]
+[Category("Integration")]
+[Category("Security")]
 public class PromptInjectionTests
 {
     private IFixture _fixture;

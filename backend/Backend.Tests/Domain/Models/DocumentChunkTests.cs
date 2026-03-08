@@ -7,6 +7,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.Models;
 
 [TestFixture]
+[Category("Unit")]
+[Category("SemanticSearch")]
 public class DocumentChunkTests
 {
     private IFixture _fixture;

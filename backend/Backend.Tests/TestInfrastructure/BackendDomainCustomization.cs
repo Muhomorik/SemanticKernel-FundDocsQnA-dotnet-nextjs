@@ -49,7 +49,7 @@ public class BackendDomainCustomization : ICustomization
             LlmProvider = LlmProvider.OpenAI,
             OpenAIApiKey = "test-openai-key-12345",
             OpenAIEmbeddingModel = "text-embedding-3-small",
-            OpenAIChatModel = "gpt-4o-mini",
+            OpenAIChatModel = "gpt-4.1-mini",
             MaxSearchResults = 10,
             MemoryCollectionName = "test-collection",
             AllowedOrigins = []

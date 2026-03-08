@@ -11,9 +11,7 @@ interface ExampleQueriesProps {
 }
 
 export function ExampleQueries({ onSelect, disabled }: ExampleQueriesProps) {
-  const [activeGroup, setActiveGroup] = React.useState<string | null>(
-    QUERY_GROUPS[0]?.title ?? null
-  );
+  const [activeGroup, setActiveGroup] = React.useState<string | null>(null);
   const [activeCategory, setActiveCategory] = React.useState<string | null>(
     null
   );

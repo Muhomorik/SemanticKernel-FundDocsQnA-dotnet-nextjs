@@ -26,6 +26,7 @@ namespace Backend.Tests;
 /// </summary>
 [TestFixture]
 [Explicit("Deployment tests - run manually against live Azure environment")]
+[Category("Deployment")]
 public class DeploymentVerificationTests
 {
     private HttpClient _httpClient = null!;

@@ -4,7 +4,7 @@ namespace Backend.API.Middleware;
 
 /// <summary>
 /// Middleware for validating API key authentication on protected endpoints.
-/// Protects /api/embeddings (when CosmosDb is enabled) and /api/funds (when Azure SQL is configured).
+/// Protects /api/embeddings (when CosmosDb is enabled) and /api/funds endpoints using EmbeddingApiKey.
 /// Expected header format: Authorization: ApiKey {key}
 /// </summary>
 public class ApiKeyAuthenticationMiddleware
@@ -44,7 +44,7 @@ public class ApiKeyAuthenticationMiddleware
         // Check if API key is configured
         if (string.IsNullOrWhiteSpace(options.EmbeddingApiKey))
         {
-            _logger.LogError("EmbeddingApiKey not configured but Cosmos DB storage is enabled");
+            _logger.LogError("EmbeddingApiKey not configured — required for {Path}", context.Request.Path);
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             await context.Response.WriteAsJsonAsync(new
             {

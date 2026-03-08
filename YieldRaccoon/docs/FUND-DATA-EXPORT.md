@@ -2,6 +2,8 @@
 
 Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database with others or for offline analysis. Available from the Export button in the title bar (SQLite provider only).
 
+![Export window](IMG_DATA-EXPORT.png)
+
 The original database is never modified. The pipeline copies first, then filters the copy.
 
 ## Export pipeline

@@ -28,6 +28,8 @@ describe("Home Page", () => {
 
     // Check for group buttons (new hierarchical structure)
     const groups = [
+      "Fund Analytics",
+      "Hybrid Questions",
       "Quick Start",
       "Comparison Questions",
       "Specific Funds",
@@ -46,13 +48,12 @@ describe("Home Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows Quick Start group expanded by default", () => {
+  it("starts with no group expanded by default", () => {
     renderWithProvider(<Home />);
 
-    // Quick Start should be expanded, showing "Getting Started" category
-    const gettingStartedButton = screen.getByRole("button", {
-      name: "Getting Started",
-    });
-    expect(gettingStartedButton).toBeInTheDocument();
+    // No group is expanded by default, so category buttons should not be visible
+    expect(
+      screen.queryByRole("button", { name: "Getting Started" })
+    ).not.toBeInTheDocument();
   });
 });

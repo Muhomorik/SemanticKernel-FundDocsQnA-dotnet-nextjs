@@ -6,11 +6,12 @@
 
 ### Secrets (API Keys)
 
-| Key                                       | Environment Variable | Where to Get                                          | Local Dev    | Production       | Required                    |
-| ----------------------------------------- | -------------------- | ----------------------------------------------------- | ------------ | ---------------- | --------------------------- |
-| `BackendOptions:OpenAIApiKey`             | `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com)    | User Secrets | Azure Key Vault  | Yes                         |
-| `BackendOptions:GroqApiKey`               | `GROQ_API_KEY`       | [console.groq.com](https://console.groq.com)          | User Secrets | Azure Key Vault  | Only if LlmProvider=Groq    |
-| `BackendOptions:AzureSqlConnectionString` | —                    | See below                                             | User Secrets | Azure Key Vault  | Only if using Azure SQL     |
+| Key                                       | Environment Variable | Where to Get                                          | Local Dev    | Production       | Required                          |
+| ----------------------------------------- | -------------------- | ----------------------------------------------------- | ------------ | ---------------- | --------------------------------- |
+| `BackendOptions:OpenAIApiKey`             | `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com)    | User Secrets | Azure Key Vault  | Yes                               |
+| `BackendOptions:GroqApiKey`               | `GROQ_API_KEY`       | [console.groq.com](https://console.groq.com)          | User Secrets | Azure Key Vault  | Only if LlmProvider=Groq          |
+| `BackendOptions:EmbeddingApiKey`          | —                    | Self-generated (see below)                            | User Secrets | Azure Key Vault  | If using CosmosDb or fund sync    |
+| `BackendOptions:AzureSqlConnectionString` | —                    | See below                                             | User Secrets | Azure Key Vault  | Only if using Azure SQL           |
 
 ### Environment Variables
 
@@ -80,7 +81,7 @@ az keyvault secret set \
 **Important:**
 
 - Use the same embedding model (`text-embedding-3-small`) as used during preprocessing for vector space compatibility
-- Default chat model is `gpt-4o-mini` (~$0.15 per 1M input tokens)
+- Default chat model is `gpt-4.1-mini` (~$0.15 per 1M input tokens)
 
 **Local Development:**
 
@@ -327,23 +328,23 @@ dotnet run --project Preprocessor -- --ollama-url http://localhost:8080 -i ./pdf
 
 Non-secret configuration options in `backend/Backend.API/appsettings.json`:
 
-| Setting                                  | Default                                              | Description                                            |
-| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
-| `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                               | Path to embeddings file                                |
-| `BackendOptions:LlmProvider`             | `OpenAI`                                             | LLM provider ("OpenAI" or "Groq")                      |
-| `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                             | OpenAI embedding model                                 |
-| `BackendOptions:OpenAIChatModel`         | `gpt-4o-mini`                                        | OpenAI chat model (when LlmProvider is "OpenAI")       |
-| `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                            | Groq LLM model (when LlmProvider is "Groq")            |
-| `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                     | Groq API endpoint (when LlmProvider is "Groq")         |
-| `BackendOptions:MaxSearchResults`        | `10`                                                 | Number of chunks to retrieve                           |
-| `BackendOptions:MemoryCollectionName`    | `fund-documents`                                     | Memory store collection name                           |
-| `BackendOptions:AllowedOrigins`          | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins                                   |
-| `BackendOptions:SystemPrompt`            | (hardened default)                                   | Custom system prompt for LLM behavior (optional)       |
-| `BackendOptions:VectorStorageType`       | `InMemory`                                           | Vector storage backend ("InMemory" or "CosmosDb")      |
-| `BackendOptions:CosmosDbEndpoint`        | (none)                                               | Cosmos DB account endpoint (required if CosmosDb)      |
-| `BackendOptions:CosmosDbDatabaseName`    | (none)                                               | Cosmos DB database name (required if CosmosDb)         |
-| `BackendOptions:CosmosDbContainerName`   | `embeddings`                                         | Cosmos DB container name (default: embeddings)         |
-| `BackendOptions:EmbeddingApiKey`         | (none)                                               | API key for embedding endpoints (required if CosmosDb) |
+| Setting                                  | Default                                              | Description                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `BackendOptions:EmbeddingsFilePath`      | `Data/embeddings.json`                               | Path to embeddings file                                                                      |
+| `BackendOptions:LlmProvider`             | `OpenAI`                                             | LLM provider ("OpenAI" or "Groq")                                                            |
+| `BackendOptions:OpenAIEmbeddingModel`    | `text-embedding-3-small`                             | OpenAI embedding model                                                                       |
+| `BackendOptions:OpenAIChatModel`         | `gpt-4.1-mini`                                       | OpenAI chat model (when LlmProvider is "OpenAI")                                             |
+| `BackendOptions:GroqModel`               | `llama-3.3-70b-versatile`                            | Groq LLM model (when LlmProvider is "Groq")                                                  |
+| `BackendOptions:GroqApiUrl`              | `https://api.groq.com/openai/v1`                     | Groq API endpoint (when LlmProvider is "Groq")                                               |
+| `BackendOptions:MaxSearchResults`        | `10`                                                 | Number of chunks to retrieve                                                                 |
+| `BackendOptions:MemoryCollectionName`    | `fund-documents`                                     | Memory store collection name                                                                 |
+| `BackendOptions:AllowedOrigins`          | `["http://localhost:3000", "http://localhost:3001"]` | CORS allowed origins                                                                         |
+| `BackendOptions:SystemPrompt`            | (hardened default)                                   | Custom system prompt for LLM behavior (optional)                                             |
+| `BackendOptions:VectorStorageType`       | `InMemory`                                           | Vector storage backend ("InMemory" or "CosmosDb")                                            |
+| `BackendOptions:CosmosDbEndpoint`        | (none)                                               | Cosmos DB account endpoint (required if CosmosDb)                                            |
+| `BackendOptions:CosmosDbDatabaseName`    | (none)                                               | Cosmos DB database name (required if CosmosDb)                                               |
+| `BackendOptions:CosmosDbContainerName`   | `embeddings`                                         | Cosmos DB container name (default: embeddings)                                               |
+| `BackendOptions:EmbeddingApiKey`         | (none)                                               | API key for `/api/embeddings` and `/api/funds` endpoints (required if CosmosDb or fund sync) |
 
 **Note:** API keys are optional for local development. The app will start without them, but `/api/ask` won't work. Health endpoints (`/health/live`, `/health/ready`) will still function.
 
@@ -399,7 +400,7 @@ The backend supports two LLM providers for question answering:
 - Broader model selection
 - Official API support
 
-**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4o-mini)
+**Cost:** ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens (gpt-4.1-mini)
 
 **Setup (Local Development):**
 
@@ -407,7 +408,7 @@ The backend supports two LLM providers for question answering:
 cd backend/Backend.API
 dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "sk-your-openai-api-key"
-dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4o-mini"
+dotnet user-secrets set "BackendOptions:OpenAIChatModel" "gpt-4.1-mini"
 ```
 
 **Setup (Production):**
@@ -489,10 +490,10 @@ For persistent, scalable vector storage in production, you can optionally config
 
 When using Cosmos DB, the system uses two authentication layers:
 
-1. **Layer 1: Preprocessor → Backend API**
+1. **Layer 1: Preprocessor / YieldRaccoon → Backend API**
    - Protocol: HTTP with API Key
    - Header: `Authorization: ApiKey <key>`
-   - Purpose: Protect embedding management endpoints (`/api/embeddings`)
+   - Purpose: Protect embedding management (`/api/embeddings`) and fund sync (`/api/funds`) endpoints
    - Storage: User Secrets (dev), Azure Key Vault (prod)
 
 2. **Layer 2: Backend API → Cosmos DB**
@@ -622,7 +623,7 @@ az cosmosdb sql role assignment create \
 
 #### API Key Generation and Storage
 
-The `EmbeddingApiKey` is used by the Preprocessor to authenticate requests to the Backend's embedding management endpoints.
+The `EmbeddingApiKey` is used by the Preprocessor and YieldRaccoon to authenticate requests to the Backend's protected endpoints (`/api/embeddings` and `/api/funds`).
 
 **Best Practices:**
 

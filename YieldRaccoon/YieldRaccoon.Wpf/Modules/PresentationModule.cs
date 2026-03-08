@@ -318,9 +318,10 @@ public class PresentationModule : Module
             {
                 var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl))
+                if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiUrl)
+                    && Uri.TryCreate(_databaseOptions.BackendApiUrl, UriKind.Absolute, out var baseUri))
                 {
-                    client.BaseAddress = new Uri(_databaseOptions.BackendApiUrl);
+                    client.BaseAddress = baseUri;
 
                     if (!string.IsNullOrWhiteSpace(_databaseOptions.BackendApiKey))
                         client.DefaultRequestHeaders.Add("Authorization", $"ApiKey {_databaseOptions.BackendApiKey}");

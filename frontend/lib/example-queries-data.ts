@@ -10,6 +10,83 @@ export interface QueryGroup {
 
 export const QUERY_GROUPS: QueryGroup[] = [
   {
+    title: "Fund Analytics",
+    categories: [
+      {
+        title: "Performance",
+        queries: [
+          "What are the top 5 best performing funds this year?",
+          "Which funds lost the most value in the last 30 days?",
+          "Best performing technology funds this week?",
+        ],
+      },
+      {
+        title: "Ownership Trends",
+        queries: [
+          "Which funds are people selling the most right now?",
+          "What emerging markets fund gained the most new investors this month?",
+        ],
+      },
+      {
+        title: "Category Performance",
+        queries: [
+          "How did different fund categories perform last month?",
+          "What's the worst performing category this year?",
+        ],
+      },
+      {
+        title: "Fund Search",
+        queries: [
+          "Show me low-risk passive index funds with good sustainability ratings",
+          "What Article 9 funds are available?",
+          "Find me cheap actively managed funds with risk level below 4",
+        ],
+      },
+      {
+        title: "Fund Profile",
+        queries: [
+          "What are the fees for SEB Emerging Markets Fund?",
+          "What's the ESG score and sustainability rating for Spiltan Globalfond?",
+          "Tell me everything about SE0008613939",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Hybrid Questions",
+    categories: [
+      {
+        title: "Performance + Documents",
+        queries: [
+          "Which fund performed best last month, and what's its investment objective?",
+          "Show me the worst performing funds this quarter — do their factsheets mention any risk warnings?",
+          "How did Spiltan Globalfond do this year, and what sectors does it invest in?",
+        ],
+      },
+      {
+        title: "Ownership + Documents",
+        queries: [
+          "Which fund is losing the most owners? What does its PRIIP document say about liquidity risk?",
+          "What fund gained the most investors recently, and what's its recommended holding period according to the factsheet?",
+        ],
+      },
+      {
+        title: "Search + Documents",
+        queries: [
+          "Find me a low-risk passive fund — what do the factsheets say about their fee structures?",
+          "Which Article 9 sustainable funds do we have, and what ESG criteria do their documents describe?",
+        ],
+      },
+      {
+        title: "Profile + Documents",
+        queries: [
+          "What are the fees for Spiltan Globalfond, and how does the factsheet describe its benchmark?",
+          "Tell me about SE0008613939 — include what the KID document says about potential losses",
+        ],
+      },
+    ],
+  },
+  {
     title: "Quick Start",
     categories: [
       {

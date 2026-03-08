@@ -185,7 +185,7 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 - `MemoryService` - Loads embeddings.json, performs cosine similarity search
 - `QuestionAnsweringService` - Orchestrates embedding generation, retrieval, and LLM response
 - Uses Semantic Kernel with OpenAI embeddings (text-embedding-3-small)
-- Configurable LLM provider: OpenAI (gpt-4o-mini, default) or Groq (llama-3.3-70b-versatile, optional)
+- Configurable LLM provider: OpenAI (gpt-4.1-mini, default) or Groq (llama-3.3-70b-versatile, optional)
 
 **Frontend:**
 
@@ -198,7 +198,7 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 - `BackendOptions:LlmProvider` - LLM provider selection ("OpenAI" or "Groq", default: "OpenAI")
 - `BackendOptions:OpenAIApiKey` - OpenAI API key for embeddings and chat (required)
-- `BackendOptions:OpenAIChatModel` - OpenAI chat model (default: "gpt-4o-mini")
+- `BackendOptions:OpenAIChatModel` - OpenAI chat model (default: "gpt-4.1-mini")
 - `BackendOptions:GroqApiKey` - Groq API key for LLM (only if using Groq provider)
 - `BackendOptions:EmbeddingsFilePath` - Path to embeddings.json (default: `Data/embeddings.json`)
 

@@ -22,7 +22,7 @@ This deployment uses:
 **With OpenAI Chat (Default):**
 
 - **OpenAI Embeddings** - ~$0.003/month (text-embedding-3-small)
-- **OpenAI Chat** - ~$0.50/month (gpt-4o-mini)
+- **OpenAI Chat** - ~$0.50/month (gpt-4.1-mini)
 
 **Total Cost: ~$0.53/month**
 

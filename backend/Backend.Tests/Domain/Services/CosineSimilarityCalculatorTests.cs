@@ -8,6 +8,8 @@ using NUnit.Framework;
 namespace Backend.Tests.Domain.Services;
 
 [TestFixture]
+[Category("Unit")]
+[Category("SemanticSearch")]
 public class CosineSimilarityCalculatorTests
 {
     private IFixture _fixture;
