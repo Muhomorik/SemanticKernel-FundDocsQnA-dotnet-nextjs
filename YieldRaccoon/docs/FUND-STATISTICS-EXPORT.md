@@ -2,6 +2,8 @@
 
 Compute summary statistics from daily NAV data and export as CSV for exploratory data analysis with Claude.
 
+![Statistics export window](IMG-STATISTICS-EXPORT.png)
+
 ## What it does
 
 The Statistics Export feature reads your fund database (read-only), slices each fund's NAV history (limited by lookback period) into non-overlapping time windows, computes 13 summary statistics for each window, and writes the results to a CSV file.

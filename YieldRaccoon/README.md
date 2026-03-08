@@ -18,10 +18,6 @@ About fund window
 
 ![YieldRaccoon about](YieldRaccoon_screenshot_about_fund.png)
 
-## Privacy filter
-
-`PrivacyFilterService` is a reusable static utility — any window with a WebView2 can plug it in. See [PRIVACY-OVERLAY.md](YieldRaccoon.Wpf/PRIVACY-OVERLAY.md) for the full architecture and implementation details.
-
 ## ⚠️ CRITICAL SECURITY REQUIREMENT
 
 **NEVER USE ACTUAL BANK/FINANCIAL INSTITUTION NAMES IN CODE OR DOCUMENTATION**
@@ -47,6 +43,35 @@ About fund window
 | WebView2 | 1.0.2903 | Embedded Chromium browser |
 | Magick.NET | 14.10.2 | Privacy filter image processing |
 | NLog | 6.0.7 | Logging |
+
+## Build and Run
+
+```bash
+cd YieldRaccoon
+dotnet build
+dotnet run --project YieldRaccoon.Wpf
+```
+
+## Configuration (User Secrets)
+
+Settings are loaded from .NET User Secrets under the `YieldRaccoon` section:
+
+```bash
+# Required — fund provider URLs
+dotnet user-secrets set "YieldRaccoon:FundListPageUrlOverviewTab" "https://<fund-provider>.com/funds/list?tab=overview"
+dotnet user-secrets set "YieldRaccoon:FundDetailsPageUrlTemplate" "https://<fund-provider>.com/fund/{0}"
+
+# Optional — behavior flags
+dotnet user-secrets set "YieldRaccoon:AutoStartOverview" "true"
+dotnet user-secrets set "YieldRaccoon:FastMode" "true"
+```
+
+| Setting | Default | Description |
+| ------- | ------- | ----------- |
+| `FundListPageUrlOverviewTab` | *(empty)* | URL to the fund list/search page |
+| `FundDetailsPageUrlTemplate` | *(empty)* | URL template for fund detail pages (`{0}` = OrderbookId) |
+| `AutoStartOverview` | `false` | Auto-start browsing when AboutFund window opens |
+| `FastMode` | `false` | Use minimal delays (3-7s clicks, 2s panel animations, 3-8s between pages) instead of human-like timings |
 
 ## Project Structure
 
@@ -86,19 +111,18 @@ YieldRaccoon.sln
     └── Configuration/                # DatabaseOptions, YieldRaccoonOptions (FastMode, AutoStartOverview)
 ```
 
-## Fund Data Export
+## Architecture
 
-Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database or offline analysis. The original database is never modified. See [FUND-DATA-EXPORT.md](docs/FUND-DATA-EXPORT.md) for the full pipeline, filter options, and architecture.
+### Layer Responsibilities
 
-## Fund Statistics Export
+| Layer | Purpose | Key Patterns |
+| ------- | --------- | -------------- |
+| Domain | Business logic, entities, value objects | Strongly-typed IDs (`IsinId`, `OrderBookId`), aggregates |
+| Application | Use-case orchestration, interfaces | Repository pattern, DTOs, `EndpointPattern` URL routing |
+| Infrastructure | EF Core, chart ingestion, event publishing | Rx.NET, SQLite, anti-corruption models |
+| Presentation | WPF UI, ViewModels | DevExpress MVVM, Autofac, NLog auto-injection |
 
-Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
-
-## Cloud Sync
-
-Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings. See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for sync phases, error handling, and architecture.
-
-## Repository Architecture
+### Repository Architecture
 
 The application supports swappable repository implementations based on configuration.
 
@@ -159,49 +183,35 @@ flowchart TB
 - `UpdateLastVisitedAtAsync` tracks when the AboutFund orchestrator last visited a fund
 - `AddRangeIfNotExistsAsync` inserts only new history records, deduplicating by (FundId, NavDate) composite key
 
-## Automatic Pagination
+## Features
 
-Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists.
+### Fund Data Export
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant VM as ViewModel
-    participant Orchestrator
-    participant Ingestion as FundIngestionService
-    participant Repo as Repository
-    participant WebView2
-    participant API as Fund API
+![Export window](docs/IMG_DATA-EXPORT.png)
 
-    User->>VM: StartSessionCommand
-    VM->>Orchestrator: Start crawl session
-    loop Until all funds loaded
-        Orchestrator->>Orchestrator: Wait (randomized delay)
-        Orchestrator->>VM: LoadBatchRequested
-        VM->>WebView2: Execute JS (click "Show more")
-        WebView2->>API: HTTP request
-        API-->>WebView2: JSON response (intercepted)
-        WebView2-->>VM: OnFundDataReceived
-        VM->>VM: Map to FundDataDto[]
-        VM->>Orchestrator: NotifyBatchLoaded(funds)
-        Orchestrator->>Ingestion: IngestBatch(funds)
-        Ingestion->>Repo: AddOrUpdate(FundProfile)
-        Ingestion->>Repo: Add(FundHistoryRecord)
-        Repo-->>Ingestion: Persisted
-        Ingestion-->>Orchestrator: Count
-    end
-    Orchestrator->>VM: SessionCompleted
-```
+Export filtered fund data to a standalone SQLite `.db` file — useful for sharing a subset of the database or offline analysis. The original database is never modified. 
 
-**Commands:**
+See [FUND-DATA-EXPORT.md](docs/FUND-DATA-EXPORT.md) for the full pipeline, filter options, and architecture.
 
-- `StartSessionCommand` - Begins automated crawl with randomized delays
-- `LoadNextBatchCommand` - Manual single batch load
-- `StopSessionCommand` - Cancel running session
+### Fund Statistics Export
 
-**Features:** ISIN deduplication, randomized delays (20-60s), progress tracking.
+![Statistics export window](docs/IMG-STATISTICS-EXPORT.png)
 
-Both the main window and AboutFund browser support a privacy mode that hides live browser content behind an oil-paint-filtered screenshot — useful during screen sharing or when someone's looking over your shoulder.
+Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. 
+
+See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
+
+### Cloud Sync
+
+![Cloud sync window](docs/IMG-CLOUD-SYNC.png)
+
+Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings. 
+
+See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for sync phases, error handling, and architecture.
+
+### Privacy Filter
+
+`PrivacyFilterService` is a reusable static utility — any window with a WebView2 can plug it in. Both the main window and AboutFund browser support a privacy mode that hides live browser content behind an oil-paint-filtered screenshot — useful during screen sharing or when someone's looking over your shoulder. See [PRIVACY-OVERLAY.md](YieldRaccoon.Wpf/PRIVACY-OVERLAY.md) for the full architecture and implementation details.
 
 ## Domain Events
 
@@ -257,6 +267,50 @@ stateDiagram-v2
 | Navigation | `AboutFundNavigationStarted` | `SessionId`, `Isin`, `OrderbookId` (`OrderBookId`), `Url` |
 | Navigation | `AboutFundNavigationCompleted` | `SessionId`, `Isin`, `OrderbookId` (`OrderBookId`) |
 | Navigation | `AboutFundNavigationFailed` | `SessionId`, `Isin`, `Reason` |
+
+## Crawl Pipeline
+
+Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant VM as ViewModel
+    participant Orchestrator
+    participant Ingestion as FundIngestionService
+    participant Repo as Repository
+    participant WebView2
+    participant API as Fund API
+
+    User->>VM: StartSessionCommand
+    VM->>Orchestrator: Start crawl session
+    loop Until all funds loaded
+        Orchestrator->>Orchestrator: Wait (randomized delay)
+        Orchestrator->>VM: LoadBatchRequested
+        VM->>WebView2: Execute JS (click "Show more")
+        WebView2->>API: HTTP request
+        API-->>WebView2: JSON response (intercepted)
+        WebView2-->>VM: OnFundDataReceived
+        VM->>VM: Map to FundDataDto[]
+        VM->>Orchestrator: NotifyBatchLoaded(funds)
+        Orchestrator->>Ingestion: IngestBatch(funds)
+        Ingestion->>Repo: AddOrUpdate(FundProfile)
+        Ingestion->>Repo: Add(FundHistoryRecord)
+        Repo-->>Ingestion: Persisted
+        Ingestion-->>Orchestrator: Count
+    end
+    Orchestrator->>VM: SessionCompleted
+```
+
+**Commands:**
+
+- `StartSessionCommand` - Begins automated crawl with randomized delays
+- `LoadNextBatchCommand` - Manual single batch load
+- `StopSessionCommand` - Cancel running session
+
+**Features:** ISIN deduplication, randomized delays (20-60s), progress tracking.
+
+## AboutFund Collection
 
 ### WebView2 Network Interception
 
@@ -322,7 +376,7 @@ sequenceDiagram
     Win->>VM: Dispose()
 ```
 
-### AboutFund Page Data Collection
+### Page Data Collection
 
 Each fund detail page visit involves 8 scheduled browser interactions that trigger separate API calls for chart data across 7 time periods. The `AboutFundPageDataCollector` receives a pre-calculated `AboutFundCollectionSchedule` from the orchestrator, schedules Rx timers at absolute fire times, executes page interactions via `IAboutFundPageInteractor`, routes intercepted HTTP responses to data slots via URL pattern matching, and signals completion when the final response arrives (or a safety-net timer expires).
 
@@ -355,7 +409,7 @@ flowchart LR
     Ingest -->|deduplicated records| DB[(Repository)]
 ```
 
-#### Collection Phase State Machine
+### Collection Phase State Machine
 
 Each fund page visit transitions through a `CollectionPhase` lifecycle:
 
@@ -374,7 +428,7 @@ stateDiagram-v2
 - **Draining**: All interactions fired; awaiting final HTTP response
 - **Completed**: Data emitted, ready for ingestion
 
-#### Data Slots (7)
+### Data Slots (7)
 
 **Slot states:** Each `AboutFundFetchSlot` is independently `Pending` then `Succeeded` or `Failed`.
 
@@ -388,7 +442,7 @@ stateDiagram-v2
 | `Chart5Years` | Clicking "5Y" period button | Interceptor matching chart endpoint with 5Y period |
 | `ChartMax` | Clicking "Max" period button | Interceptor matching chart endpoint with max period |
 
-#### Collection Steps (8)
+### Collection Steps (8)
 
 | Step | Action | Purpose |
 | ---- | ------ | ------- |
@@ -403,7 +457,7 @@ stateDiagram-v2
 
 **Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting. A safety-net timer forces completion if the final HTTP response never arrives.
 
-#### Three-Tier Scheduling
+### Three-Tier Scheduling
 
 The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly:
 
@@ -413,7 +467,7 @@ The orchestrator owns all scheduling policy. On session start, it pre-calculates
 
 **Session phases:** `Idle` → `DelayBeforeNavigation` → `Collecting` → `DelayBeforeNavigation` → ... → `Completed`
 
-#### Chart Data Ingestion Pipeline
+### Chart Data Ingestion Pipeline
 
 After page data collection completes, `AboutFundChartIngestionService` runs the ingestion pipeline:
 
@@ -425,16 +479,11 @@ After page data collection completes, `AboutFundChartIngestionService` runs the 
 6. Map to `FundHistoryRecord` entities (Nav + NavDate populated from chart data)
 7. Persist via `AddRangeIfNotExistsAsync` (existing records silently skipped)
 
-## Layer Responsibilities
+## Database
 
-| Layer | Purpose | Key Patterns |
-| ------- | --------- | -------------- |
-| Domain | Business logic, entities, value objects | Strongly-typed IDs (`IsinId`, `OrderBookId`), aggregates |
-| Application | Use-case orchestration, interfaces | Repository pattern, DTOs, `EndpointPattern` URL routing |
-| Infrastructure | EF Core, chart ingestion, event publishing | Rx.NET, SQLite, anti-corruption models |
-| Presentation | WPF UI, ViewModels | DevExpress MVVM, Autofac, NLog auto-injection |
+### Persistence
 
-## Database Persistence
+![Settings window](docs/IMG-SETTINGS.png)
 
 Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
 
@@ -648,7 +697,7 @@ SELECT * FROM vw_OwnershipChangeSinceDate ORDER BY ChangePct DESC LIMIT 50;
 
 </details>
 
-## DualWrite Provider
+### DualWrite Provider
 
 When `DualWrite` is configured, fund data is written to both SQLite (local) and the Backend API (cloud). The SQLite write always completes first and returns to the caller immediately. The Backend API sync runs asynchronously (fire-and-forget) and never blocks or prevents local persistence.
 
@@ -704,35 +753,6 @@ sequenceDiagram
 ```
 
 Or via Settings UI: Database tab > Provider = DualWrite, then configure Backend API URL and API Key.
-
-## Configuration (User Secrets)
-
-Settings are loaded from .NET User Secrets under the `YieldRaccoon` section:
-
-```bash
-# Required — fund provider URLs
-dotnet user-secrets set "YieldRaccoon:FundListPageUrlOverviewTab" "https://<fund-provider>.com/funds/list?tab=overview"
-dotnet user-secrets set "YieldRaccoon:FundDetailsPageUrlTemplate" "https://<fund-provider>.com/fund/{0}"
-
-# Optional — behavior flags
-dotnet user-secrets set "YieldRaccoon:AutoStartOverview" "true"
-dotnet user-secrets set "YieldRaccoon:FastMode" "true"
-```
-
-| Setting | Default | Description |
-| ------- | ------- | ----------- |
-| `FundListPageUrlOverviewTab` | *(empty)* | URL to the fund list/search page |
-| `FundDetailsPageUrlTemplate` | *(empty)* | URL template for fund detail pages (`{0}` = OrderbookId) |
-| `AutoStartOverview` | `false` | Auto-start browsing when AboutFund window opens |
-| `FastMode` | `false` | Use minimal delays (3-7s clicks, 2s panel animations, 3-8s between pages) instead of human-like timings |
-
-## Build and Run
-
-```bash
-cd YieldRaccoon
-dotnet build
-dotnet run --project YieldRaccoon.Wpf
-```
 
 ## Development Skills
 
