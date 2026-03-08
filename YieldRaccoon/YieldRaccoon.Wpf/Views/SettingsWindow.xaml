@@ -84,10 +84,11 @@
                 Margin="{StaticResource yr.LabelSpacing}"
                 Style="{StaticResource yr.SubheaderStyle}"
                 Text="Backend API URL" />
-            <TextBox
+            <PasswordBox
                 Margin="0,0,0,4"
+                Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
                 mah:TextBoxHelper.Watermark="https://your-app.azurewebsites.net"
-                Text="{Binding BackendApiUrl, UpdateSourceTrigger=PropertyChanged}" />
+                mahShared:PasswordBoxBindingBehavior.Password="{Binding BackendApiUrl, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
 
             <TextBlock
                 Margin="0,0,0,8"
