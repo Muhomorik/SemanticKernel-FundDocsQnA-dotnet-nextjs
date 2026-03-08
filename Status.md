@@ -158,7 +158,7 @@ LLM can now answer structured fund data queries (performance, ownership, categor
 | **Tests** | `SystemPromptFactoryTests` (3 tests) | ✅ |
 | **Tests** | `TestDataPaths` helper, `TestFundDataDbContextFactory`, `test_embeddings.json` (287 chunks) | ✅ |
 
-**Design:** [FUND-DATA-QUERY-PLAN.md](FUND-DATA-QUERY-PLAN.md) | **Plan:** `.claude/plans/curried-riding-hoare.md`
+**Plan:** `.claude/plans/curried-riding-hoare.md`
 
 ### Planned Features
 

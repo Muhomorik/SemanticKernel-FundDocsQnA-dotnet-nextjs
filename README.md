@@ -4,9 +4,11 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 
 | Feature | Description |
 | --------- | ------------- |
-| **Semantic Search** | Vector embeddings for accurate document retrieval |
+| **Semantic Search** | Vector embeddings for accurate document retrieval (RAG over PDF factsheets) |
+| **Function Calling** | Structured fund data queries (performance, ownership, categories) via Semantic Kernel plugins |
+| **Hybrid Answers** | LLM autonomously combines RAG + function calling for comprehensive responses |
 | **Natural Language Q&A** | Ask questions, get answers with source citations |
-| **Low Cost** | Free-tier cloud services (Groq, OpenAI, Cosmos DB) |
+| **Low Cost** | Free-tier cloud services (OpenAI, Azure SQL, Cosmos DB) |
 | **Local Processing** | Generate embeddings with LM Studio or Ollama |
 | **Flexible Storage** | In-memory (default) or Azure Cosmos DB vector search |
 
@@ -49,9 +51,10 @@ A low-cost hobby project that enables semantic Q&A over PDF documents. Upload PD
 
 **Key Features:**
 
-- Semantic search using vector embeddings
+- Semantic search using vector embeddings (RAG over PDF documents)
+- Function calling over structured fund data (performance, ownership, categories)
+- Hybrid answers — LLM autonomously combines both approaches
 - Natural language Q&A with source citations
-- Free-tier cloud services (Groq, OpenAI, Cosmos DB)
 - Local embedding generation (LM Studio/Ollama)
 - Switchable vector storage: in-memory (default) or Azure Cosmos DB
 
@@ -78,14 +81,15 @@ flowchart LR
     subgraph YieldRaccoon ["YieldRaccoon (data collection)"]
         YR[YieldRaccoon] -->|WebView2| FP[Fund Provider]
         YR --> DB[(SQLite)]
+        YR -.->|DualWrite| API
     end
 
     subgraph Runtime ["Backend + Frontend (retrieval & generation)"]
         FE[Frontend] --> API[Backend API]
         EMB -->|default| API
         COSMOS[(Cosmos DB)] -.->|optional| API
-        DB -.->|planned| API
-        API -->|embeddings & LLM| OAI[OpenAI API]
+        AZSQL[(Azure SQL)] -.->|optional| API
+        API -->|RAG + Function Calling| OAI[OpenAI API]
         API -.->|LLM alt| GROQ[Groq API]
     end
 ```
@@ -96,9 +100,9 @@ flowchart LR
 | ----------- | ------------ | ------------- |
 | [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | .NET 9, PdfPig, LM Studio, OpenAI | PDF text extraction library with native + OCR support |
 | [Preprocessor](Preprocessor/README.md) | .NET 9, Semantic Kernel | Read pre-extracted text files, generate embeddings (file or Cosmos DB) |
-| [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel, Cosmos DB | Semantic search + Q&A API with in-memory or Cosmos DB vector storage |
-| [Frontend](frontend/README.md) | Next.js 16, TypeScript, shadcn/ui | Chat interface |
-| [YieldRaccoon](YieldRaccoon/README.md) | .NET 9, WPF, EF Core, Rx.NET | Fund price crawler with DDD, CQRS, and WebView2 interception |
+| [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel 1.68, Azure SQL | RAG over PDF documents + function calling over structured fund data (FundDataPlugin) |
+| [Frontend](frontend/README.md) | Next.js 16, React 19, TypeScript, shadcn/ui | Chat interface with dark/light theme |
+| [YieldRaccoon](YieldRaccoon/README.md) | .NET 9, WPF, EF Core, Rx.NET, WebView2 | Fund data crawler with cloud sync, data/statistics export, and privacy filter |
 
 ---
 
@@ -111,8 +115,8 @@ flowchart LR
 | .NET SDK | 9.0+ | [Download](https://dotnet.microsoft.com/download) |
 | Node.js | 18+ | [Download](https://nodejs.org/) |
 | LM Studio or Ollama | Latest | For local embedding generation |
-| Groq API Key | - | [Get free key](https://console.groq.com) |
-| OpenAI API Key | - | [Get key](https://platform.openai.com) |
+| OpenAI API Key | - | [Get key](https://platform.openai.com) (required) |
+| Groq API Key | - | [Get free key](https://console.groq.com) (optional alternative) |
 
 > **Configuration:** See [Configuration & Secrets Guide](docs/SECRETS-MANAGEMENT.md) for complete setup instructions.
 
@@ -138,11 +142,13 @@ dotnet run
 
 ```bash
 cd backend/Backend.API
-dotnet user-secrets set "BackendOptions:GroqApiKey" "your-key"
 dotnet user-secrets set "BackendOptions:OpenAIApiKey" "your-key"
+dotnet user-secrets set "BackendOptions:LlmProvider" "OpenAI"
 cp ../../Preprocessor/Preprocessor/bin/Debug/net9.0/output.json Data/embeddings.json
 dotnet run
 ```
+
+> **Optional:** Add Azure SQL for structured fund queries (`AzureSqlConnectionString`), or use Groq as a free LLM alternative. See [Backend README](backend/README.md).
 
 ### 4. Start Frontend
 
@@ -193,8 +199,9 @@ Deploy to Azure with near-zero cost (~$0.03/month):
 | Application Insights | Free (5GB) | $0 |
 | Azure Key Vault | Standard | ~$0.03 |
 | Azure Cosmos DB | Free tier (1000 RU/s) | $0 |
-| OpenAI Embeddings | Pay-per-use | ~$0.003 |
-| Groq LLM | Free tier | $0 |
+| Azure SQL | Basic (optional) | ~$5/month |
+| OpenAI Embeddings + LLM | Pay-per-use | ~$0.003 |
+| Groq LLM | Free tier (optional) | $0 |
 
 ### Quick Deploy
 
@@ -245,7 +252,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | Layer | Technologies |
 | ------- | -------------- |
 | **Preprocessor** | .NET 9, Semantic Kernel, Ollama/LM Studio/OpenAI |
-| **Backend** | ASP.NET Core 9, Semantic Kernel, OpenAI, Groq, Cosmos DB |
+| **Backend** | ASP.NET Core 9, Semantic Kernel 1.68, OpenAI, Azure SQL, Cosmos DB |
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
 | **PdfTextExtractor** | .NET 9, PdfPig, LM Studio, OpenAI, Rx.NET, WPF |
 | **YieldRaccoon** | .NET 9, WPF, EF Core, Rx.NET, WebView2, DevExpress MVVM, Autofac |
