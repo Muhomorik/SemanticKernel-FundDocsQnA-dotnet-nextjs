@@ -88,7 +88,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         LookbackPeriods = CreateLookbackPeriods();
         SelectedLookbackPeriod = LookbackPeriods[3];
         CompanyName = string.Empty;
-        OutputPath = @"YieldRaccoon_stats_2weeks_6months.csv";
+        OutputPath = @"YieldRaccoon_summary_2weeks_6months.csv";
         MetadataOutputPath = @"YieldRaccoon_metadata.csv";
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
@@ -426,8 +426,8 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         var periodTag = period.DisplayName.Replace(" ", "");
         var lookbackTag = lookback.DisplayName.Replace(" ", "");
         var filename = string.IsNullOrWhiteSpace(companyName)
-            ? $"YieldRaccoon_stats_{periodTag}_{lookbackTag}.csv"
-            : $"YieldRaccoon_stats_{SanitizeFilename(companyName.Trim())}_{periodTag}_{lookbackTag}.csv";
+            ? $"YieldRaccoon_summary_{periodTag}_{lookbackTag}.csv"
+            : $"YieldRaccoon_summary_{SanitizeFilename(companyName.Trim())}_{periodTag}_{lookbackTag}.csv";
 
         return string.IsNullOrEmpty(_sourceDirectory)
             ? filename
