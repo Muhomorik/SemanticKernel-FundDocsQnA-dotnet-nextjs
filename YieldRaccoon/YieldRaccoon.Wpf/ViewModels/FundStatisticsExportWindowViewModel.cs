@@ -46,7 +46,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _metadataExportService = metadataExportService ?? throw new ArgumentNullException(nameof(metadataExportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
-        IsSqliteProvider = databaseOptions.Provider == DatabaseProvider.SQLite;
+        IsSqliteProvider = databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite;
         _sourceDirectory = GetSourceDirectory(databaseOptions.ConnectionString);
         Periods = CreatePeriods();
         SelectedPeriod = Periods[1]; // 2 weeks default

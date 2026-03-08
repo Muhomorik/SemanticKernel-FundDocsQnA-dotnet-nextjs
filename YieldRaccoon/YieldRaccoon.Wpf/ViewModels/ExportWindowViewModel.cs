@@ -42,7 +42,7 @@ public class ExportWindowViewModel : ViewModelBase
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
-        IsSqliteProvider = databaseOptions.Provider == DatabaseProvider.SQLite;
+        IsSqliteProvider = databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite;
         _sourceDirectory = GetSourceDirectory(databaseOptions.ConnectionString);
         Periods = CreatePeriods();
         SelectedPeriod = Periods[1];
