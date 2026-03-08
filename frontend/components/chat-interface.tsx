@@ -6,7 +6,7 @@ import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
 import { askQuestion, ApiError } from "@/lib/api";
-import { AlertCircle, RotateCcw } from "lucide-react";
+import { AlertCircle, RotateCcw, Plus } from "lucide-react";
 import { useChatContext } from "./chat-context";
 
 export function ChatInterface() {
@@ -14,7 +14,7 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const { shouldReset, clearReset } = useChatContext();
+  const { shouldReset, clearReset, resetChat } = useChatContext();
 
   React.useEffect(() => {
     if (shouldReset) {
@@ -168,6 +168,17 @@ export function ChatInterface() {
           {/* Input area at bottom when chatting */}
           <div className="border-border/40 bg-background/80 border-t backdrop-blur-xl">
             <div className="mx-auto max-w-3xl px-4 py-4">
+              <div className="mb-2 flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetChat}
+                  className="text-muted-foreground hover:text-foreground gap-1.5 text-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New chat
+                </Button>
+              </div>
               <ChatInput onSubmit={handleSubmit} isLoading={isLoading} />
             </div>
           </div>
