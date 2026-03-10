@@ -148,6 +148,37 @@ public class AboutFundPageDataCollector_InteractionSchedulingTests
             "Completed should emit after SelectMax + response");
     }
 
+    [Test]
+    public void ScheduledStep_LastStepIsNotSelectMax_DrainingTriggersOnActualLastStep()
+    {
+        // Arrange — schedule only ActivateSekView + Select1Month + Select1Year
+        var schedule = new CollectionScheduleBuilder()
+            .WithOrderBookId(_fixture.Create<OrderBookId>())
+            .WithStartTime(_scheduler.Now)
+            .WithSteps(
+                AboutFundCollectionStepKind.ActivateSekView,
+                AboutFundCollectionStepKind.Select1Month,
+                AboutFundCollectionStepKind.Select1Year)
+            .Build();
+        _sut.BeginCollection(schedule);
+
+        var completed = new List<AboutFundPageData>();
+        _sut.Completed.Subscribe(completed.Add);
+
+        // Act — advance past all steps (last is Select1Year at +40s)
+        _scheduler.AdvanceBy(TimeSpan.FromSeconds(50).Ticks);
+
+        // Route a response while in draining phase (triggered by Select1Year, not SelectMax)
+        var request = InterceptedRequestBuilder.ForSlot(AboutFundDataSlot.Chart1Year)
+            .WithResponseBody(_fixture.Create<string>())
+            .Build();
+        _sut.NotifyResponseCaptured(request);
+
+        // Assert
+        Assert.That(completed, Has.Count.EqualTo(1),
+            "Completed should emit after last step (Select1Year) + response");
+    }
+
     #region Helpers
 
     private void BeginDefaultCollection()

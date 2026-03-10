@@ -24,24 +24,26 @@ public class AboutFundScheduleCalculator : IAboutFundScheduleCalculator
     public List<AboutFundCollectionSchedule> CalculateSessionSchedule(
         IReadOnlyList<AboutFundScheduleItem> funds,
         DateTimeOffset startTime,
-        Func<AboutFundCollectionStepKind, TimeSpan> getMinimumDelay)
+        Func<AboutFundCollectionStepKind, TimeSpan> getMinimumDelay,
+        IReadOnlyList<AboutFundCollectionStepKind> steps)
     {
         ArgumentNullException.ThrowIfNull(funds);
         ArgumentNullException.ThrowIfNull(getMinimumDelay);
+        ArgumentNullException.ThrowIfNull(steps);
 
         var currStartTime = startTime;
         var fundSchedules = new List<AboutFundCollectionSchedule>(funds.Count);
 
         foreach (var fund in funds)
         {
-            var steps = new List<AboutFundScheduledStep>();
+            var scheduledSteps = new List<AboutFundScheduledStep>();
             var cumulative = TimeSpan.Zero;
 
-            foreach (var kind in AboutFundCollectionStepKinds.All)
+            foreach (var kind in steps)
             {
                 var minDelay = getMinimumDelay(kind);
                 cumulative += _delayProvider.NextDelay(minDelay);
-                steps.Add(new AboutFundScheduledStep(kind, currStartTime + cumulative));
+                scheduledSteps.Add(new AboutFundScheduledStep(kind, currStartTime + cumulative));
             }
 
             // Safety-net timer after last step
@@ -55,7 +57,7 @@ public class AboutFundScheduleCalculator : IAboutFundScheduleCalculator
                 OrderBookId = fund.OrderBookId,
                 StartTime = currStartTime,
                 StopTime = stopTime,
-                Steps = steps,
+                Steps = scheduledSteps,
                 InterPageDelay = interPageDelay
             });
 

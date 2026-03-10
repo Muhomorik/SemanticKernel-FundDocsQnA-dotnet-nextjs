@@ -183,7 +183,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     }
 
     /// <inheritdoc/>
-    public async Task<AboutFundSessionId> StartSessionAsync()
+    public async Task<AboutFundSessionId> StartSessionAsync(IReadOnlyList<AboutFundCollectionStepKind>? enabledSteps = null)
     {
         _logger.Info("Starting new about-fund browsing session");
 
@@ -215,10 +215,15 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         _logger.Info("Session {0} started with {1} funds", _currentSessionId, _schedule.Count);
 
         // Pre-calculate the full session schedule
+        var steps = enabledSteps != null
+            ? AboutFundCollectionStepKinds.ForSteps(enabledSteps)
+            : AboutFundCollectionStepKinds.All;
+
         _fundSchedules = _scheduleCalculator.CalculateSessionSchedule(
             _schedule,
             _scheduler.Now + TimeSpan.FromSeconds(15),
-            _pageInteractor.GetMinimumDelay);
+            _pageInteractor.GetMinimumDelay,
+            steps);
 
         // Initialize all funds as NotVisited
         _visitStatuses.Clear();

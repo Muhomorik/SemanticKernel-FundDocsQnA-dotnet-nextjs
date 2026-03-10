@@ -68,7 +68,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = new List<AboutFundScheduleItem>();
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -81,7 +81,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -95,7 +95,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result[0].Steps, Has.Count.EqualTo(AboutFundCollectionStepKinds.All.Count));
@@ -108,7 +108,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         var steps = result[0].Steps;
@@ -123,7 +123,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result[0].Steps[0].FireAt, Is.GreaterThan(_startTime));
@@ -136,7 +136,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result[0].StartTime, Is.EqualTo(_startTime));
@@ -149,7 +149,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(2);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -170,7 +170,7 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         }
 
         // Act
-        _sut.CalculateSessionSchedule(funds, _startTime, TrackingGetMinDelay);
+        _sut.CalculateSessionSchedule(funds, _startTime, TrackingGetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert — each step kind queried once per fund
         var expectedCount = AboutFundCollectionStepKinds.All.Count * funds.Count;
@@ -191,10 +191,48 @@ public class AboutFundScheduleCalculator_CalculateSessionScheduleTests
         var funds = CreateFunds(1);
 
         // Act
-        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay);
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, AboutFundCollectionStepKinds.All);
 
         // Assert
         Assert.That(result[0].TotalDuration,
             Is.EqualTo(result[0].StopTime - result[0].StartTime));
+    }
+
+    [Test]
+    public void CalculateSessionSchedule_FilteredSteps_StepCountMatchesInput()
+    {
+        // Arrange
+        var funds = CreateFunds(1);
+        var filteredSteps = AboutFundCollectionStepKinds.ForSteps(AboutFundCollectionStepKinds.Defaults);
+
+        // Act
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, filteredSteps);
+
+        // Assert — ActivateSekView + 4 defaults = 5 steps
+        Assert.That(result[0].Steps, Has.Count.EqualTo(filteredSteps.Count));
+    }
+
+    [Test]
+    public void CalculateSessionSchedule_FilteredSteps_OnlySchedulesPassedSteps()
+    {
+        // Arrange
+        var funds = CreateFunds(1);
+        var filteredSteps = AboutFundCollectionStepKinds.ForSteps(new[]
+        {
+            AboutFundCollectionStepKind.Select1Month,
+            AboutFundCollectionStepKind.Select1Year
+        });
+
+        // Act
+        var result = _sut.CalculateSessionSchedule(funds, _startTime, GetMinDelay, filteredSteps);
+
+        // Assert
+        var scheduledKinds = result[0].Steps.Select(s => s.Kind).ToList();
+        Assert.That(scheduledKinds, Is.EqualTo(new[]
+        {
+            AboutFundCollectionStepKind.ActivateSekView,
+            AboutFundCollectionStepKind.Select1Month,
+            AboutFundCollectionStepKind.Select1Year
+        }));
     }
 }

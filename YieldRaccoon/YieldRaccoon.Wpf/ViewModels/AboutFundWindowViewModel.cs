@@ -242,7 +242,8 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
                 // Auto-start: begin full browsing session with auto-advance
                 _logger.Info("Auto-start enabled - starting browsing session");
                 _orchestrator.SetAutoAdvance(true);
-                await _orchestrator.StartSessionAsync();
+                var enabledSteps = ControlPanelViewModel.GetEnabledSteps();
+                await _orchestrator.StartSessionAsync(enabledSteps);
             }
             else
             {
@@ -386,7 +387,8 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
             FundScheduleViewModel.LoadSchedule(schedule);
 
             _orchestrator.SetAutoAdvance(ControlPanelViewModel.AutoStartOverview);
-            await _orchestrator.StartSessionAsync();
+            var enabledSteps = ControlPanelViewModel.GetEnabledSteps();
+            await _orchestrator.StartSessionAsync(enabledSteps);
         }
         catch (Exception ex)
         {

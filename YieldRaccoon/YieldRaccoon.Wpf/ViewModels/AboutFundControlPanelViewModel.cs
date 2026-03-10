@@ -31,7 +31,7 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     public bool IsSessionActive
     {
         get => GetProperty(() => IsSessionActive);
-        set => SetProperty(() => IsSessionActive, value);
+        set => SetProperty(() => IsSessionActive, value, () => RaisePropertyChanged(nameof(CanEditSteps)));
     }
 
     /// <summary>
@@ -134,6 +134,11 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets whether crawler step toggles can be edited (only when no session is active).
+    /// </summary>
+    public bool CanEditSteps => !IsSessionActive;
+
+    /// <summary>
     /// Gets or sets whether the automated session progress section should be shown.
     /// True when an automated session is active (not manual mode).
     /// </summary>
@@ -211,6 +216,11 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<AboutFundDataSlotViewModel> DataSlots { get; } = new();
 
+    /// <summary>
+    /// Gets the crawler step toggles (checkboxes for which steps to execute).
+    /// </summary>
+    public ObservableCollection<AboutFundStepToggleViewModel> StepToggles { get; } = new();
+
     #endregion
 
     #region Commands
@@ -268,6 +278,8 @@ public class AboutFundControlPanelViewModel : ViewModelBase
             () => NextFundRequested?.Invoke(this, EventArgs.Empty),
             () => IsSessionActive);
 
+        InitializeStepToggles();
+
         _logger.Debug("AboutFundControlPanelViewModel initialized");
     }
 
@@ -284,6 +296,8 @@ public class AboutFundControlPanelViewModel : ViewModelBase
         StartOverviewCommand = new DelegateCommand(() => { });
         StopOverviewCommand = new DelegateCommand(() => { });
         NextFundCommand = new DelegateCommand(() => { });
+
+        InitializeStepToggles();
     }
 
     /// <inheritdoc />
@@ -326,6 +340,17 @@ public class AboutFundControlPanelViewModel : ViewModelBase
 
         CollectionElapsed = TimeSpan.FromSeconds(4.8);
         CollectionRemaining = TimeSpan.FromSeconds(10.2);
+    }
+
+    /// <summary>
+    /// Returns the currently enabled step kinds based on checkbox state.
+    /// </summary>
+    public IReadOnlyList<AboutFundCollectionStepKind> GetEnabledSteps()
+    {
+        return StepToggles
+            .Where(t => t.IsEnabled)
+            .Select(t => t.StepKind)
+            .ToList();
     }
 
     /// <summary>
@@ -435,4 +460,10 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     }
 
     #endregion
+
+    private void InitializeStepToggles()
+    {
+        foreach (var step in AboutFundCollectionStepKinds.Configurable)
+            StepToggles.Add(new AboutFundStepToggleViewModel(step, AboutFundCollectionStepKinds.Defaults.Contains(step)));
+    }
 }

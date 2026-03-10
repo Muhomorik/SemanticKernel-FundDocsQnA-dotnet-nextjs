@@ -499,7 +499,8 @@ public class AboutFundOrchestrator_ManualCollectionTests
             .Setup(x => x.CalculateSessionSchedule(
                 It.IsAny<IReadOnlyList<AboutFundScheduleItem>>(),
                 It.IsAny<DateTimeOffset>(),
-                It.IsAny<Func<AboutFundCollectionStepKind, TimeSpan>>()))
+                It.IsAny<Func<AboutFundCollectionStepKind, TimeSpan>>(),
+                It.IsAny<IReadOnlyList<AboutFundCollectionStepKind>>()))
             .Returns(new List<AboutFundCollectionSchedule>
             {
                 new()
