@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-07 (Backend: FundDataPlugin — Semantic Kernel function calling + hybrid RAG integration tests)
+Last Updated: 2026-03-10 (Backend: Ownership Flow API — Sankey chart endpoints for fund/category ownership deltas)
 
 **Tech Stack:**
 
@@ -159,6 +159,30 @@ LLM can now answer structured fund data queries (performance, ownership, categor
 | **Tests** | `TestDataPaths` helper, `TestFundDataDbContextFactory`, `test_embeddings.json` (287 chunks) | ✅ |
 
 **Plan:** `.claude/plans/curried-riding-hoare.md`
+
+### Ownership Flow API — Sankey Chart Backend ✅ COMPLETED (2026-03-10)
+
+Backend API endpoints for ownership flow Sankey visualization. Computes investor movement (NumberOfOwners deltas) across funds and categories for weekly/monthly time periods.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `CategoryMacroGroup` value object (Swedish category → 10 macro-groups) | ✅ |
+| **ApplicationCore** | DTOs: `OwnershipFlowPeriodsResponse`, `OwnershipFlowResponse`, `OwnershipFlowGroup`, `OwnershipFlowItem`, `TimePeriod` | ✅ |
+| **ApplicationCore** | `IOwnershipFlowService` interface | ✅ |
+| **Infrastructure** | `OwnershipFlowService` (IDbContextFactory, IMemoryCache, period computation, delta calculation, category aggregation) | ✅ |
+| **Controller** | `GET /api/ownership-flow/periods` (weekly + monthly time periods) | ✅ |
+| **Controller** | `GET /api/ownership-flow?from=&to=` (Sankey data for both charts, input validation) | ✅ |
+| **Program.cs** | Service registration + `AddMemoryCache()` | ✅ |
+| **Tests** | `CategoryMacroGroupTests` (20), `OwnershipFlowService_GetAvailablePeriodsTests` (11), `OwnershipFlowService_GetOwnershipFlowAsyncTests` (14) — InternalsVisibleTo for internal method testing | ✅ |
+
+**Endpoints:**
+
+| Method | Path | Purpose |
+| -------- | ------ | --------- |
+| GET | `/api/ownership-flow/periods` | Available weekly (4 ISO weeks) + monthly (1/2/3 months) time periods |
+| GET | `/api/ownership-flow?from=&to=` | Sankey data: fund-level (top 10 out/in) + category-level (aggregated by macro-group) |
+
+**Plan:** `.claude/plans/elegant-marinating-kettle.md`
 
 ### Planned Features
 

@@ -8,6 +8,7 @@ using Backend.API.Domain.Interfaces;
 using Backend.API.HealthChecks;
 using Backend.API.Infrastructure.FundData;
 using Backend.API.Infrastructure.FundData.Repositories;
+using Backend.API.Infrastructure.FundData.Services;
 using Backend.API.Infrastructure.LLM.Configuration;
 using Backend.API.Infrastructure.LLM.Providers;
 using Backend.API.Infrastructure.Persistence;
@@ -383,6 +384,8 @@ else
 builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
 builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
 builder.Services.AddScoped<IFundSyncService, FundSyncService>();
+builder.Services.AddScoped<IOwnershipFlowService, OwnershipFlowService>();
+builder.Services.AddMemoryCache();
 
 // ========================================
 // 6. ASP.NET Core Services Configuration
