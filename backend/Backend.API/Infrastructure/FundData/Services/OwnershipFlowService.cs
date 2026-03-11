@@ -73,10 +73,10 @@ public sealed class OwnershipFlowService : IOwnershipFlowService
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
-        // Query 1: Fund history records with ownership data in the date range
+        // Query 1: all records with non-null owners up to `to` (no lower bound —
+        // we look back before `from` to find the baseline for each fund).
         var records = await context.FundHistoryRecords
             .Where(r => r.NavDate != null
-                     && r.NavDate >= from
                      && r.NavDate <= to
                      && r.NumberOfOwners != null)
             .Select(r => new { r.IsinId, r.NumberOfOwners, r.NavDate })
@@ -91,32 +91,38 @@ public sealed class OwnershipFlowService : IOwnershipFlowService
         _logger.LogDebug("Loaded {RecordCount} history records, {ProfileCount} qualifying profiles",
             records.Count, profiles.Count);
 
-        // In-memory: per-fund delta calculation
-        var fundDeltas = records
-            .GroupBy(r => r.IsinId.Isin)
-            .Where(g => profiles.ContainsKey(g.Key) && g.Count() >= 2)
-            .Select(g =>
-            {
-                var ordered = g.OrderBy(r => r.NavDate).ToList();
-                var startOwners = ordered[0].NumberOfOwners!.Value;
-                var endOwners = ordered[^1].NumberOfOwners!.Value;
-                var delta = endOwners - startOwners;
-                var pct = startOwners != 0
-                    ? Math.Round(delta / (double)startOwners * 100, 1)
-                    : 0.0;
-                var profile = profiles[g.Key];
+        // In-memory: look-back delta calculation.
+        // For each fund:
+        //   startRecord = most recent snapshot at or before `from`  (the look-back baseline)
+        //   endRecord   = most recent snapshot at or before `to`
+        // Using this approach, longer date ranges pick up earlier baselines and
+        // produce genuinely different deltas — monthly periods no longer return
+        // identical data when the DB has sparse NumberOfOwners history.
+        var fundDeltas = new List<(string Name, string? Category, int Delta, double Pct, int StartOwners)>();
 
-                return new
-                {
-                    profile.Name,
-                    profile.Category,
-                    Delta = delta,
-                    Pct = pct,
-                    StartOwners = startOwners
-                };
-            })
-            .Where(f => f.Delta != 0)
-            .ToList();
+        foreach (var group in records.GroupBy(r => r.IsinId.Isin))
+        {
+            if (!profiles.TryGetValue(group.Key, out var profile)) continue;
+
+            var ordered = group.OrderByDescending(r => r.NavDate).ToList();
+            var endRecord   = ordered[0];                                          // most recent ≤ to
+            var startRecord = ordered.FirstOrDefault(r => r.NavDate <= from)     // most recent ≤ from
+                           ?? ordered.LastOrDefault();                             // fallback: earliest available
+
+            // Need two distinct snapshots to compute a meaningful delta
+            if (startRecord is null || startRecord.NavDate == endRecord.NavDate) continue;
+
+            var startOwners = startRecord.NumberOfOwners!.Value;
+            var endOwners   = endRecord.NumberOfOwners!.Value;
+            var delta       = endOwners - startOwners;
+            if (delta == 0) continue;
+
+            var pct = startOwners != 0
+                ? Math.Round(delta / (double)startOwners * 100, 1)
+                : 0.0;
+
+            fundDeltas.Add((profile.Name, profile.Category, delta, pct, startOwners));
+        }
 
         // Fund-level chart: top 10 per direction
         var fundOut = fundDeltas

@@ -277,6 +277,189 @@ public class OwnershipFlowService_GetOwnershipFlowAsyncTests
         Assert.That(result.Cat.In[0].Name, Is.EqualTo("Other"));
     }
 
+    // ─── Look-back bug: monthly periods return identical data (production bug) ───
+    //
+    // Bug: query used NavDate >= from AND NavDate <= to.
+    // A fund with its earliest record at Feb 14 appears identical for "1 month"
+    // (Feb 11–Mar 11), "2 months" (Jan 11–Mar 11), and "3 months" (Dec 11–Mar 11),
+    // because all three periods find the same Feb 14 record as the start point.
+    //
+    // Fix: use the most recent snapshot at-or-before `from` as the baseline,
+    // so longer periods look further back and produce genuinely different deltas.
+
+    [Test]
+    public async Task LookBack_RecordBeforeFromDate_UsedAsStartBaseline()
+    {
+        // Fund has a snapshot BEFORE the period start, and one inside — currently
+        // the service misses the prior record and sees only 1 in-range record → empty.
+        // After the fix: start = Jan 15 (most recent before Feb 10), end = Feb 14, delta = +300.
+        await SeedFund("SE0008613939", "Look-back Fund", "Aktiefond Global", numberOfOwners: 1000,
+            historyRecords:
+            [
+                (new DateOnly(2025, 1, 15), 500),  // before period start — should be baseline
+                (new DateOnly(2025, 2, 14), 800),  // inside period
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(From, To); // Feb 10 – 16
+
+        Assert.That(result.Fund.In, Has.Count.EqualTo(1));
+        Assert.That(result.Fund.In[0].Value, Is.EqualTo(300)); // 800 - 500
+    }
+
+    [Test]
+    public async Task LookBack_DifferentFromDates_ProduceDifferentDeltas()
+    {
+        // This is the core production bug: 1-month and 3-month periods return
+        // identical flow data because they find the same "earliest in-range" record.
+        //
+        // Fund snapshots: Oct 10 (1000), Jan 15 (1500), Mar 7 (1800)
+        //   "1 month"  Feb 11 – Mar 11: start should be Jan 15 (1500), end = Mar 7 (1800) → delta +300
+        //   "3 months" Dec 11 – Mar 11: start should be Oct 10 (1000), end = Mar 7 (1800) → delta +800
+        //
+        // Buggy behavior: both periods find Jan 15 as earliest in-range record → both delta = +300.
+
+        await SeedFund("SE0008613939", "Multi-Period Fund", "Aktiefond Global", numberOfOwners: 2000,
+            historyRecords:
+            [
+                (new DateOnly(2024, 10, 10), 1000), // only within "3 months" look-back
+                (new DateOnly(2025, 1, 15),  1500), // within both "1 month" and "3 months"
+                (new DateOnly(2025, 3, 7),   1800), // the common end point
+            ]);
+
+        var oneMonth   = await _sut.GetOwnershipFlowAsync(
+            new DateOnly(2025, 2, 11), new DateOnly(2025, 3, 11));
+
+        var threeMonths = await _sut.GetOwnershipFlowAsync(
+            new DateOnly(2024, 12, 11), new DateOnly(2025, 3, 11));
+
+        // 1 month: baseline = Jan 15 (1500), end = Mar 7 (1800)
+        Assert.That(oneMonth.Fund.In, Has.Count.EqualTo(1));
+        Assert.That(oneMonth.Fund.In[0].Value, Is.EqualTo(300));
+
+        // 3 months: baseline = Oct 10 (1000), end = Mar 7 (1800) — genuinely different!
+        Assert.That(threeMonths.Fund.In, Has.Count.EqualTo(1));
+        Assert.That(threeMonths.Fund.In[0].Value, Is.EqualTo(800));
+    }
+
+    // ─── Weekly period with sparse NumberOfOwners (production scenario) ─────────
+    //
+    // In production, NumberOfOwners is updated infrequently. A 7-day window often
+    // contains 0 or 1 snapshots per fund, so the service returns empty arrays.
+    // (Observed in logs: Feb 16–22 2026 → 0 outflows, 0 inflows.)
+
+    private static readonly DateOnly WeekFrom = new(2026, 2, 16); // Mon
+    private static readonly DateOnly WeekTo = new(2026, 2, 22);   // Sun
+
+    [Test]
+    public async Task WeeklyPeriod_ReturnsCorrectPeriodLabel()
+    {
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.PeriodLabel, Is.EqualTo("Feb 16 – 22"));
+    }
+
+    [Test]
+    public async Task WeeklyPeriod_AllHistoryRecordsHaveNullOwners_ReturnsEmpty()
+    {
+        // Owners are not updated this week — records exist but NumberOfOwners is null.
+        // Query 1 filters them out, leaving no qualifying records.
+        await SeedFundNullable("SE0008613939", "Sparse Fund", "Aktiefond Sverige",
+            profileOwners: 5000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 2, 16), null),
+                (new DateOnly(2026, 2, 19), null),
+                (new DateOnly(2026, 2, 22), null),
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.Fund.Out, Is.Empty);
+        Assert.That(result.Fund.In, Is.Empty);
+        Assert.That(result.Cat.Out, Is.Empty);
+        Assert.That(result.Cat.In, Is.Empty);
+    }
+
+    [Test]
+    public async Task WeeklyPeriod_OnlyOneRecordHasOwners_IsExcluded()
+    {
+        // Delta requires at least 2 records with non-null owners in the range.
+        // One snapshot mid-week is not enough.
+        await SeedFundNullable("SE0008613939", "Single Snapshot Fund", "Aktiefond Sverige",
+            profileOwners: 5000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 2, 16), null),
+                (new DateOnly(2026, 2, 19), 5100), // only one non-null record
+                (new DateOnly(2026, 2, 22), null),
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.Fund.Out, Is.Empty);
+        Assert.That(result.Fund.In, Is.Empty);
+    }
+
+    [Test]
+    public async Task WeeklyPeriod_TwoRecordsWithOwners_ComputesDeltaCorrectly()
+    {
+        // When owners snapshots exist at both ends of the weekly window, delta is computed.
+        await SeedFundNullable("SE0008613939", "Active Fund", "Aktiefond Sverige",
+            profileOwners: 5000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 2, 16), 5000),
+                (new DateOnly(2026, 2, 22), 5300),
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.Fund.In, Has.Count.EqualTo(1));
+        Assert.That(result.Fund.In[0].Value, Is.EqualTo(300));
+        Assert.That(result.Fund.In[0].Pct, Is.EqualTo(6.0));
+    }
+
+    [Test]
+    public async Task WeeklyPeriod_OwnersDataOnlyBeforeRange_IsExcluded()
+    {
+        // Owners snapshots from the preceding week are outside the date filter — ignored.
+        await SeedFundNullable("SE0008613939", "Prior Week Fund", "Aktiefond Sverige",
+            profileOwners: 5000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 2, 9),  4800), // prior week — excluded by date filter
+                (new DateOnly(2026, 2, 15), 5000), // day before range — excluded by date filter
+                (new DateOnly(2026, 2, 17), null), // in range, null → excluded by null filter
+                (new DateOnly(2026, 2, 22), null), // in range, null → excluded by null filter
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.Fund.Out, Is.Empty);
+        Assert.That(result.Fund.In, Is.Empty);
+    }
+
+    [Test]
+    public async Task WeeklyPeriod_MultipleNonNullRecords_UsesBoundaryValues()
+    {
+        // Service uses first and last records by NavDate, not any midpoint.
+        // Three owner snapshots this week: 5000 → 5050 → 5200.
+        // Expected delta: 5200 - 5000 = 200.
+        await SeedFundNullable("SE0008613939", "Multi Snapshot Fund", "Aktiefond Sverige",
+            profileOwners: 5000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 2, 16), 5000),
+                (new DateOnly(2026, 2, 18), 5050), // intermediate — not used
+                (new DateOnly(2026, 2, 22), 5200),
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(WeekFrom, WeekTo);
+
+        Assert.That(result.Fund.In, Has.Count.EqualTo(1));
+        Assert.That(result.Fund.In[0].Value, Is.EqualTo(200)); // 5200 - 5000
+    }
+
     // ─── Seed helpers ───────────────────────────────────────────────────────────
 
     private async Task SeedFund(
@@ -296,6 +479,40 @@ public class OwnershipFlowService_GetOwnershipFlowAsyncTests
                 Name = name,
                 Category = category,
                 NumberOfOwners = numberOfOwners,
+                FirstSeenAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        foreach (var (date, owners) in historyRecords)
+        {
+            context.FundHistoryRecords.Add(new FundHistoryRecord
+            {
+                IsinId = isinId,
+                NavDate = date,
+                NumberOfOwners = owners,
+            });
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>Variant of SeedFund that accepts nullable owners in history records.</summary>
+    private async Task SeedFundNullable(
+        string isin, string name, string? category, int profileOwners,
+        (DateOnly date, int? owners)[] historyRecords)
+    {
+        await using var context = InMemoryFundDataDbContextFactory.Create(_dbName);
+
+        var isinId = IsinId.Create(isin);
+        var existing = await context.FundProfiles.FindAsync(isinId);
+        if (existing is null)
+        {
+            context.FundProfiles.Add(new FundProfile
+            {
+                Id = isinId,
+                Name = name,
+                Category = category,
+                NumberOfOwners = profileOwners,
                 FirstSeenAt = DateTimeOffset.UtcNow,
             });
         }
