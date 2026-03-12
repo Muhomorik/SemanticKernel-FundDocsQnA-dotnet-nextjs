@@ -76,6 +76,23 @@ public class FundSyncApiClient : IFundSyncApiClient
         return result ?? throw new InvalidOperationException("Backend API returned null response");
     }
 
+    /// <inheritdoc />
+    public async Task<FundSyncResponse> SyncFundFullHistoryAsync(
+        FundFullHistorySyncRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.Debug("Full history sync for {0}: {1} records to POST /api/funds/full-sync",
+            request.Profile.Isin, request.HistoryRecords.Count);
+
+        var response = await SendWithRetryAsync(
+            ct => _httpClient.PostAsJsonAsync("api/funds/full-sync", request, ct),
+            "SyncFundFullHistory",
+            cancellationToken);
+
+        var result = await response.Content.ReadFromJsonAsync<FundSyncResponse>(cancellationToken);
+        return result ?? throw new InvalidOperationException("Backend API returned null response");
+    }
+
     /// <summary>
     /// Sends an HTTP request with automatic retry on 429 (Too Many Requests).
     /// Uses exponential backoff (2s, 4s, 8s) or the server's Retry-After header value.
