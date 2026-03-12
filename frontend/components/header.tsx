@@ -1,11 +1,15 @@
 "use client";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TrendingUp } from "lucide-react";
+import { Activity, ArrowLeft, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useChatContext } from "./chat-context";
 
 export function Header() {
   const { resetChat } = useChatContext();
+  const pathname = usePathname();
+  const isOnFlowPage = pathname?.startsWith("/ownership-flow");
 
   const handleHeaderClick = () => {
     resetChat();
@@ -27,7 +31,26 @@ export function Header() {
             Fund Insights
           </span>
         </button>
-        <ThemeToggle />
+
+        <div className="flex items-center gap-2">
+          <Link
+            href={isOnFlowPage ? "/" : "/ownership-flow"}
+            className="text-muted-foreground hover:text-foreground hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 sm:flex"
+          >
+            {isOnFlowPage ? (
+              <>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Fund Insights
+              </>
+            ) : (
+              <>
+                <Activity className="h-3.5 w-3.5" />
+                Ownership Flow
+              </>
+            )}
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

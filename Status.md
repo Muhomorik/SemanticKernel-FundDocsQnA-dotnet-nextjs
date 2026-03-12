@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-10 (Backend: Ownership Flow API — Sankey chart endpoints for fund/category ownership deltas)
+Last Updated: 2026-03-11 (CloudSync now uses only POST /api/funds/full-sync — Phase 1 list sync removed)
 
 **Tech Stack:**
 
@@ -90,7 +90,7 @@ Last Updated: 2026-03-10 (Backend: Ownership Flow API — Sankey chart endpoints
 | LLM Providers | ✅ | OpenAI (gpt-4.1-mini) default, Groq optional |
 | Vector Storage | ✅ | InMemory (default) + Cosmos DB (optional persistent storage) |
 | Semantic Search | ✅ | OpenAI embeddings (text-embedding-3-small) + InMemoryVectorStore / CosmosDbSemanticSearch |
-| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, health checks, Swagger |
+| API Endpoints | ✅ | POST /api/ask, POST /api/embeddings (+ PUT, DELETE), POST /api/funds/list, POST /api/funds/about, POST /api/funds/full-sync, health checks, Swagger |
 | Fund Data Sync | ✅ | EF Core + Azure SQL: FundProfiles + FundHistoryRecords tables, auto-migration, upsert/insert-only patterns, transient retry policy |
 | Authentication | ✅ | API key authentication for embedding + fund data endpoints |
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
@@ -121,18 +121,19 @@ Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. 
 | **Domain** | `FundProfile` aggregate root (~35 properties, keyed by ISIN) | ✅ |
 | **Domain** | `FundHistoryRecord` entity (Nav, NavDate, Capital, Risk metrics) | ✅ |
 | **Domain** | `IFundProfileRepository` / `IFundHistoryRepository` interfaces | ✅ |
-| **ApplicationCore** | API DTOs mirrored from YieldRaccoon (5 files) | ✅ |
+| **ApplicationCore** | API DTOs mirrored from YieldRaccoon (8 files) | ✅ |
 | **ApplicationCore** | `IFundSyncService` / `FundSyncService` (DTO→entity mapping, validation) | ✅ |
 | **Infrastructure** | `FundDataDbContext` (EF Core, SQL Server types) | ✅ |
 | **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, single unique descending index) | ✅ |
-| **Infrastructure** | `EfCoreFundProfileRepository` (upsert, preserves FirstSeenAt) | ✅ |
-| **Infrastructure** | `EfCoreFundHistoryRepository` (batch-load upsert + insert-if-not-exists) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository` (upsert + insert-if-not-exists, preserves FirstSeenAt) | ✅ |
+| **Infrastructure** | `EfCoreFundHistoryRepository` (batch-load upsert + insert-if-not-exists + sparse upsert) | ✅ |
 | **Controller** | `POST /api/funds/list` (batch crawl session sync) | ✅ |
 | **Controller** | `POST /api/funds/about` (single fund + chart history) | ✅ |
+| **Controller** | `POST /api/funds/full-sync` (CloudSync full history with sparse upsert) | ✅ |
 | **Middleware** | `ApiKeyAuthenticationMiddleware` expanded for `/api/funds` | ✅ |
 | **Health** | `AzureSqlHealthCheck` (connectivity + profile count) | ✅ |
 | **Migration** | `InitialFundData` (FundProfiles + FundHistoryRecords tables) | ✅ |
-| **Tests** | `IsinIdTests` (8), `FundHistoryRecordIdTests` (7), `FundSyncServiceTests` (17), `EfCoreFundProfileRepository_UpsertAsyncTests` (9), `EfCoreFundHistoryRepository_UpsertRangeAsyncTests` (6), `EfCoreFundHistoryRepository_InsertIfNotExistsRangeAsyncTests` (6) | ✅ |
+| **Tests** | `IsinIdTests` (8), `FundHistoryRecordIdTests` (7), `FundSyncServiceTests` (23), `EfCoreFundProfileRepository_UpsertAsyncTests` (9), `EfCoreFundProfileRepository_InsertIfNotExistsAsyncTests` (5), `EfCoreFundHistoryRepository_UpsertRangeAsyncTests` (6), `EfCoreFundHistoryRepository_InsertIfNotExistsRangeAsyncTests` (6), `EfCoreFundHistoryRepository_UpsertSparseRangeAsyncTests` (9) | ✅ |
 
 **Endpoints:**
 
@@ -140,6 +141,7 @@ Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. 
 | -------- | ------ | --------- |
 | POST | `/api/funds/list` | Batch upsert profiles + daily snapshots from fund list crawl |
 | POST | `/api/funds/about` | Upsert profile + insert-only chart history from fund detail page |
+| POST | `/api/funds/full-sync` | CloudSync: insert-if-not-exists profile + sparse upsert full history (all time-varying fields) |
 
 ### FundDataPlugin — Semantic Kernel Function Calling ✅ COMPLETED (2026-03-07)
 
@@ -160,6 +162,24 @@ LLM can now answer structured fund data queries (performance, ownership, categor
 
 **Plan:** `.claude/plans/curried-riding-hoare.md`
 
+### Ownership Flow — Frontend ✅ COMPLETED (2026-03-11)
+
+Frontend page at `/ownership-flow` with declarative JSX SVG Sankey renderer, period selector, and full dark/light mode support.
+
+| Component | Details | Status |
+| ----------- | --------- | -------- |
+| `lib/ownership-flow.ts` | Types, API functions (`fetchOwnershipPeriods`, `fetchOwnershipFlow`), layout math (`computeSankeyLayout`, `buildLinkPath`), formatting helpers | ✅ |
+| `ownership-flow-page.tsx` | `"use client"` orchestrator — two-effect fetch chain, shared tooltip state, AbortController cleanup | ✅ |
+| `period-selector.tsx` | Controlled weekly/monthly pill tabs, `aria-pressed`, warm gradient active style, disabled during fetch | ✅ |
+| `sankey-chart.tsx` | Declarative JSX SVG — `useId()` for gradient IDs, `useTheme()` for hub colors, mouse event tooltip handlers | ✅ |
+| `sankey-card.tsx` | Card chrome, loading skeleton (`animate-pulse`), outflow/inflow count badges | ✅ |
+| `sankey-empty.tsx` | Three empty state variants (no data / only-in / only-out) | ✅ |
+| `sankey-tooltip.tsx` | Portal-based tooltip via `createPortal`, SSR-safe `mounted` guard | ✅ |
+| `app/ownership-flow/page.tsx` | Static route shell with Next.js `Metadata` | ✅ |
+| `header.tsx` | Nav link: "Ownership Flow" (home) / "← Fund Insights" (flow page) via `usePathname` | ✅ |
+| **Tests** | 76 tests: `sankey-layout` (45), `api.ownership-flow` (11), `period-selector` (8), `sankey-card` (10), `sankey-chart` (7), `sankey-empty` (3) | ✅ |
+| Dark/light mode | Page chrome via Tailwind CSS variables; SVG hub colors via `useTheme()` (dark warm / light tan) | ✅ |
+
 ### Ownership Flow API — Sankey Chart Backend ✅ COMPLETED (2026-03-10)
 
 Backend API endpoints for ownership flow Sankey visualization. Computes investor movement (NumberOfOwners deltas) across funds and categories for weekly/monthly time periods.
@@ -173,7 +193,9 @@ Backend API endpoints for ownership flow Sankey visualization. Computes investor
 | **Controller** | `GET /api/ownership-flow/periods` (weekly + monthly time periods) | ✅ |
 | **Controller** | `GET /api/ownership-flow?from=&to=` (Sankey data for both charts, input validation) | ✅ |
 | **Program.cs** | Service registration + `AddMemoryCache()` | ✅ |
-| **Tests** | `CategoryMacroGroupTests` (20), `OwnershipFlowService_GetAvailablePeriodsTests` (11), `OwnershipFlowService_GetOwnershipFlowAsyncTests` (14) — InternalsVisibleTo for internal method testing | ✅ |
+| **Infrastructure** | `OwnershipFlowService` bug fix: look-back baseline — query now loads all records `NavDate <= to` (no lower bound); start snapshot = most recent record ≤ from, fallback to earliest if none exists. Fixes empty results for weekly/monthly periods with sparse NumberOfOwners data. | ✅ |
+| **Tests** | `CategoryMacroGroupTests` (20), `OwnershipFlowService_GetAvailablePeriodsTests` (11), `OwnershipFlowService_GetOwnershipFlowAsyncTests` (22) — includes 6 weekly-period tests + 2 TDD look-back regression tests. InternalsVisibleTo for internal method testing. | ✅ |
+| **Tests** | `OwnershipFlowControllerTests` (17) — validation (from≥to, range>365, from in future), 503 guard, happy path, exception→500, error message content | ✅ |
 
 **Endpoints:**
 
@@ -831,7 +853,7 @@ Added manual collection mode: navigate to any fund URL, manually click period bu
 6. If automated session is active, URL is navigated but manual collection is skipped (automated takes precedence)
 7. Navigating to a new URL silently transitions — previous data already persisted per-slot
 
-### Cloud Sync API DTOs ✅ COMPLETED (2026-03-02)
+### Cloud Sync API DTOs ✅ COMPLETED (2026-03-02, updated 2026-03-11)
 
 HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund data to Backend API (Azure SQL). These are the source-of-truth for the wire format — Backend has its own identical copies (no project reference).
 
@@ -842,10 +864,13 @@ HTTP API contract DTOs in `YieldRaccoon.Application/DTOs/Api/` for syncing fund 
 | `FundListSyncRequest.cs` | Request for `POST /api/funds/list` (batch from crawl session) |
 | `FundAboutSyncRequest.cs` | Request for `POST /api/funds/about` (single fund + chart history) |
 | `FundSyncResponse.cs` | Response from both endpoints (success, message, counts) |
+| `ApiFundFullSyncProfileMetadataDto.cs` | Static-only profile metadata for `POST /api/funds/full-sync` (excludes time-varying fields) |
+| `ApiFundFullHistoryRecordDto.cs` | Full history record for `POST /api/funds/full-sync` (all 7 time-varying fields) |
+| `FundFullHistorySyncRequest.cs` | Request for `POST /api/funds/full-sync` (profile metadata + full history records) |
 
-### Cloud Sync Window ✅ COMPLETED (2026-03-04)
+### Cloud Sync Window ✅ COMPLETED (2026-03-04, updated 2026-03-11)
 
-On-demand bulk sync window accessible from the title bar. Lets users push all (or filtered) fund profiles + history records to the Backend API with configurable throttling. Two-phase sync: batch profile push via `POST /api/funds/list`, then per-fund history via `POST /api/funds/about` with throttle delays.
+On-demand bulk sync window accessible from the title bar. Lets users push all (or filtered) fund profiles + history records to the Backend API with configurable throttling. Single-phase sync: per-fund `POST /api/funds/full-sync` with profile metadata (insert-if-not-exists) + full history records (all time-varying fields) and throttle delays.
 
 | Component | Details |
 | --------- | ------- |
@@ -855,7 +880,8 @@ On-demand bulk sync window accessible from the title bar. Lets users push all (o
 | **Window Service** | `ICloudSyncWindowService` / `CloudSyncWindowService` — modal dialog launcher |
 | **DI Refactor** | Extracted `RegisterBackendApiClient()` from `RegisterDualWriteServices()` — HttpClient + FundSyncApiClient available whenever BackendApiUrl is configured |
 | **Repository** | Added `GetByCompanyNameFilterAsync` to `IFundProfileRepository` + both implementations |
-| **Tests** | 8 unit tests in `CloudSyncService_SyncAsyncTests` (empty results, batch calls, per-fund calls, history mapping, partial failures, cancellation, progress, filter passthrough) |
+| **Full History Path** | Uses only `POST /api/funds/full-sync`: sends `ApiFundFullSyncProfileMetadataDto` (insert-if-not-exists) + `ApiFundFullHistoryRecordDto[]` (sparse upsert — Capital/NumberOfOwners/Risk/SharpeRatio/StandardDeviation synced, Nav/NavDate never overwritten). Phase 1 `POST /api/funds/list` removed from CloudSync (still used by DualWrite crawl path). |
+| **Tests** | 7 unit tests in `CloudSyncService_SyncAsyncTests` (Phase 1 list test removed) |
 | **Docs** | [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) — feature overview, sync phases, Mermaid sequence diagram |
 
 ### HTTP 429 Rate-Limit Handling ✅ COMPLETED (2026-03-04)
