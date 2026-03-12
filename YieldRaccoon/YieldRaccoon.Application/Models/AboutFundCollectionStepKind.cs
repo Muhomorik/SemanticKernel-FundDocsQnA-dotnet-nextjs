@@ -58,7 +58,10 @@ public static class AboutFundCollectionStepKinds
         AboutFundCollectionStepKind.Select1Month,
         AboutFundCollectionStepKind.Select3Months,
         AboutFundCollectionStepKind.SelectYearToDate,
-        AboutFundCollectionStepKind.Select1Year
+        AboutFundCollectionStepKind.Select1Year,
+        AboutFundCollectionStepKind.Select3Years,
+        AboutFundCollectionStepKind.Select5Years,
+        AboutFundCollectionStepKind.SelectMax
     };
 
     /// <summary>
