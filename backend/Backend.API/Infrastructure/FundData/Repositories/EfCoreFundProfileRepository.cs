@@ -77,6 +77,16 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     }
 
     /// <inheritdoc />
+    public async Task InsertIfNotExistsAsync(FundProfile profile, CancellationToken cancellationToken = default)
+    {
+        var exists = await _context.FundProfiles
+            .AnyAsync(p => p.Id == profile.Id, cancellationToken);
+
+        if (!exists)
+            _context.FundProfiles.Add(profile);
+    }
+
+    /// <inheritdoc />
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);

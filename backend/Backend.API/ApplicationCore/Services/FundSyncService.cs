@@ -157,6 +157,84 @@ public class FundSyncService : IFundSyncService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<FundSyncResponse> SyncFullHistoryAsync(
+        FundFullHistorySyncRequest request, CancellationToken cancellationToken = default)
+    {
+        var dto = request.Profile;
+
+        if (string.IsNullOrWhiteSpace(dto.Isin) || string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return new FundSyncResponse
+            {
+                Success = false,
+                Message = "Fund profile must have ISIN and Name."
+            };
+        }
+
+        IsinId isinId;
+        try
+        {
+            isinId = IsinId.Create(dto.Isin);
+        }
+        catch (ArgumentException ex)
+        {
+            return new FundSyncResponse
+            {
+                Success = false,
+                Message = $"Invalid ISIN format: {ex.Message}"
+            };
+        }
+
+        // Guarantee FK exists — never overwrite existing profile data
+        var profile = CreateProfileFromMetadata(dto, isinId);
+        await _profileRepository.InsertIfNotExistsAsync(profile, cancellationToken);
+
+        // Map and upsert history records using sparse semantics
+        var historyRecords = new List<FundHistoryRecord>();
+        foreach (var record in request.HistoryRecords)
+        {
+            var navDate = ParseDateOnly(record.NavDate);
+            if (navDate == null) continue;
+
+            IsinId recordIsinId;
+            try
+            {
+                recordIsinId = IsinId.Create(record.Isin);
+            }
+            catch (ArgumentException)
+            {
+                continue;
+            }
+
+            historyRecords.Add(new FundHistoryRecord
+            {
+                IsinId = recordIsinId,
+                Nav = record.Nav,
+                NavDate = navDate,
+                Capital = record.Capital,
+                NumberOfOwners = record.NumberOfOwners,
+                Risk = record.Risk,
+                SharpeRatio = record.SharpeRatio,
+                StandardDeviation = record.StandardDeviation
+            });
+        }
+
+        await _historyRepository.UpsertSparseRangeAsync(historyRecords, cancellationToken);
+        await _profileRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Full history sync for {Isin}: {History} history records",
+            dto.Isin, historyRecords.Count);
+
+        return new FundSyncResponse
+        {
+            Success = true,
+            Message = $"Full history sync for {dto.Isin}: {historyRecords.Count} history records processed.",
+            ProfilesProcessed = 1,
+            HistoryRecordsInserted = historyRecords.Count
+        };
+    }
+
     private static FundProfile CreateProfile(ApiFundDto dto, IsinId isinId)
     {
         return new FundProfile
@@ -186,6 +264,44 @@ public class FundSyncService : IFundSyncService
             Risk = dto.Risk,
             SharpeRatio = dto.SharpeRatio,
             StandardDeviation = dto.StandardDeviation,
+            SustainabilityLevel = dto.SustainabilityLevel,
+            SustainabilityRating = dto.SustainabilityRating,
+            EsgScore = dto.EsgScore,
+            EnvironmentalScore = dto.EnvironmentalScore,
+            SocialScore = dto.SocialScore,
+            GovernanceScore = dto.GovernanceScore,
+            LowCarbon = dto.LowCarbon,
+            EuArticleType = dto.EuArticleType,
+            FirstSeenAt = ParseDateTimeOffset(dto.FirstSeenAt) ?? DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = ParseDateTimeOffset(dto.CrawlerLastUpdatedAt),
+            AboutFundLastVisitedAt = ParseDateTimeOffset(dto.AboutFundLastVisitedAt),
+        };
+    }
+
+    private static FundProfile CreateProfileFromMetadata(ApiFundFullSyncProfileMetadataDto dto, IsinId isinId)
+    {
+        return new FundProfile
+        {
+            Id = isinId,
+            Name = dto.Name,
+            OrderbookId = dto.OrderbookId,
+            Category = dto.Category,
+            CompanyName = dto.CompanyName,
+            FundType = dto.FundType,
+            IsIndexFund = dto.IsIndexFund,
+            CurrencyCode = dto.CurrencyCode,
+            ManagedType = dto.ManagedType,
+            StartDate = ParseDateOnly(dto.StartDate),
+            Buyable = dto.Buyable,
+            HasCashDividends = dto.HasCashDividends,
+            HasCurrencyExchangeFee = dto.HasCurrencyExchangeFee,
+            RecommendedHoldingPeriod = dto.RecommendedHoldingPeriod,
+            ManagementFee = dto.ManagementFee,
+            TotalFee = dto.TotalFee,
+            TransactionFee = dto.TransactionFee,
+            OngoingFee = dto.OngoingFee,
+            MinimumBuy = dto.MinimumBuy,
+            Rating = dto.Rating,
             SustainabilityLevel = dto.SustainabilityLevel,
             SustainabilityRating = dto.SustainabilityRating,
             EsgScore = dto.EsgScore,

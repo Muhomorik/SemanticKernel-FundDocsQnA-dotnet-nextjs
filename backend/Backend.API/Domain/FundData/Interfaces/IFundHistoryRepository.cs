@@ -20,6 +20,14 @@ public interface IFundHistoryRepository
     Task InsertIfNotExistsRangeAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Upserts history records using sparse (COALESCE) semantics.
+    /// Used by the full-sync path: inserts new records with all fields; for existing (ISIN, NavDate) pairs,
+    /// updates Capital/NumberOfOwners/Risk/SharpeRatio/StandardDeviation only when the incoming value is non-null.
+    /// Nav and NavDate are never modified on existing records.
+    /// </summary>
+    Task UpsertSparseRangeAsync(IEnumerable<FundHistoryRecord> records, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persists all pending changes to the store.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

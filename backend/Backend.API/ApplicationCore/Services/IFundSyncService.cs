@@ -18,4 +18,12 @@ public interface IFundSyncService
     /// Profile is upserted; history records are insert-only (skip existing NavDate).
     /// </summary>
     Task<FundSyncResponse> SyncFromFundAboutAsync(FundAboutSyncRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Full-sync path used by CloudSyncWindow.
+    /// Guarantees the fund profile FK exists (insert-if-not-exists, never overwrites existing profile).
+    /// History records are upserted with sparse semantics: inserts new, updates only non-null sparse fields
+    /// on existing records; Nav and NavDate are never modified.
+    /// </summary>
+    Task<FundSyncResponse> SyncFullHistoryAsync(FundFullHistorySyncRequest request, CancellationToken cancellationToken = default);
 }
