@@ -16,7 +16,7 @@ export interface OwnershipPeriodsResponse {
 export interface FlowNode {
   name: string;
   value: number; // absolute owner delta (always positive)
-  pct: number;   // signed: negative for outflows, positive for inflows
+  pct: number; // signed: negative for outflows, positive for inflows
 }
 
 export interface FlowSide {
@@ -99,10 +99,17 @@ export const SANKEY_CONSTANTS = {
 
 export function computeSankeyLayout(
   data: FlowSide,
-  svgHeight: number,
+  svgHeight: number
 ): SankeyLayout {
-  const { PAD_T, PAD_B, NODE_GAP, MIN_NODE_H, LINK_OPACITY_FEW, LINK_OPACITY_MANY, LINK_OPACITY_THRESHOLD } =
-    SANKEY_CONSTANTS;
+  const {
+    PAD_T,
+    PAD_B,
+    NODE_GAP,
+    MIN_NODE_H,
+    LINK_OPACITY_FEW,
+    LINK_OPACITY_MANY,
+    LINK_OPACITY_THRESHOLD,
+  } = SANKEY_CONSTANTS;
 
   const totalOut = data.out.reduce((s, n) => s + n.value, 0);
   const totalIn = data.in.reduce((s, n) => s + n.value, 0);
@@ -140,7 +147,8 @@ export function computeSankeyLayout(
   const outHubSlices = hubSlices(data.out, totalOut);
   const inHubSlices = hubSlices(data.in, totalIn);
   const maxSide = Math.max(data.out.length, data.in.length);
-  const linkOpacity = maxSide > LINK_OPACITY_THRESHOLD ? LINK_OPACITY_MANY : LINK_OPACITY_FEW;
+  const linkOpacity =
+    maxSide > LINK_OPACITY_THRESHOLD ? LINK_OPACITY_MANY : LINK_OPACITY_FEW;
 
   return {
     outNodes,
@@ -162,7 +170,7 @@ export function buildLinkPath(
   sy2: number,
   tx: number,
   ty1: number,
-  ty2: number,
+  ty2: number
 ): string {
   const dx = tx - sx;
   const cp = dx * 0.55;
@@ -194,7 +202,7 @@ export async function fetchOwnershipPeriods(): Promise<OwnershipPeriodsResponse>
       throw new ApiError(
         `Periods fetch failed: ${res.statusText}`,
         res.status,
-        text,
+        text
       );
     }
     return res.json() as Promise<OwnershipPeriodsResponse>;
@@ -203,14 +211,14 @@ export async function fetchOwnershipPeriods(): Promise<OwnershipPeriodsResponse>
     throw new ApiError(
       err instanceof Error ? err.message : "Unknown error fetching periods",
       undefined,
-      err,
+      err
     );
   }
 }
 
 export async function fetchOwnershipFlow(
   from: string,
-  to: string,
+  to: string
 ): Promise<OwnershipFlowResponse> {
   try {
     const url = new URL(`${API_URL}/api/ownership-flow`);
@@ -222,7 +230,7 @@ export async function fetchOwnershipFlow(
       throw new ApiError(
         `Flow fetch failed: ${res.statusText}`,
         res.status,
-        text,
+        text
       );
     }
     return res.json() as Promise<OwnershipFlowResponse>;
@@ -231,7 +239,7 @@ export async function fetchOwnershipFlow(
     throw new ApiError(
       err instanceof Error ? err.message : "Unknown error fetching flow",
       undefined,
-      err,
+      err
     );
   }
 }

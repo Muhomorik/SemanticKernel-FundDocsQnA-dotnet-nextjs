@@ -9,7 +9,9 @@ interface SankeyCardProps {
   svgHeight: number;
   isLoading: boolean;
   periodLabel?: string;
-  onTooltipChange: (updater: TooltipState | ((prev: TooltipState) => TooltipState)) => void;
+  onTooltipChange: (
+    updater: TooltipState | ((prev: TooltipState) => TooltipState)
+  ) => void;
 }
 
 export function SankeyCard({

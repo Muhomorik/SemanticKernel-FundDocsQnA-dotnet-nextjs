@@ -23,8 +23,10 @@ export function PeriodSelector({
   disabled = false,
 }: PeriodSelectorProps) {
   return (
-    <div className="bg-card border-border/50 mb-6 flex items-center gap-2 rounded-lg border p-1.5 flex-wrap">
-      <span className="text-muted-foreground px-2 text-xs font-medium">Weekly</span>
+    <div className="bg-card border-border/50 mb-6 flex flex-wrap items-center gap-2 rounded-lg border p-1.5">
+      <span className="text-muted-foreground px-2 text-xs font-medium">
+        Weekly
+      </span>
       {periods.weekly.map((period, i) => {
         const isActive = selected.group === "weekly" && selected.index === i;
         return (
@@ -46,7 +48,9 @@ export function PeriodSelector({
         className="bg-border mx-1 h-5 w-px flex-shrink-0"
       />
 
-      <span className="text-muted-foreground px-2 text-xs font-medium">Monthly</span>
+      <span className="text-muted-foreground px-2 text-xs font-medium">
+        Monthly
+      </span>
       {periods.monthly.map((period, i) => {
         const isActive = selected.group === "monthly" && selected.index === i;
         return (

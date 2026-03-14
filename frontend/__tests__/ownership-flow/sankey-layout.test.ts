@@ -7,15 +7,18 @@ import {
   truncateLabel,
 } from "@/lib/ownership-flow";
 
-const { PAD_T, PAD_B, MIN_NODE_H, NODE_GAP, LINK_OPACITY_FEW, LINK_OPACITY_MANY } =
-  SANKEY_CONSTANTS;
+const {
+  PAD_T,
+  PAD_B,
+  MIN_NODE_H,
+  NODE_GAP,
+  LINK_OPACITY_FEW,
+  LINK_OPACITY_MANY,
+} = SANKEY_CONSTANTS;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeData(
-  out: number[],
-  inflow: number[],
-): FlowSide {
+function makeData(out: number[], inflow: number[]): FlowSide {
   return {
     out: out.map((v, i) => ({ name: `Out${i}`, value: v, pct: -1 })),
     in: inflow.map((v, i) => ({ name: `In${i}`, value: v, pct: 1 })),
@@ -30,7 +33,10 @@ describe("computeSankeyLayout", () => {
 
   describe("totals", () => {
     it("computes totalOut as sum of out values", () => {
-      const layout = computeSankeyLayout(makeData([100, 200, 300], [50]), SVG_H);
+      const layout = computeSankeyLayout(
+        makeData([100, 200, 300], [50]),
+        SVG_H
+      );
       expect(layout.totalOut).toBe(600);
     });
 
@@ -69,8 +75,12 @@ describe("computeSankeyLayout", () => {
     });
 
     it("consecutive nodes are separated by NODE_GAP", () => {
-      const layout = computeSankeyLayout(makeData([100, 100, 100], [100]), SVG_H);
-      const gap = layout.outNodes[1].y - (layout.outNodes[0].y + layout.outNodes[0].h);
+      const layout = computeSankeyLayout(
+        makeData([100, 100, 100], [100]),
+        SVG_H
+      );
+      const gap =
+        layout.outNodes[1].y - (layout.outNodes[0].y + layout.outNodes[0].h);
       expect(gap).toBeCloseTo(NODE_GAP, 5);
     });
 
@@ -101,7 +111,10 @@ describe("computeSankeyLayout", () => {
 
   describe("hub slices", () => {
     it("outHubSlices count matches out nodes count", () => {
-      const layout = computeSankeyLayout(makeData([100, 200, 300], [100]), SVG_H);
+      const layout = computeSankeyLayout(
+        makeData([100, 200, 300], [100]),
+        SVG_H
+      );
       expect(layout.outHubSlices).toHaveLength(3);
     });
 
@@ -111,20 +124,29 @@ describe("computeSankeyLayout", () => {
     });
 
     it("outHubSlices span the full hub height", () => {
-      const layout = computeSankeyLayout(makeData([100, 200, 300], [100]), SVG_H);
+      const layout = computeSankeyLayout(
+        makeData([100, 200, 300], [100]),
+        SVG_H
+      );
       const last = layout.outHubSlices[layout.outHubSlices.length - 1];
       expect(last.y2).toBeCloseTo(PAD_T + availH, 1);
     });
 
     it("inHubSlices span the full hub height", () => {
-      const layout = computeSankeyLayout(makeData([100], [100, 200, 300]), SVG_H);
+      const layout = computeSankeyLayout(
+        makeData([100], [100, 200, 300]),
+        SVG_H
+      );
       const last = layout.inHubSlices[layout.inHubSlices.length - 1];
       expect(last.y2).toBeCloseTo(PAD_T + availH, 1);
     });
 
     it("consecutive slices are contiguous (no gap)", () => {
       const layout = computeSankeyLayout(makeData([100, 200], [100]), SVG_H);
-      expect(layout.outHubSlices[1].y1).toBeCloseTo(layout.outHubSlices[0].y2, 5);
+      expect(layout.outHubSlices[1].y1).toBeCloseTo(
+        layout.outHubSlices[0].y2,
+        5
+      );
     });
 
     it("returns empty slices for empty data", () => {
@@ -136,14 +158,17 @@ describe("computeSankeyLayout", () => {
 
   describe("linkOpacity", () => {
     it("returns LINK_OPACITY_FEW when max(out, in) <= threshold (6)", () => {
-      const layout = computeSankeyLayout(makeData([100, 100, 100], [100, 100, 100]), SVG_H);
+      const layout = computeSankeyLayout(
+        makeData([100, 100, 100], [100, 100, 100]),
+        SVG_H
+      );
       expect(layout.linkOpacity).toBe(LINK_OPACITY_FEW);
     });
 
     it("returns LINK_OPACITY_MANY when max(out, in) > threshold (7)", () => {
       const layout = computeSankeyLayout(
         makeData([100, 100, 100, 100, 100, 100, 100], [100]),
-        SVG_H,
+        SVG_H
       );
       expect(layout.linkOpacity).toBe(LINK_OPACITY_MANY);
     });
@@ -152,7 +177,7 @@ describe("computeSankeyLayout", () => {
       // 3 out, 7 in → max is 7 → MANY
       const layout = computeSankeyLayout(
         makeData([100, 100, 100], [100, 100, 100, 100, 100, 100, 100]),
-        SVG_H,
+        SVG_H
       );
       expect(layout.linkOpacity).toBe(LINK_OPACITY_MANY);
     });

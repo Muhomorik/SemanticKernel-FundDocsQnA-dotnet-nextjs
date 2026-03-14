@@ -52,7 +52,9 @@ export function OwnershipFlowPage() {
         }
       })
       .catch((err: unknown) =>
-        setPeriodsError(err instanceof Error ? err.message : "Failed to load periods"),
+        setPeriodsError(
+          err instanceof Error ? err.message : "Failed to load periods"
+        )
       )
       .finally(() => setIsLoadingPeriods(false));
   }, []);
@@ -65,11 +67,16 @@ export function OwnershipFlowPage() {
       setIsLoadingFlow(true);
       setFlowError(null);
       try {
-        const data = await fetchOwnershipFlow(selected.period.from, selected.period.to);
+        const data = await fetchOwnershipFlow(
+          selected.period.from,
+          selected.period.to
+        );
         if (!controller.signal.aborted) setFlowData(data);
       } catch (err: unknown) {
         if (!controller.signal.aborted)
-          setFlowError(err instanceof Error ? err.message : "Failed to load flow data");
+          setFlowError(
+            err instanceof Error ? err.message : "Failed to load flow data"
+          );
       } finally {
         if (!controller.signal.aborted) setIsLoadingFlow(false);
       }

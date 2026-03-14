@@ -59,31 +59,66 @@ const C_LIGHT = {
 interface SankeyChartProps {
   data: FlowSide;
   svgHeight: number;
-  onTooltipChange: (updater: TooltipState | ((prev: TooltipState) => TooltipState)) => void;
+  onTooltipChange: (
+    updater: TooltipState | ((prev: TooltipState) => TooltipState)
+  ) => void;
 }
 
-export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartProps) {
+export function SankeyChart({
+  data,
+  svgHeight,
+  onTooltipChange,
+}: SankeyChartProps) {
   const uid = useId();
   const { resolvedTheme } = useTheme();
   const C = { ...C_SHARED, ...(resolvedTheme === "dark" ? C_DARK : C_LIGHT) };
 
   const layout = useMemo(
     () => computeSankeyLayout(data, svgHeight),
-    [data, svgHeight],
+    [data, svgHeight]
   );
 
-  if (!data.out.length && !data.in.length) return <SankeyEmpty variant="none" />;
+  if (!data.out.length && !data.in.length)
+    return <SankeyEmpty variant="none" />;
   if (!data.out.length) return <SankeyEmpty variant="only-in" />;
   if (!data.in.length) return <SankeyEmpty variant="only-out" />;
 
-  const { outNodes, inNodes, outHubSlices, inHubSlices, totalOut, totalIn, net, hubY, hubH, linkOpacity } = layout;
+  const {
+    outNodes,
+    inNodes,
+    outHubSlices,
+    inHubSlices,
+    totalOut,
+    totalIn,
+    net,
+    hubY,
+    hubH,
+    linkOpacity,
+  } = layout;
 
   const hubRight = HUB_X + HUB_W;
-  const netLabel = net > 0 ? `▲ +${formatOwnerCount(net)}` : net < 0 ? `▼ ${formatOwnerCount(net)}` : null;
+  const netLabel =
+    net > 0
+      ? `▲ +${formatOwnerCount(net)}`
+      : net < 0
+        ? `▼ ${formatOwnerCount(net)}`
+        : null;
   const netColor = net > 0 ? C.inVal : C.outVal;
 
-  function handleEnter(e: React.MouseEvent, name: string, value: number, side: "out" | "in") {
-    onTooltipChange({ visible: true, x: e.clientX, y: e.clientY, name, value, side });
+  function handleEnter(
+    e: React.MouseEvent,
+    name: string,
+    value: number,
+    side: "out" | "in"
+  ) {
+    onTooltipChange({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      name,
+      value,
+      side,
+    });
   }
 
   function handleMove(e: React.MouseEvent) {
@@ -112,7 +147,14 @@ export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartPro
 
         {/* Out node gradients */}
         {outNodes.map((_, i) => (
-          <linearGradient key={i} id={`${uid}-gO${i}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            key={i}
+            id={`${uid}-gO${i}`}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor={C.outNode} />
             <stop offset="100%" stopColor={C.outNodeEnd} />
           </linearGradient>
@@ -120,7 +162,14 @@ export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartPro
 
         {/* In node gradients */}
         {inNodes.map((_, i) => (
-          <linearGradient key={i} id={`${uid}-gI${i}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            key={i}
+            id={`${uid}-gI${i}`}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor={C.inNode} />
             <stop offset="100%" stopColor={C.inNodeEnd} />
           </linearGradient>
@@ -128,17 +177,43 @@ export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartPro
 
         {/* Out link gradients */}
         {outNodes.map((_, i) => (
-          <linearGradient key={i} id={`${uid}-lgO${i}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor={C.outLink0} stopOpacity={linkOpacity} />
-            <stop offset="100%" stopColor={C.outLink1} stopOpacity={linkOpacity} />
+          <linearGradient
+            key={i}
+            id={`${uid}-lgO${i}`}
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="0"
+          >
+            <stop
+              offset="0%"
+              stopColor={C.outLink0}
+              stopOpacity={linkOpacity}
+            />
+            <stop
+              offset="100%"
+              stopColor={C.outLink1}
+              stopOpacity={linkOpacity}
+            />
           </linearGradient>
         ))}
 
         {/* In link gradients */}
         {inNodes.map((_, i) => (
-          <linearGradient key={i} id={`${uid}-lgI${i}`} x1="0" y1="0" x2="1" y2="0">
+          <linearGradient
+            key={i}
+            id={`${uid}-lgI${i}`}
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="0"
+          >
             <stop offset="0%" stopColor={C.inLink0} stopOpacity={linkOpacity} />
-            <stop offset="100%" stopColor={C.inLink1} stopOpacity={linkOpacity} />
+            <stop
+              offset="100%"
+              stopColor={C.inLink1}
+              stopOpacity={linkOpacity}
+            />
           </linearGradient>
         ))}
       </defs>
@@ -148,8 +223,12 @@ export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartPro
         const slice = outHubSlices[i];
         const nodeMidY = node.y + node.h / 2;
         const path = buildLinkPath(
-          LEFT_NODE_X + NODE_W, node.y, node.y + node.h,
-          HUB_X, slice.y1, slice.y2,
+          LEFT_NODE_X + NODE_W,
+          node.y,
+          node.y + node.h,
+          HUB_X,
+          slice.y1,
+          slice.y2
         );
         return (
           <path
@@ -171,8 +250,12 @@ export function SankeyChart({ data, svgHeight, onTooltipChange }: SankeyChartPro
       {inNodes.map((node, i) => {
         const slice = inHubSlices[i];
         const path = buildLinkPath(
-          hubRight, slice.y1, slice.y2,
-          RIGHT_NODE_X, node.y, node.y + node.h,
+          hubRight,
+          slice.y1,
+          slice.y2,
+          RIGHT_NODE_X,
+          node.y,
+          node.y + node.h
         );
         return (
           <path

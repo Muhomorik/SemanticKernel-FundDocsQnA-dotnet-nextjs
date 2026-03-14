@@ -5,7 +5,11 @@ import { FlowSide } from "@/lib/ownership-flow";
 // Mock SankeyChart to keep tests focused on SankeyCard logic
 jest.mock("@/components/ownership-flow/sankey-chart", () => ({
   SankeyChart: ({ data }: { data: FlowSide }) => (
-    <div data-testid="sankey-chart" data-out={data.out.length} data-in={data.in.length} />
+    <div
+      data-testid="sankey-chart"
+      data-out={data.out.length}
+      data-in={data.in.length}
+    />
   ),
 }));
 
@@ -33,7 +37,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByText("Category overview")).toBeInTheDocument();
   });
@@ -47,7 +51,7 @@ describe("SankeyCard", () => {
         svgHeight={520}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByText("Top 10 funds")).toBeInTheDocument();
   });
@@ -62,7 +66,7 @@ describe("SankeyCard", () => {
         isLoading={false}
         periodLabel="Feb 10 – 16"
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByText("Feb 10 – 16")).toBeInTheDocument();
   });
@@ -76,7 +80,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.queryByText(/Feb/)).not.toBeInTheDocument();
   });
@@ -90,15 +94,25 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByText("2 outflows")).toBeInTheDocument();
   });
 
   it("uses singular 'outflow' for count=1", () => {
-    const singleOut: FlowSide = { out: [{ name: "Sverige", value: 100, pct: -1 }], in: FLOW_DATA.in };
+    const singleOut: FlowSide = {
+      out: [{ name: "Sverige", value: 100, pct: -1 }],
+      in: FLOW_DATA.in,
+    };
     render(
-      <SankeyCard title="" subtitle="" data={singleOut} svgHeight={300} isLoading={false} onTooltipChange={NOOP} />,
+      <SankeyCard
+        title=""
+        subtitle=""
+        data={singleOut}
+        svgHeight={300}
+        isLoading={false}
+        onTooltipChange={NOOP}
+      />
     );
     expect(screen.getByText("1 outflow")).toBeInTheDocument();
   });
@@ -112,7 +126,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByText("3 inflows")).toBeInTheDocument();
   });
@@ -126,7 +140,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={true}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByLabelText("Loading chart")).toBeInTheDocument();
     expect(screen.queryByTestId("sankey-chart")).not.toBeInTheDocument();
@@ -141,7 +155,7 @@ describe("SankeyCard", () => {
         svgHeight={520}
         isLoading={true}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     const skeleton = screen.getByLabelText("Loading chart");
     expect(skeleton).toHaveStyle({ height: "520px" });
@@ -156,7 +170,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={false}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.getByTestId("sankey-chart")).toBeInTheDocument();
   });
@@ -170,7 +184,7 @@ describe("SankeyCard", () => {
         svgHeight={300}
         isLoading={true}
         onTooltipChange={NOOP}
-      />,
+      />
     );
     expect(screen.queryByTestId("sankey-chart")).not.toBeInTheDocument();
   });

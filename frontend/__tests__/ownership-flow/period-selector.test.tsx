@@ -26,7 +26,11 @@ const DEFAULT_SELECTED: SelectedPeriod = {
 describe("PeriodSelector", () => {
   it("renders all 4 weekly pills", () => {
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={() => {}} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={() => {}}
+      />
     );
     expect(screen.getByText("Feb 10 – 16")).toBeInTheDocument();
     expect(screen.getByText("Feb 17 – 23")).toBeInTheDocument();
@@ -36,7 +40,11 @@ describe("PeriodSelector", () => {
 
   it("renders all 3 monthly pills", () => {
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={() => {}} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={() => {}}
+      />
     );
     expect(screen.getByText("1 month")).toBeInTheDocument();
     expect(screen.getByText("2 months")).toBeInTheDocument();
@@ -45,7 +53,11 @@ describe("PeriodSelector", () => {
 
   it("selected weekly pill has aria-pressed=true", () => {
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={() => {}} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={() => {}}
+      />
     );
     const activeBtn = screen.getByRole("button", { name: "Feb 10 – 16" });
     expect(activeBtn).toHaveAttribute("aria-pressed", "true");
@@ -53,7 +65,11 @@ describe("PeriodSelector", () => {
 
   it("unselected pills have aria-pressed=false", () => {
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={() => {}} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={() => {}}
+      />
     );
     const inactiveBtn = screen.getByRole("button", { name: "Feb 17 – 23" });
     expect(inactiveBtn).toHaveAttribute("aria-pressed", "false");
@@ -62,7 +78,11 @@ describe("PeriodSelector", () => {
   it("calls onChange with correct SelectedPeriod when weekly pill clicked", async () => {
     const onChange = jest.fn();
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={onChange} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={onChange}
+      />
     );
     await userEvent.click(screen.getByRole("button", { name: "Feb 17 – 23" }));
     expect(onChange).toHaveBeenCalledWith({
@@ -75,7 +95,11 @@ describe("PeriodSelector", () => {
   it("calls onChange with group=monthly when monthly pill clicked", async () => {
     const onChange = jest.fn();
     render(
-      <PeriodSelector periods={PERIODS} selected={DEFAULT_SELECTED} onChange={onChange} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={DEFAULT_SELECTED}
+        onChange={onChange}
+      />
     );
     await userEvent.click(screen.getByRole("button", { name: "1 month" }));
     expect(onChange).toHaveBeenCalledWith({
@@ -92,7 +116,7 @@ describe("PeriodSelector", () => {
         selected={DEFAULT_SELECTED}
         onChange={() => {}}
         disabled
-      />,
+      />
     );
     const buttons = screen.getAllByRole("button");
     buttons.forEach((btn) => expect(btn).toBeDisabled());
@@ -105,15 +129,19 @@ describe("PeriodSelector", () => {
       period: PERIODS.monthly[1],
     };
     render(
-      <PeriodSelector periods={PERIODS} selected={monthlySelected} onChange={() => {}} />,
+      <PeriodSelector
+        periods={PERIODS}
+        selected={monthlySelected}
+        onChange={() => {}}
+      />
     );
     expect(screen.getByRole("button", { name: "2 months" })).toHaveAttribute(
       "aria-pressed",
-      "true",
+      "true"
     );
     expect(screen.getByRole("button", { name: "1 month" })).toHaveAttribute(
       "aria-pressed",
-      "false",
+      "false"
     );
   });
 });

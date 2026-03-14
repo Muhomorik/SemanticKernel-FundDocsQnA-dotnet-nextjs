@@ -13,9 +13,7 @@ const MOCK_PERIODS: OwnershipPeriodsResponse = {
     { label: "Feb 10 – 16", from: "2025-02-10", to: "2025-02-16" },
     { label: "Feb 17 – 23", from: "2025-02-17", to: "2025-02-23" },
   ],
-  monthly: [
-    { label: "1 month", from: "2025-01-10", to: "2025-02-10" },
-  ],
+  monthly: [{ label: "1 month", from: "2025-01-10", to: "2025-02-10" }],
 };
 
 const MOCK_FLOW: OwnershipFlowResponse = {
@@ -49,7 +47,7 @@ describe("fetchOwnershipPeriods", () => {
 
     expect(result).toEqual(MOCK_PERIODS);
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/ownership-flow/periods"),
+      expect.stringContaining("/api/ownership-flow/periods")
     );
   });
 
@@ -135,7 +133,9 @@ describe("fetchOwnershipFlow", () => {
       text: () => Promise.resolve("from must be earlier than to"),
     });
 
-    await expect(fetchOwnershipFlow("2025-02-16", "2025-02-10")).rejects.toThrow(ApiError);
+    await expect(
+      fetchOwnershipFlow("2025-02-16", "2025-02-10")
+    ).rejects.toThrow(ApiError);
   });
 
   it("throws ApiError with correct status code", async () => {
@@ -155,8 +155,12 @@ describe("fetchOwnershipFlow", () => {
   });
 
   it("throws ApiError on network failure", async () => {
-    global.fetch = jest.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError("Failed to fetch"));
 
-    await expect(fetchOwnershipFlow("2025-02-10", "2025-02-16")).rejects.toThrow(ApiError);
+    await expect(
+      fetchOwnershipFlow("2025-02-10", "2025-02-16")
+    ).rejects.toThrow(ApiError);
   });
 });

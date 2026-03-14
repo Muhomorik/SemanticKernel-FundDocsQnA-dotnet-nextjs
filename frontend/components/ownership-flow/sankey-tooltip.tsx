@@ -34,7 +34,7 @@ export function SankeyTooltip({ state }: SankeyTooltipProps) {
         transition: "opacity 0.1s",
         opacity: state.visible ? 1 : 0,
       }}
-      className="bg-background border-border shadow-lg rounded-lg border px-3 py-2 text-sm"
+      className="bg-background border-border rounded-lg border px-3 py-2 text-sm shadow-lg"
     >
       <p className="font-medium">{state.name}</p>
       <p className="text-muted-foreground">{label}</p>
