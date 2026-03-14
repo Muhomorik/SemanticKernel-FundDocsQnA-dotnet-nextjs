@@ -15,15 +15,15 @@ public class AboutFundCollectionStepKindsTests
         Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.Select3Months));
         Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.SelectYearToDate));
         Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.Select1Year));
+        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.Select3Years));
+        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.Select5Years));
+        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Contain(AboutFundCollectionStepKind.SelectMax));
     }
 
     [Test]
     public void Defaults_DoesNotContainDisabledSteps()
     {
         // Assert
-        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Not.Contain(AboutFundCollectionStepKind.Select3Years));
-        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Not.Contain(AboutFundCollectionStepKind.Select5Years));
-        Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Not.Contain(AboutFundCollectionStepKind.SelectMax));
         Assert.That(AboutFundCollectionStepKinds.Defaults, Does.Not.Contain(AboutFundCollectionStepKind.ActivateSekView));
     }
 
