@@ -62,14 +62,15 @@ export function OwnershipFlowPage() {
   // Effect 2: fetch flow data whenever selected period changes
   useEffect(() => {
     if (!selected) return;
+    const { period } = selected;
     const controller = new AbortController();
     async function load() {
       setIsLoadingFlow(true);
       setFlowError(null);
       try {
         const data = await fetchOwnershipFlow(
-          selected.period.from,
-          selected.period.to
+          period.from,
+          period.to
         );
         if (!controller.signal.aborted) setFlowData(data);
       } catch (err: unknown) {
