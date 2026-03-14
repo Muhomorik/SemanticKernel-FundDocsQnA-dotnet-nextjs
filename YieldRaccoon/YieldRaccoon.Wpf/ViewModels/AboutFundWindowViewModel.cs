@@ -225,8 +225,10 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
-            // Load fund schedule from database
-            var schedule = await _orchestrator.LoadScheduleAsync();
+            // Offload to thread pool — SQLite's ToListAsync() is synchronous and would
+            // freeze the UI for ~3 s. Safe: no session is active yet, so no concurrent
+            // DbContext access can occur.
+            var schedule = await Task.Run(() => _orchestrator.LoadScheduleAsync());
             FundScheduleViewModel.LoadSchedule(schedule);
 
             _logger.Info("Fund schedule loaded: {0} funds", schedule.Count);
@@ -382,8 +384,10 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            // Reload schedule from DB so freshly-visited funds drop to the bottom
-            var schedule = await _orchestrator.LoadScheduleAsync();
+            // Offload to thread pool — SQLite's ToListAsync() is synchronous and would
+            // freeze the UI. Safe: Rx persist callbacks run on DispatcherScheduler (UI thread),
+            // so they can't fire while we're here scheduling the Task.Run.
+            var schedule = await Task.Run(() => _orchestrator.LoadScheduleAsync());
             FundScheduleViewModel.LoadSchedule(schedule);
 
             _orchestrator.SetAutoAdvance(ControlPanelViewModel.AutoStartOverview);

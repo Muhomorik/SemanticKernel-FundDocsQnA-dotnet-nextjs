@@ -29,10 +29,12 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     /// <inheritdoc />
     public async Task AddOrUpdateAsync(FundProfile fundProfile, CancellationToken cancellationToken = default)
     {
-        var existing = await _context.FundProfiles.FindAsync(new object[] { fundProfile.Id }, cancellationToken);
+        var existing = await _context.FundProfiles.FindAsync(new object[] { fundProfile.Id }, cancellationToken)
+            .ConfigureAwait(false);
         if (existing is null)
         {
-            await _context.FundProfiles.AddAsync(fundProfile, cancellationToken);
+            await _context.FundProfiles.AddAsync(fundProfile, cancellationToken)
+                .ConfigureAwait(false);
         }
         else
         {
@@ -52,7 +54,7 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     /// <inheritdoc />
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -71,7 +73,7 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
                 HistoryRecordCount = fp.HistoryRecords.Count,
                 fp.AboutFundLastVisitedAt
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return rows
             .OrderBy(f => f.AboutFundLastVisitedAt ?? DateTimeOffset.MinValue)
@@ -94,13 +96,14 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
         return await _context.FundProfiles
             .Where(fp => fp.OrderbookId == orderBookId.Value)
             .Select(fp => fp.Id.Isin)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task<FundProfile?> GetByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
     {
-        return await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken);
+        return await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -119,24 +122,26 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
                                       && EF.Functions.Like(fp.CompanyName, $"%{filter}%"));
         }
 
-        return await query.ToListAsync(cancellationToken);
+        return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task<bool> ExistsByIsinAsync(IsinId isinId, CancellationToken cancellationToken = default)
     {
-        return await _context.FundProfiles.AnyAsync(fp => fp.Id == isinId, cancellationToken);
+        return await _context.FundProfiles.AnyAsync(fp => fp.Id == isinId, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt,
         CancellationToken cancellationToken = default)
     {
-        var profile = await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken);
+        var profile = await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken)
+            .ConfigureAwait(false);
         if (profile is not null)
         {
             profile.AboutFundLastVisitedAt = visitedAt;
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }
