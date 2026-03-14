@@ -105,6 +105,76 @@ public class QuestionAnsweringService : IQuestionAnsweringService
         }
     }
 
+    public async Task<StreamingAnswerContext> BeginStreamingAnswerAsync(
+        AskQuestionRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Sanitize the question input
+            var sanitizedQuestion = _questionSanitizer.Sanitize(request.Question);
+            _logger.LogDebug("Question sanitized for streaming (original: {Original} chars, result: {Result} chars)",
+                request.Question.Length, sanitizedQuestion.Length);
+
+            if (sanitizedQuestion.Length < request.Question.Length * 0.9)
+            {
+                _logger.LogWarning(
+                    "Sanitization removed {Percent:P1} of input. Possible injection attempt detected. Preview: {Preview}",
+                    1 - (double)sanitizedQuestion.Length / request.Question.Length,
+                    request.Question.Substring(0, Math.Min(50, request.Question.Length)));
+            }
+
+            _logger.LogInformation("Processing sanitized question (streaming)");
+
+            // Step 1: Semantic search for relevant chunks
+            var searchResults = await _semanticSearch.SearchAsync(
+                sanitizedQuestion,
+                _options.MaxSearchResults,
+                cancellationToken);
+
+            if (!searchResults.Any())
+            {
+                _logger.LogWarning("No relevant chunks found for question");
+                return new StreamingAnswerContext
+                {
+                    Sources = Array.Empty<SourceReferenceDto>(),
+                    AnswerStream = NoResultsStreamAsync()
+                };
+            }
+
+            _logger.LogDebug("Found {Count} relevant chunks", searchResults.Count);
+
+            // Step 2: Build context and prompt
+            var context = _ragPromptBuilder.BuildContext(searchResults);
+            var userPrompt = _ragPromptBuilder.BuildUserPrompt(context, request.Question);
+            var sources = ExtractSources(searchResults);
+
+            _logger.LogDebug("Starting streaming from {Provider} LLM with context from {ChunkCount} chunks",
+                _llmProvider.ProviderName, searchResults.Count);
+
+            // Step 3: Return sources + lazy answer stream
+            var answerStream = _llmProvider.StreamChatCompletionAsync(
+                _options.SystemPrompt, userPrompt, cancellationToken);
+
+            return new StreamingAnswerContext
+            {
+                Sources = sources,
+                AnswerStream = answerStream
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to begin streaming answer for question: {Question}", request.Question);
+            throw;
+        }
+    }
+
+    private static async IAsyncEnumerable<string> NoResultsStreamAsync()
+    {
+        yield return "I don't have enough information to answer this question.";
+        await Task.CompletedTask;
+    }
+
     private IReadOnlyList<SourceReferenceDto> ExtractSources(
         IReadOnlyList<Domain.Models.SearchResult> results)
     {

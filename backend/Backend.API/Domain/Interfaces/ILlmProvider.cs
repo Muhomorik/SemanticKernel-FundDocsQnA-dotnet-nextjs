@@ -15,6 +15,14 @@ public interface ILlmProvider
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Streams a chat completion response token-by-token.
+    /// </summary>
+    IAsyncEnumerable<string> StreamChatCompletionAsync(
+        string systemPrompt,
+        string userPrompt,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Provider name (for logging/diagnostics).
     /// </summary>
     string ProviderName { get; }

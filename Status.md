@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-11 (CloudSync now uses only POST /api/funds/full-sync — Phase 1 list sync removed)
+Last Updated: 2026-03-14 (Added SSE streaming for chat responses)
 
 **Tech Stack:**
 
@@ -969,6 +969,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 | Test Suite | Status | Coverage |
 | ------------- | -------- | ---------- |
 | page.test.tsx | ✅ Complete | Homepage rendering, example queries |
+| api-streaming.test.ts | ✅ Complete | SSE parsing, callback ordering, error handling, split chunks |
 
 ---
 
@@ -1029,7 +1030,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 - ✅ Migrate to modern Vector Store abstractions - Completed 2026-01-02: Using InMemoryVectorStore with VectorStoreCollection for built-in cosine similarity
 - Implement caching layer
 - Support multiple languages
-- Add streaming responses for better UX
+- ✅ Add streaming responses for better UX - Completed 2026-03-14: SSE streaming via `POST /api/ask/stream`, token-by-token rendering with blinking cursor
 - Implement chat history
 - Upgrade to Azure App Service B1 tier if F1 limitations are problematic
 

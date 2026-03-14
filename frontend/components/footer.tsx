@@ -23,11 +23,11 @@ export function Footer() {
   return (
     <footer className="border-border/40 border-t">
       <div className="mx-auto max-w-5xl px-6 py-4">
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+        <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-x-6">
           {/* Tech Stack */}
           <div className="flex items-center gap-2">
             <p className="text-muted-foreground text-xs">Built with</p>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               {techStack.map((tech) => (
                 <span
                   key={tech}

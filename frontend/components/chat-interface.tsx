@@ -5,7 +5,7 @@ import { ChatMessage, ChatMessageSkeleton, type Message } from "./chat-message";
 import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
-import { askQuestion, ApiError } from "@/lib/api";
+import { askQuestionStream, ApiError } from "@/lib/api";
 import { AlertCircle, RotateCcw, Plus } from "lucide-react";
 import { useChatContext } from "./chat-context";
 
@@ -44,16 +44,49 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    try {
-      const response = await askQuestion(question);
+    const assistantId = `assistant-${Date.now()}`;
+    const abortController = new AbortController();
 
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: response.answer,
-        sources: response.sources,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+    try {
+      await askQuestionStream(
+        question,
+        {
+          onSources: (sources) => {
+            // Create assistant message with sources, content starts empty
+            const msg: Message = {
+              id: assistantId,
+              role: "assistant",
+              content: "",
+              sources,
+              isStreaming: true,
+            };
+            setMessages((prev) => [...prev, msg]);
+          },
+          onDelta: (text) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + text } : m
+              )
+            );
+          },
+          onDone: () => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, isStreaming: false } : m
+              )
+            );
+          },
+          onError: (errorMsg) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, isStreaming: false } : m
+              )
+            );
+            setError(errorMsg);
+          },
+        },
+        abortController.signal
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.statusCode === 400) {
@@ -138,7 +171,9 @@ export function ChatInterface() {
                 <ChatMessage key={message.id} message={message} />
               ))}
 
-              {isLoading && <ChatMessageSkeleton />}
+              {isLoading && !messages.some((m) => m.isStreaming) && (
+                <ChatMessageSkeleton />
+              )}
 
               {error && (
                 <div className="animate-fade-up bg-destructive/5 border-destructive/20 flex items-start gap-3 rounded-xl border p-4">

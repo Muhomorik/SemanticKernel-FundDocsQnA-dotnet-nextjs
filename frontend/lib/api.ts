@@ -71,6 +71,90 @@ export async function askQuestion(question: string): Promise<AskResponse> {
   }
 }
 
+export interface StreamCallbacks {
+  onSources: (sources: SourceReference[]) => void;
+  onDelta: (text: string) => void;
+  onDone: () => void;
+  onError: (error: string) => void;
+}
+
+/**
+ * Ask a question with streaming response via Server-Sent Events.
+ * Tokens arrive incrementally via onDelta; sources arrive first via onSources.
+ */
+export async function askQuestionStream(
+  question: string,
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> {
+  if (!question || question.trim().length === 0) {
+    throw new ApiError("Question cannot be empty");
+  }
+
+  const response = await fetch(`${API_URL}/api/ask/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: question.trim() } as AskRequest),
+    signal,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new ApiError(
+      `API request failed: ${response.statusText}`,
+      response.status,
+      errorText
+    );
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse complete SSE events (separated by double newline)
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop()!; // Keep incomplete event in buffer
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+
+        const lines = part.split("\n");
+        let eventType = "";
+        let data = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventType = line.slice(7);
+          else if (line.startsWith("data: ")) data = line.slice(6);
+        }
+
+        switch (eventType) {
+          case "sources":
+            callbacks.onSources(JSON.parse(data));
+            break;
+          case "delta":
+            callbacks.onDelta(JSON.parse(data));
+            break;
+          case "done":
+            callbacks.onDone();
+            break;
+          case "error":
+            callbacks.onError(JSON.parse(data).message);
+            break;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /**
  * Check if the backend API is healthy
  */
