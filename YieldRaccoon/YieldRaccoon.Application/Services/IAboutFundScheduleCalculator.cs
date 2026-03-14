@@ -23,6 +23,10 @@ public interface IAboutFundScheduleCalculator
     /// Returns the minimum interaction delay for each step kind.
     /// Typically bound to <c>IAboutFundPageInteractor.GetMinimumDelay</c>.
     /// </param>
+    /// <param name="steps">
+    /// Ordered list of step kinds to schedule. Use <see cref="AboutFundCollectionStepKinds.ForSteps"/>
+    /// to build a filtered list from enabled steps, or <see cref="AboutFundCollectionStepKinds.All"/> for all steps.
+    /// </param>
     /// <returns>
     /// Ordered list of <see cref="AboutFundCollectionSchedule"/> with pre-calculated
     /// absolute step times and inter-page delays.
@@ -30,7 +34,8 @@ public interface IAboutFundScheduleCalculator
     List<AboutFundCollectionSchedule> CalculateSessionSchedule(
         IReadOnlyList<AboutFundScheduleItem> funds,
         DateTimeOffset startTime,
-        Func<AboutFundCollectionStepKind, TimeSpan> getMinimumDelay);
+        Func<AboutFundCollectionStepKind, TimeSpan> getMinimumDelay,
+        IReadOnlyList<AboutFundCollectionStepKind> steps);
 
     /// <summary>
     /// Returns a new schedule list where fund timings from <paramref name="fromOrderBookId"/>

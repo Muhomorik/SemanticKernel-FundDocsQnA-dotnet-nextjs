@@ -108,6 +108,51 @@ public class FundsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Full-sync path used by CloudSyncWindow.
+    /// Guarantees the fund profile FK exists (insert-if-not-exists); upserts history records
+    /// with sparse semantics (non-null fields only; Nav/NavDate never overwritten).
+    /// </summary>
+    [HttpPost("full-sync")]
+    [ProducesResponseType(typeof(FundSyncResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FundSyncResponse>> SyncFullHistory(
+        [FromBody] FundFullHistorySyncRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsAzureSqlConfigured())
+        {
+            return AzureSqlNotConfiguredResponse();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            _logger.LogInformation("Full history sync for {Isin}: {Count} records",
+                request.Profile.Isin, request.HistoryRecords.Count);
+            var result = await _fundSyncService.SyncFullHistoryAsync(request, cancellationToken);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during full history sync");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "An error occurred during full history sync" });
+        }
+    }
+
     private bool IsAzureSqlConfigured() =>
         !string.IsNullOrWhiteSpace(_options.AzureSqlConnectionString);
 

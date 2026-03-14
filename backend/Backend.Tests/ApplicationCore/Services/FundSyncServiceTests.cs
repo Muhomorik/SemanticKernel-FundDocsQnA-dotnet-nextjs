@@ -281,6 +281,136 @@ public class FundSyncServiceTests
 
     #endregion
 
+    #region SyncFullHistoryAsync
+
+    [Test]
+    public async Task SyncFullHistoryAsync_ValidRequest_CallsInsertIfNotExistsAndUpsertSparse()
+    {
+        // Arrange
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = CreateValidProfileMetadataDto("SE0008613939", "Test Fund"),
+            HistoryRecords = new List<ApiFundFullHistoryRecordDto>
+            {
+                new() { Isin = "SE0008613939", Nav = 100m, NavDate = "2025-01-15",
+                         Capital = 1_000_000m, NumberOfOwners = 500, Risk = 3 },
+                new() { Isin = "SE0008613939", Nav = 101m, NavDate = "2025-01-16",
+                         Capital = 1_100_000m }
+            }
+        };
+
+        // Act
+        var result = await _sut.SyncFullHistoryAsync(request);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.ProfilesProcessed, Is.EqualTo(1));
+            Assert.That(result.HistoryRecordsInserted, Is.EqualTo(2));
+        });
+
+        _profileRepoMock.Verify(r => r.InsertIfNotExistsAsync(
+            It.IsAny<FundProfile>(), It.IsAny<CancellationToken>()), Times.Once);
+        _historyRepoMock.Verify(r => r.UpsertSparseRangeAsync(
+            It.IsAny<IEnumerable<FundHistoryRecord>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task SyncFullHistoryAsync_MissingIsin_ReturnsFailed()
+    {
+        // Arrange
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = new ApiFundFullSyncProfileMetadataDto { Isin = "", Name = "Test Fund" }
+        };
+
+        // Act
+        var result = await _sut.SyncFullHistoryAsync(request);
+
+        // Assert
+        Assert.That(result.Success, Is.False);
+        _profileRepoMock.Verify(r => r.InsertIfNotExistsAsync(
+            It.IsAny<FundProfile>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task SyncFullHistoryAsync_InvalidIsinFormat_ReturnsFailed()
+    {
+        // Arrange
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = new ApiFundFullSyncProfileMetadataDto { Isin = "INVALID", Name = "Test Fund" }
+        };
+
+        // Act
+        var result = await _sut.SyncFullHistoryAsync(request);
+
+        // Assert
+        Assert.That(result.Success, Is.False);
+    }
+
+    [Test]
+    public async Task SyncFullHistoryAsync_SkipsHistoryWithNullNavDate()
+    {
+        // Arrange
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = CreateValidProfileMetadataDto("SE0008613939", "Test Fund"),
+            HistoryRecords = new List<ApiFundFullHistoryRecordDto>
+            {
+                new() { Isin = "SE0008613939", Nav = 100m, NavDate = "2025-01-15" },
+                new() { Isin = "SE0008613939", Nav = 101m, NavDate = null }  // null date — skip
+            }
+        };
+
+        // Act
+        var result = await _sut.SyncFullHistoryAsync(request);
+
+        // Assert
+        Assert.That(result.HistoryRecordsInserted, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task SyncFullHistoryAsync_DoesNotCallUpsertAsync()
+    {
+        // Arrange — full-sync must NOT use UpsertAsync (which would destroy existing profile data)
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = CreateValidProfileMetadataDto("SE0008613939", "Test Fund")
+        };
+
+        // Act
+        await _sut.SyncFullHistoryAsync(request);
+
+        // Assert — UpsertAsync must never be called
+        _profileRepoMock.Verify(r => r.UpsertAsync(
+            It.IsAny<FundProfile>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task SyncFullHistoryAsync_EmptyHistoryRecords_StillSucceeds()
+    {
+        // Arrange
+        var request = new FundFullHistorySyncRequest
+        {
+            Profile = CreateValidProfileMetadataDto("SE0008613939", "Test Fund"),
+            HistoryRecords = []
+        };
+
+        // Act
+        var result = await _sut.SyncFullHistoryAsync(request);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.HistoryRecordsInserted, Is.EqualTo(0));
+        });
+    }
+
+    #endregion
+
     #region Helpers
 
     private static ApiFundDto CreateValidFundDto(string isin, string name)
@@ -293,6 +423,18 @@ public class FundSyncServiceTests
             NavDate = "2025-01-15",
             Category = "Equity",
             Capital = 1000000m,
+            FirstSeenAt = "2025-01-01T00:00:00+00:00",
+            CrawlerLastUpdatedAt = "2025-01-15T12:00:00+00:00",
+        };
+    }
+
+    private static ApiFundFullSyncProfileMetadataDto CreateValidProfileMetadataDto(string isin, string name)
+    {
+        return new ApiFundFullSyncProfileMetadataDto
+        {
+            Isin = isin,
+            Name = name,
+            Category = "Equity",
             FirstSeenAt = "2025-01-01T00:00:00+00:00",
             CrawlerLastUpdatedAt = "2025-01-15T12:00:00+00:00",
         };

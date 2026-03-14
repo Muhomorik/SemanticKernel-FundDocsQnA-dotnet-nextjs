@@ -93,6 +93,11 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
     /// </summary>
     private readonly Dictionary<AboutFundCollectionStepKind, AboutFundCollectionStep> _steps = [];
 
+    /// <summary>
+    /// The last step kind in the current schedule — triggers draining phase when completed.
+    /// </summary>
+    private AboutFundCollectionStepKind _lastStepKind;
+
     private readonly Subject<AboutFundPageData> _completed = new();
     private readonly Subject<AboutFundCollectionProgress> _stateChanged = new();
     private readonly Subject<AboutFundPageData> _slotUpdated = new();
@@ -366,6 +371,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
             _steps.Clear();
             foreach (var step in schedule.Steps)
                 _steps[step.Kind] = new AboutFundCollectionStep(step.Kind, step.FireAt - schedule.StartTime);
+            _lastStepKind = schedule.Steps[^1].Kind;
             _collectionStartedAt = schedule.StartTime;
             _totalDuration = schedule.TotalDuration;
         }
@@ -424,7 +430,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
                         : AboutFundCollectionStepStatus.Failed);
 
                     // Last interaction step — transition to draining to await final response
-                    if (clicked && kind == AboutFundCollectionStepKind.SelectMax)
+                    if (clicked && kind == _lastStepKind)
                         lock (_lock)
                         {
                             _phase = CollectionPhase.Draining;

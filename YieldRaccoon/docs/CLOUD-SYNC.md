@@ -6,7 +6,7 @@ Bulk-sync local fund data (profiles + history records) to the Backend API on dem
 
 ## Prerequisites
 
-- **Backend API URL** configured in Settings (e.g., `https://your-app.azurewebsites.net`)
+- **Backend API URL** configured in Settings (e.g., `https://<your-app>.azurewebsites.net`)
 - **Backend API key** configured in Settings (sent as `Authorization: ApiKey {key}` header)
 - Fund data present in the local database (SQLite or InMemory)
 
@@ -21,9 +21,15 @@ Bulk-sync local fund data (profiles + history records) to the Backend API on dem
 
 If Backend API URL is not configured, the window shows a warning and the sync button is disabled.
 
-## Sync phases
+## API endpoints
 
-The sync operation runs in two phases:
+| Endpoint | Caller | Purpose |
+| -------- | ------ | ------- |
+| `POST /api/funds/full-sync` | `CloudSyncService` (on-demand) | Per-fund: insert-if-not-exists profile + sparse upsert full history (all 7 time-varying fields) |
+| `POST /api/funds/list` | `DualWriteFundIngestionService` (crawl session) | Batch upsert of daily snapshots — profile metadata + Nav/NavDate from the fund listing page |
+| `POST /api/funds/about` | `DualWriteChartIngestionService` (about-fund page) | Single fund: upsert profile + insert-only chart history across 7 time periods |
+
+## Full sync flow
 
 ```mermaid
 sequenceDiagram
@@ -36,13 +42,10 @@ sequenceDiagram
     SVC->>DB: GetByCompanyNameFilterAsync(filter)
     DB-->>SVC: List<FundProfile> with HistoryRecords
 
-    Note over SVC,API: Phase 1 — Batch profile sync
-    SVC->>API: POST /api/funds/list (all profiles)
-    API-->>SVC: FundSyncResponse
-
-    Note over SVC,API: Phase 2 — Per-fund history sync
     loop For each fund (with throttle delay)
-        SVC->>API: POST /api/funds/about (profile + history)
+        SVC->>SVC: Map FundProfile → ApiFundFullSyncProfileMetadataDto
+        SVC->>SVC: Map FundHistoryRecord[] → ApiFundFullHistoryRecordDto[]
+        SVC->>API: POST /api/funds/full-sync (profile metadata + full history)
         API-->>SVC: FundSyncResponse
         SVC-->>VM: Progress report
     end
@@ -50,13 +53,21 @@ sequenceDiagram
     SVC-->>VM: CloudSyncResult
 ```
 
-### Phase 1 — Batch profile sync
+### Per-fund full history sync
 
-A single `POST /api/funds/list` sends all matched fund profiles. This ensures the backend knows about every fund before history records arrive.
+Iterates over each fund and sends `POST /api/funds/full-sync` with:
 
-### Phase 2 — Per-fund history sync
+- **`ApiFundFullSyncProfileMetadataDto`** — static profile metadata only (no time-varying history fields). The backend uses insert-if-not-exists semantics — existing profiles are never overwritten.
+- **`ApiFundFullHistoryRecordDto[]`** — complete history records including all time-varying fields: `Nav`, `NavDate`, `Capital`, `NumberOfOwners`, `Risk`, `SharpeRatio`, `StandardDeviation`.
 
-Iterates over each fund and sends `POST /api/funds/about` with the fund profile and all its history records. A configurable delay (`throttleMs`) is inserted between calls to avoid overwhelming the backend.
+The backend first calls `InsertIfNotExistsAsync` on the profile — if the fund already exists in the database it is left untouched; if it is new it is inserted. This guarantees the FK constraint is satisfied before history records are inserted or updated.
+
+Backend upsert semantics for history records (`UpsertSparseRangeAsync`):
+
+- New `(ISIN, NavDate)` pair → **INSERT** with all fields
+- Existing pair → update `Capital`, `NumberOfOwners`, `Risk`, `SharpeRatio`, `StandardDeviation` **only when incoming value is non-null**; `Nav` and `NavDate` are never modified
+
+A configurable delay (`throttleMs`) is inserted between calls to avoid overwhelming the backend.
 
 ## DualWrite — Automatic sync during crawling
 

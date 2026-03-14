@@ -34,4 +34,12 @@ public interface IFundSyncApiClient
     Task<FundSyncResponse> SyncFundAboutAsync(
         FundAboutSyncRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a full history sync request to <c>POST /api/funds/full-sync</c>.
+    /// Used exclusively by <c>CloudSyncWindow</c> for bulk full-sync with all time-varying fields.
+    /// </summary>
+    Task<FundSyncResponse> SyncFundFullHistoryAsync(
+        FundFullHistorySyncRequest request,
+        CancellationToken cancellationToken = default);
 }

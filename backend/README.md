@@ -360,36 +360,45 @@ EF Core auto-migrates the database on startup. See [Cloud Sync documentation](..
 
 ### Data Scope — Sync Density
 
-`FundHistoryRecords` are populated by two sync paths with different data completeness:
+`FundHistoryRecords` are populated by three sync paths with different data completeness:
 
 ```mermaid
 flowchart LR
-    subgraph ChartSync["Chart History Sync"]
+    subgraph ChartSync["Chart History Sync\n(POST /api/funds/about)"]
         direction TB
         CS_Fields["Nav, NavDate"]
         CS_Freq["Bulk daily records"]
         CS_Mode["Insert-only<br/>(skip existing ISIN+NavDate)"]
     end
 
-    subgraph ListSync["List Sync"]
+    subgraph ListSync["List Sync\n(POST /api/funds/list)"]
         direction TB
         LS_Fields["NumberOfOwners, Capital,<br/>Risk, SharpeRatio,<br/>StandardDeviation"]
         LS_Freq["One record per fund<br/>per sync run"]
         LS_Mode["Enriches existing records<br/>(only updates NULL fields)"]
     end
 
+    subgraph FullSync["Full History Sync\n(POST /api/funds/full-sync)"]
+        direction TB
+        FS_Fields["All 7 fields"]
+        FS_Freq["All history records<br/>per fund"]
+        FS_Mode["Sparse upsert<br/>(Nav/NavDate never modified)"]
+    end
+
     ChartSync -->|"DENSE<br/>every record"| HR[(FundHistoryRecords)]
     ListSync -->|"SPARSE<br/>enrichment only"| HR
+    FullSync -->|"FULL<br/>CloudSync on-demand"| HR
 
     style ChartSync fill:#e8f5e9,stroke:#4caf50
     style ListSync fill:#fff3e0,stroke:#ff9800
+    style FullSync fill:#e3f2fd,stroke:#1976d2
 ```
 
 | Data | Density | Source | Plugin Impact |
 | --- | --- | --- | --- |
-| `Nav` + `NavDate` | **Dense** — present on every record | Chart sync | Performance queries use all records |
-| `NumberOfOwners` | **Sparse** — only on enriched records | List sync | Ownership queries filter `WHERE NumberOfOwners IS NOT NULL` |
-| `Capital`, `Risk`, `SharpeRatio`, `StandardDeviation` | **Sparse** | List sync | Outside plugin scope (available on `FundProfile` instead) |
+| `Nav` + `NavDate` | **Dense** — present on every record | Chart sync / Full sync | Performance queries use all records |
+| `NumberOfOwners` | **Sparse** — only on enriched records | List sync / Full sync | Ownership queries filter `WHERE NumberOfOwners IS NOT NULL` |
+| `Capital`, `Risk`, `SharpeRatio`, `StandardDeviation` | **Sparse** | List sync / Full sync | Outside plugin scope (available on `FundProfile` instead) |
 
 ## Security
 
@@ -478,7 +487,20 @@ curl -X POST http://localhost:5000/api/funds/about \
   -d '{"profile":{"isin":"SE0008613939","name":"Fund A"},"historyRecords":[{"isin":"SE0008613939","nav":123.45,"navDate":"2025-01-15"}]}'
 ```
 
-Both fund endpoints return `503 Service Unavailable` if Azure SQL is not configured.
+### POST /api/funds/full-sync
+
+CloudSync full history sync for a single fund. Sends static profile metadata (insert-if-not-exists) and full history records with all time-varying fields. Requires API key.
+
+```bash
+curl -X POST http://localhost:5000/api/funds/full-sync \
+  -H "Content-Type: application/json" \
+  -H "Authorization: ApiKey your-api-key" \
+  -d '{"profile":{"isin":"SE0008613939","name":"Fund A"},"historyRecords":[{"isin":"SE0008613939","nav":123.45,"navDate":"2025-01-15","capital":1500000000,"numberOfOwners":42000,"risk":4}]}'
+```
+
+Profile upsert semantics: insert-if-not-exists (existing profiles are never modified). History record upsert semantics: new `(ISIN, NavDate)` pairs are inserted with all fields; existing pairs have `Capital`, `NumberOfOwners`, `Risk`, `SharpeRatio`, `StandardDeviation` updated only when the incoming value is non-null — `Nav` and `NavDate` are never modified.
+
+All fund endpoints return `503 Service Unavailable` if Azure SQL is not configured.
 
 ## DDD Architecture
 

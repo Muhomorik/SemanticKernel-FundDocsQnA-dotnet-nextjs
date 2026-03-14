@@ -42,6 +42,27 @@
                 OffContent="Auto-start disabled"
                 OnContent="Auto-start enabled"
                 ToolTip="Automatically start browsing when window opens" />
+
+            <TextBlock
+                Margin="{StaticResource yr.SubsectionSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Crawler steps" />
+            <ItemsControl ItemsSource="{Binding StepToggles}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox
+                            Margin="0,2"
+                            Content="{Binding Label}"
+                            IsChecked="{Binding IsEnabled}"
+                            IsEnabled="{Binding DataContext.CanEditSteps, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
 
         <!--  Session Control  -->

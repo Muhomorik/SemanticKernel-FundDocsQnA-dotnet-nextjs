@@ -66,34 +66,12 @@ public class CloudSyncService_SyncAsyncTests
         });
 
         _apiClientMock.Verify(
-            c => c.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _apiClientMock.Verify(
-            c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()),
+            c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Test]
-    public async Task SyncAsync_FundsFound_CallsSyncFundListWithAllProfiles()
-    {
-        // Arrange
-        var funds = CreateFundsWithHistory(3, 0);
-        SetupRepository(funds);
-        SetupApiClientDefaults();
-
-        // Act
-        await _sut.SyncAsync(null, 0, _progress);
-
-        // Assert
-        _apiClientMock.Verify(
-            c => c.SyncFundListAsync(
-                It.Is<FundListSyncRequest>(r => r.Funds.Count == 3),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Test]
-    public async Task SyncAsync_FundsFound_CallsSyncFundAboutPerFund()
+    public async Task SyncAsync_FundsFound_CallsSyncFundFullHistoryPerFund()
     {
         // Arrange
         var funds = CreateFundsWithHistory(3, 2);
@@ -105,7 +83,7 @@ public class CloudSyncService_SyncAsyncTests
 
         // Assert
         _apiClientMock.Verify(
-            c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()),
+            c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
     }
 
@@ -118,10 +96,10 @@ public class CloudSyncService_SyncAsyncTests
         SetupRepository([fund]);
         SetupApiClientDefaults();
 
-        FundAboutSyncRequest? capturedRequest = null;
+        FundFullHistorySyncRequest? capturedRequest = null;
         _apiClientMock
-            .Setup(c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<FundAboutSyncRequest, CancellationToken>((req, _) => capturedRequest = req)
+            .Setup(c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<FundFullHistorySyncRequest, CancellationToken>((req, _) => capturedRequest = req)
             .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", HistoryRecordsInserted = 1 });
 
         // Act
@@ -145,14 +123,10 @@ public class CloudSyncService_SyncAsyncTests
         var funds = CreateFundsWithHistory(3, 1);
         SetupRepository(funds);
 
-        _apiClientMock
-            .Setup(c => c.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", ProfilesProcessed = 3 });
-
         var callCount = 0;
         _apiClientMock
-            .Setup(c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()))
-            .Returns<FundAboutSyncRequest, CancellationToken>((_, _) =>
+            .Setup(c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()))
+            .Returns<FundFullHistorySyncRequest, CancellationToken>((_, _) =>
             {
                 callCount++;
                 if (callCount == 2)
@@ -174,7 +148,7 @@ public class CloudSyncService_SyncAsyncTests
 
         // All 3 funds were attempted (failure didn't stop the loop)
         _apiClientMock.Verify(
-            c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()),
+            c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
     }
 
@@ -185,15 +159,11 @@ public class CloudSyncService_SyncAsyncTests
         var funds = CreateFundsWithHistory(5, 1);
         SetupRepository(funds);
 
-        _apiClientMock
-            .Setup(c => c.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", ProfilesProcessed = 5 });
-
         using var cts = new CancellationTokenSource();
         var aboutCallCount = 0;
         _apiClientMock
-            .Setup(c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()))
-            .Returns<FundAboutSyncRequest, CancellationToken>((_, _) =>
+            .Setup(c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()))
+            .Returns<FundFullHistorySyncRequest, CancellationToken>((_, _) =>
             {
                 aboutCallCount++;
                 if (aboutCallCount == 2)
@@ -319,11 +289,7 @@ public class CloudSyncService_SyncAsyncTests
     private void SetupApiClientDefaults()
     {
         _apiClientMock
-            .Setup(c => c.SyncFundListAsync(It.IsAny<FundListSyncRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", ProfilesProcessed = 0 });
-
-        _apiClientMock
-            .Setup(c => c.SyncFundAboutAsync(It.IsAny<FundAboutSyncRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(c => c.SyncFundFullHistoryAsync(It.IsAny<FundFullHistorySyncRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FundSyncResponse { Success = true, Message = "OK", HistoryRecordsInserted = 1 });
     }
 

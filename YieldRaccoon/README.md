@@ -205,9 +205,11 @@ See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details
 
 ![Cloud sync window](docs/IMG-CLOUD-SYNC.png)
 
-Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings. 
+Bulk-sync local fund data (profiles + history records) to the Backend API on demand — useful for initial population or catch-up syncing. Requires Backend API URL configured in Settings.
 
-See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for sync phases, error handling, and architecture.
+Uses a single-phase per-fund sync via `POST /api/funds/full-sync`: sends static profile metadata (insert-if-not-exists) + full history records with all 7 time-varying fields. Supports company-name filtering and configurable throttle delay (default 1200 ms, stays under backend rate limit).
+
+See [CLOUD-SYNC.md](docs/CLOUD-SYNC.md) for the sync flow, API endpoint summary, error handling, and architecture.
 
 ### Privacy Filter
 

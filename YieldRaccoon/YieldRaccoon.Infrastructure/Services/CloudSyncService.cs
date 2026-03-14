@@ -14,11 +14,9 @@ namespace YieldRaccoon.Infrastructure.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Two-phase sync:
-/// <list type="number">
-///   <item>Batch all matched profiles in a single <c>POST /api/funds/list</c> call.</item>
-///   <item>Per-fund history sync via <c>POST /api/funds/about</c> with configurable throttle delay.</item>
-/// </list>
+/// Per-fund full history sync via <c>POST /api/funds/full-sync</c> with all time-varying fields
+/// and configurable throttle delay. The backend guarantees the fund profile FK exists via
+/// <c>InsertIfNotExistsAsync</c> semantics before upserting history records.
 /// </para>
 /// </remarks>
 public class CloudSyncService : ICloudSyncService
@@ -49,7 +47,6 @@ public class CloudSyncService : ICloudSyncService
                 "Backend API URL is not configured. Set the URL in Settings before syncing.");
 
         var stopwatch = Stopwatch.StartNew();
-        var profilesSynced = 0;
         var successCount = 0;
         var failCount = 0;
         var historyTotal = 0;
@@ -77,25 +74,7 @@ public class CloudSyncService : ICloudSyncService
 
             _logger.Info("Cloud sync: {0} funds matched filter '{1}'", funds.Count, companyNameFilter ?? "(all)");
 
-            // Phase 1 — Batch profile sync
-            progress.Report(new CloudSyncProgress
-            {
-                TotalFunds = funds.Count,
-                ProcessedFunds = 0,
-                SuccessCount = 0,
-                FailCount = 0,
-                CurrentFundName = string.Empty,
-                Phase = "Syncing profiles..."
-            });
-
-            var apiFunds = funds.Select(fp => fp.ToApiFundDto()).ToList();
-            var listRequest = new FundListSyncRequest { Funds = apiFunds };
-            var listResponse = await _apiClient.SyncFundListAsync(listRequest, cancellationToken);
-            profilesSynced = listResponse.ProfilesProcessed;
-
-            _logger.Info("Cloud sync phase 1: {0} profiles synced", profilesSynced);
-
-            // Phase 2 — Per-fund history sync with throttling
+            // Per-fund history sync with throttling
             for (var i = 0; i < funds.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -115,24 +94,19 @@ public class CloudSyncService : ICloudSyncService
 
                 try
                 {
-                    var apiProfile = fund.ToApiFundDto();
-                    var historyPoints = fund.HistoryRecords
-                        .Select(hr => new ApiFundHistoryPointDto
-                        {
-                            Isin = hr.IsinId.Isin,
-                            Nav = hr.Nav,
-                            NavDate = hr.NavDate?.ToString("yyyy-MM-dd")
-                        })
+                    var profileMetadata = fund.ToApiFundFullSyncProfileMetadataDto();
+                    var historyRecords = fund.HistoryRecords
+                        .Select(hr => hr.ToApiFundFullHistoryRecordDto())
                         .ToList();
 
-                    var aboutRequest = new FundAboutSyncRequest
+                    var fullSyncRequest = new FundFullHistorySyncRequest
                     {
-                        Profile = apiProfile,
-                        HistoryRecords = historyPoints
+                        Profile = profileMetadata,
+                        HistoryRecords = historyRecords
                     };
 
-                    var aboutResponse = await _apiClient.SyncFundAboutAsync(aboutRequest, cancellationToken);
-                    historyTotal += aboutResponse.HistoryRecordsInserted;
+                    var fullSyncResponse = await _apiClient.SyncFundFullHistoryAsync(fullSyncRequest, cancellationToken);
+                    historyTotal += fullSyncResponse.HistoryRecordsInserted;
                     successCount++;
                 }
                 catch (RateLimitedException)
@@ -184,9 +158,9 @@ public class CloudSyncService : ICloudSyncService
 
             stopwatch.Stop();
             _logger.Info("Cloud sync completed: {0} profiles, {1} history records, {2} failed, {3:mm\\:ss}",
-                profilesSynced, historyTotal, failCount, stopwatch.Elapsed);
+                funds.Count, historyTotal, failCount, stopwatch.Elapsed);
 
-            return CreateResult(funds.Count, profilesSynced, historyTotal, failCount, false, stopwatch.Elapsed);
+            return CreateResult(funds.Count, funds.Count, historyTotal, failCount, false, stopwatch.Elapsed);
         }
         catch (OperationCanceledException)
         {
@@ -195,7 +169,7 @@ public class CloudSyncService : ICloudSyncService
                 successCount + failCount, successCount, failCount);
 
             return CreateResult(
-                successCount + failCount, profilesSynced, historyTotal, failCount, true, stopwatch.Elapsed);
+                successCount + failCount, successCount + failCount, historyTotal, failCount, true, stopwatch.Elapsed);
         }
     }
 

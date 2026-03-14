@@ -59,8 +59,12 @@ public interface IAboutFundOrchestrator : IDisposable
     /// <summary>
     /// Starts a new browsing session by querying funds with the lowest history counts.
     /// </summary>
+    /// <param name="enabledSteps">
+    /// Steps to execute during collection. Use <see cref="AboutFundCollectionStepKinds.ForSteps"/>
+    /// to build from user-selected steps. Pass <c>null</c> to use all steps.
+    /// </param>
     /// <returns>The new session's unique correlation ID.</returns>
-    Task<AboutFundSessionId> StartSessionAsync();
+    Task<AboutFundSessionId> StartSessionAsync(IReadOnlyList<AboutFundCollectionStepKind>? enabledSteps = null);
 
     /// <summary>
     /// Cancels the active session with the given reason.
