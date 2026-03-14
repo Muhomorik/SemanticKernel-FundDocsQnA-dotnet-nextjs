@@ -6,7 +6,7 @@ import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
 import { askQuestionStream, ApiError } from "@/lib/api";
-import { AlertCircle, RotateCcw, Plus } from "lucide-react";
+import { AlertCircle, RotateCcw, Plus, Snowflake } from "lucide-react";
 import { useChatContext } from "./chat-context";
 
 export function ChatInterface() {
@@ -124,11 +124,17 @@ export function ChatInterface() {
     <div className="flex h-full flex-col">
       {/* Info Banner - always visible */}
       <div className="border-border/30 bg-muted/20 border-b px-4 py-2">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-3xl space-y-1.5">
           <p className="text-muted-foreground text-center text-xs leading-relaxed">
             <span className="font-medium">Demo Notice:</span> This site runs on
             free tier resources and may experience downtime when limits are
-            reached. Currently processing 15 of 68 SEB funds.
+            reached.
+            <br />
+            Currently processing 15 of 68 SEB funds.
+          </p>
+          <p className="flex items-center justify-center gap-1.5 text-center text-xs leading-relaxed text-sky-600 dark:text-sky-400">
+            <Snowflake className="h-3.5 w-3.5 shrink-0" />
+            <span>~30s cold start after 1 hour of inactivity.</span>
           </p>
         </div>
       </div>
@@ -138,11 +144,11 @@ export function ChatInterface() {
         <div className="flex flex-col items-center px-6 pt-6 pb-4">
           <div className="animate-fade-up text-center">
             <h1 className="font-serif text-2xl font-medium tracking-tight sm:text-3xl">
-              Ask about your documents
+              Ask anything about your funds
             </h1>
             <p className="text-muted-foreground mt-2 max-w-md text-sm">
-              Get AI-powered answers from your pre-processed PDF documents with
-              source references.
+              Hybrid AI answers from PDF factsheets and fund data — powered by
+              Semantic Kernel, OpenAI, and function calling.
             </p>
           </div>
         </div>
