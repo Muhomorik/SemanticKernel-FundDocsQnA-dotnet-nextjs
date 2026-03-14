@@ -68,10 +68,7 @@ export function OwnershipFlowPage() {
       setIsLoadingFlow(true);
       setFlowError(null);
       try {
-        const data = await fetchOwnershipFlow(
-          period.from,
-          period.to
-        );
+        const data = await fetchOwnershipFlow(period.from, period.to);
         if (!controller.signal.aborted) setFlowData(data);
       } catch (err: unknown) {
         if (!controller.signal.aborted)
