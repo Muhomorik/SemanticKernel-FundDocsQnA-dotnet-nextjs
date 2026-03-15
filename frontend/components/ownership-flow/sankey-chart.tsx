@@ -80,8 +80,6 @@ export function SankeyChart({
 
   if (!data.out.length && !data.in.length)
     return <SankeyEmpty variant="none" />;
-  if (!data.out.length) return <SankeyEmpty variant="only-in" />;
-  if (!data.in.length) return <SankeyEmpty variant="only-out" />;
 
   const {
     outNodes,
@@ -368,6 +366,32 @@ export function SankeyChart({
       >
         INFLOWS
       </text>
+
+      {/* One-sided info notes */}
+      {!data.out.length && (
+        <text
+          x={(LEFT_NODE_X + LEFT_LABEL_END) / 2}
+          y={hubY + hubH / 2}
+          textAnchor="middle"
+          fontSize={11}
+          fontFamily="DM Sans, sans-serif"
+          fill={C.labelDim}
+        >
+          No funds lost owners
+        </text>
+      )}
+      {!data.in.length && (
+        <text
+          x={(RIGHT_NODE_X + NODE_W + RIGHT_LABEL_START) / 2 + 30}
+          y={hubY + hubH / 2}
+          textAnchor="middle"
+          fontSize={11}
+          fontFamily="DM Sans, sans-serif"
+          fill={C.labelDim}
+        >
+          No funds gained owners
+        </text>
+      )}
 
       {/* Outflow nodes + labels */}
       {outNodes.map((node, i) => {

@@ -52,26 +52,28 @@ describe("SankeyChart", () => {
     expect(screen.getByText(/No ownership changes/i)).toBeInTheDocument();
   });
 
-  it("shows only-in empty state when out array is empty", () => {
+  it("renders chart with info note when out array is empty", () => {
     const onlyIn: FlowSide = {
       out: [],
       in: [{ name: "Global", value: 100, pct: 1 }],
     };
-    render(
+    const { container } = render(
       <SankeyChart data={onlyIn} svgHeight={300} onTooltipChange={() => {}} />
     );
-    expect(screen.getByText(/Only inflows this period/i)).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByText(/No funds lost owners/i)).toBeInTheDocument();
   });
 
-  it("shows only-out empty state when in array is empty", () => {
+  it("renders chart with info note when in array is empty", () => {
     const onlyOut: FlowSide = {
       out: [{ name: "Sverige", value: 100, pct: -1 }],
       in: [],
     };
-    render(
+    const { container } = render(
       <SankeyChart data={onlyOut} svgHeight={300} onTooltipChange={() => {}} />
     );
-    expect(screen.getByText(/Only outflows this period/i)).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByText(/No funds gained owners/i)).toBeInTheDocument();
   });
 
   it("calls onTooltipChange with side=out on outflow link mouseenter", () => {
