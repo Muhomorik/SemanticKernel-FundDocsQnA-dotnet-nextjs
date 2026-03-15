@@ -9,6 +9,7 @@ import {
   SelectedPeriod,
   TooltipState,
 } from "@/lib/ownership-flow";
+import { DemoBanner } from "../demo-banner";
 import { PeriodSelector } from "./period-selector";
 import { SankeyCard } from "./sankey-card";
 import { SankeyTooltip } from "./sankey-tooltip";
@@ -85,8 +86,11 @@ export function OwnershipFlowPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      {/* Info Banner - always visible */}
+      <DemoBanner />
+
       {/* Page header */}
-      <div className="mb-8">
+      <div className="mt-6 mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight">
           Ownership Flow
         </h1>
