@@ -1,20 +1,11 @@
 import {
-  buildLinkPath,
+  buildSankeyGraph,
   computeSankeyLayout,
   FlowSide,
   formatOwnerCount,
-  SANKEY_CONSTANTS,
+  SANKEY_LAYOUT,
   truncateLabel,
 } from "@/lib/ownership-flow";
-
-const {
-  PAD_T,
-  PAD_B,
-  MIN_NODE_H,
-  NODE_GAP,
-  LINK_OPACITY_FEW,
-  LINK_OPACITY_MANY,
-} = SANKEY_CONSTANTS;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -25,11 +16,94 @@ function makeData(out: number[], inflow: number[]): FlowSide {
   };
 }
 
+// ── buildSankeyGraph ────────────────────────────────────────────────────────
+
+describe("buildSankeyGraph", () => {
+  it("creates out nodes with 'out_' prefix", () => {
+    const graph = buildSankeyGraph(makeData([100, 200], [50]));
+    const outNodes = graph.nodes.filter((n) => n.side === "out");
+    expect(outNodes).toHaveLength(2);
+    expect(outNodes[0].id).toBe("out_Out0");
+    expect(outNodes[1].id).toBe("out_Out1");
+  });
+
+  it("creates in nodes with 'in_' prefix", () => {
+    const graph = buildSankeyGraph(makeData([100], [50, 75]));
+    const inNodes = graph.nodes.filter((n) => n.side === "in");
+    expect(inNodes).toHaveLength(2);
+    expect(inNodes[0].id).toBe("in_In0");
+    expect(inNodes[1].id).toBe("in_In1");
+  });
+
+  it("always creates a hub node", () => {
+    const graph = buildSankeyGraph(makeData([100], [50]));
+    const hub = graph.nodes.find((n) => n.side === "hub");
+    expect(hub).toBeDefined();
+    expect(hub!.id).toBe("hub");
+  });
+
+  it("creates out→hub links for each outflow", () => {
+    const graph = buildSankeyGraph(makeData([100, 200], [50]));
+    const outLinks = graph.links.filter((l) => l.side === "out");
+    expect(outLinks).toHaveLength(2);
+    outLinks.forEach((l) => expect(l.target).toBe("hub"));
+  });
+
+  it("creates hub→in links for each inflow", () => {
+    const graph = buildSankeyGraph(makeData([100], [50, 75]));
+    const inLinks = graph.links.filter((l) => l.side === "in");
+    expect(inLinks).toHaveLength(2);
+    inLinks.forEach((l) => expect(l.source).toBe("hub"));
+  });
+
+  it("link values match input values", () => {
+    const graph = buildSankeyGraph(makeData([100, 200], [300]));
+    const outLinks = graph.links.filter((l) => l.side === "out");
+    expect(outLinks[0].value).toBe(100);
+    expect(outLinks[1].value).toBe(200);
+    const inLinks = graph.links.filter((l) => l.side === "in");
+    expect(inLinks[0].value).toBe(300);
+  });
+
+  it("adds phantom inflow link when in is empty", () => {
+    const graph = buildSankeyGraph(makeData([100], []));
+    const phantomLinks = graph.links.filter((l) => l.side === "phantom");
+    expect(phantomLinks).toHaveLength(1);
+    expect(phantomLinks[0].target).toBe("in_phantom");
+  });
+
+  it("adds phantom outflow link when out is empty", () => {
+    const graph = buildSankeyGraph(makeData([], [100]));
+    const phantomLinks = graph.links.filter((l) => l.side === "phantom");
+    expect(phantomLinks).toHaveLength(1);
+    expect(phantomLinks[0].source).toBe("out_phantom");
+  });
+
+  it("adds two phantom links when both sides are empty", () => {
+    const graph = buildSankeyGraph(makeData([], []));
+    const phantomLinks = graph.links.filter((l) => l.side === "phantom");
+    expect(phantomLinks).toHaveLength(2);
+  });
+
+  it("preserves displayName from original data", () => {
+    const data: FlowSide = {
+      out: [{ name: "Sverige", value: 100, pct: -0.5 }],
+      in: [{ name: "Global", value: 200, pct: 1.2 }],
+    };
+    const graph = buildSankeyGraph(data);
+    expect(graph.nodes.find((n) => n.id === "out_Sverige")!.displayName).toBe(
+      "Sverige"
+    );
+    expect(graph.nodes.find((n) => n.id === "in_Global")!.displayName).toBe(
+      "Global"
+    );
+  });
+});
+
 // ── computeSankeyLayout ─────────────────────────────────────────────────────
 
 describe("computeSankeyLayout", () => {
   const SVG_H = 300;
-  const availH = SVG_H - PAD_T - PAD_B;
 
   describe("totals", () => {
     it("computes totalOut as sum of out values", () => {
@@ -51,108 +125,94 @@ describe("computeSankeyLayout", () => {
     });
   });
 
-  describe("node positioning", () => {
-    it("first out node starts at PAD_T", () => {
-      const layout = computeSankeyLayout(makeData([100, 200], [100]), SVG_H);
-      expect(layout.outNodes[0].y).toBe(PAD_T);
-    });
-
-    it("first in node starts at PAD_T", () => {
-      const layout = computeSankeyLayout(makeData([100], [100, 200]), SVG_H);
-      expect(layout.inNodes[0].y).toBe(PAD_T);
-    });
-
-    it("node heights are proportional to values", () => {
-      const layout = computeSankeyLayout(makeData([100, 300], [100]), SVG_H);
-      // Node 1 is 3x the value of node 0 → should be ~3x the height (ignoring min)
-      const ratio = layout.outNodes[1].h / layout.outNodes[0].h;
-      expect(ratio).toBeCloseTo(3, 1);
-    });
-
-    it("respects MIN_NODE_H for tiny values", () => {
-      const layout = computeSankeyLayout(makeData([1, 10000], [100]), SVG_H);
-      expect(layout.outNodes[0].h).toBeGreaterThanOrEqual(MIN_NODE_H);
-    });
-
-    it("consecutive nodes are separated by NODE_GAP", () => {
-      const layout = computeSankeyLayout(
-        makeData([100, 100, 100], [100]),
-        SVG_H
-      );
-      const gap =
-        layout.outNodes[1].y - (layout.outNodes[0].y + layout.outNodes[0].h);
-      expect(gap).toBeCloseTo(NODE_GAP, 5);
-    });
-
-    it("returns empty arrays for empty data", () => {
-      const layout = computeSankeyLayout(makeData([], []), SVG_H);
+  describe("node filtering", () => {
+    it("outNodes excludes phantom nodes", () => {
+      const layout = computeSankeyLayout(makeData([], [100]), SVG_H);
       expect(layout.outNodes).toHaveLength(0);
+    });
+
+    it("inNodes excludes phantom nodes", () => {
+      const layout = computeSankeyLayout(makeData([100], []), SVG_H);
       expect(layout.inNodes).toHaveLength(0);
     });
 
-    it("handles single node on each side", () => {
-      const layout = computeSankeyLayout(makeData([500], [500]), SVG_H);
-      expect(layout.outNodes).toHaveLength(1);
-      expect(layout.inNodes).toHaveLength(1);
+    it("outNodes count matches data.out count", () => {
+      const layout = computeSankeyLayout(
+        makeData([100, 200, 300], [50]),
+        SVG_H
+      );
+      expect(layout.outNodes).toHaveLength(3);
+    });
+
+    it("inNodes count matches data.in count", () => {
+      const layout = computeSankeyLayout(makeData([50], [100, 200]), SVG_H);
+      expect(layout.inNodes).toHaveLength(2);
+    });
+
+    it("hubNode is always present", () => {
+      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
+      expect(layout.hubNode).toBeDefined();
     });
   });
 
-  describe("hub", () => {
-    it("hubY equals PAD_T", () => {
-      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
-      expect(layout.hubY).toBe(PAD_T);
-    });
-
-    it("hubH equals availH", () => {
-      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
-      expect(layout.hubH).toBe(availH);
-    });
-  });
-
-  describe("hub slices", () => {
-    it("outHubSlices count matches out nodes count", () => {
-      const layout = computeSankeyLayout(
-        makeData([100, 200, 300], [100]),
-        SVG_H
-      );
-      expect(layout.outHubSlices).toHaveLength(3);
-    });
-
-    it("inHubSlices count matches in nodes count", () => {
-      const layout = computeSankeyLayout(makeData([100], [100, 200]), SVG_H);
-      expect(layout.inHubSlices).toHaveLength(2);
-    });
-
-    it("outHubSlices span the full hub height", () => {
-      const layout = computeSankeyLayout(
-        makeData([100, 200, 300], [100]),
-        SVG_H
-      );
-      const last = layout.outHubSlices[layout.outHubSlices.length - 1];
-      expect(last.y2).toBeCloseTo(PAD_T + availH, 1);
-    });
-
-    it("inHubSlices span the full hub height", () => {
-      const layout = computeSankeyLayout(
-        makeData([100], [100, 200, 300]),
-        SVG_H
-      );
-      const last = layout.inHubSlices[layout.inHubSlices.length - 1];
-      expect(last.y2).toBeCloseTo(PAD_T + availH, 1);
-    });
-
-    it("consecutive slices are contiguous (no gap)", () => {
+  describe("node positions from d3-sankey", () => {
+    it("out nodes have x0/x1/y0/y1 set", () => {
       const layout = computeSankeyLayout(makeData([100, 200], [100]), SVG_H);
-      expect(layout.outHubSlices[1].y1).toBeCloseTo(
-        layout.outHubSlices[0].y2,
-        5
-      );
+      layout.outNodes.forEach((n) => {
+        expect(n.x0).toBeDefined();
+        expect(n.x1).toBeDefined();
+        expect(n.y0).toBeDefined();
+        expect(n.y1).toBeDefined();
+      });
     });
 
-    it("returns empty slices for empty data", () => {
-      const layout = computeSankeyLayout(makeData([], []), SVG_H);
-      expect(layout.outHubSlices).toHaveLength(0);
-      expect(layout.inHubSlices).toHaveLength(0);
+    it("in nodes have x0/x1/y0/y1 set", () => {
+      const layout = computeSankeyLayout(makeData([100], [100, 200]), SVG_H);
+      layout.inNodes.forEach((n) => {
+        expect(n.x0).toBeDefined();
+        expect(n.x1).toBeDefined();
+        expect(n.y0).toBeDefined();
+        expect(n.y1).toBeDefined();
+      });
+    });
+
+    it("node width equals configured NODE_W", () => {
+      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
+      const node = layout.outNodes[0];
+      expect(node.x1! - node.x0!).toBe(SANKEY_LAYOUT.NODE_W);
+    });
+
+    it("out nodes are positioned left of hub", () => {
+      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
+      expect(layout.outNodes[0].x1!).toBeLessThan(layout.hubNode!.x0!);
+    });
+
+    it("in nodes are positioned right of hub", () => {
+      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
+      expect(layout.inNodes[0].x0!).toBeGreaterThan(layout.hubNode!.x1!);
+    });
+  });
+
+  describe("link filtering", () => {
+    it("outLinks count matches data.out count", () => {
+      const layout = computeSankeyLayout(
+        makeData([100, 200, 300], [50]),
+        SVG_H
+      );
+      expect(layout.outLinks).toHaveLength(3);
+    });
+
+    it("inLinks count matches data.in count", () => {
+      const layout = computeSankeyLayout(makeData([50], [100, 200]), SVG_H);
+      expect(layout.inLinks).toHaveLength(2);
+    });
+
+    it("links have width set by d3-sankey", () => {
+      const layout = computeSankeyLayout(makeData([100], [100]), SVG_H);
+      layout.outLinks.forEach((l) => {
+        expect(l.width).toBeDefined();
+        expect(l.width).toBeGreaterThan(0);
+      });
     });
   });
 
@@ -162,7 +222,7 @@ describe("computeSankeyLayout", () => {
         makeData([100, 100, 100], [100, 100, 100]),
         SVG_H
       );
-      expect(layout.linkOpacity).toBe(LINK_OPACITY_FEW);
+      expect(layout.linkOpacity).toBe(SANKEY_LAYOUT.LINK_OPACITY_FEW);
     });
 
     it("returns LINK_OPACITY_MANY when max(out, in) > threshold (7)", () => {
@@ -170,48 +230,16 @@ describe("computeSankeyLayout", () => {
         makeData([100, 100, 100, 100, 100, 100, 100], [100]),
         SVG_H
       );
-      expect(layout.linkOpacity).toBe(LINK_OPACITY_MANY);
+      expect(layout.linkOpacity).toBe(SANKEY_LAYOUT.LINK_OPACITY_MANY);
     });
 
     it("uses the larger side for threshold check", () => {
-      // 3 out, 7 in → max is 7 → MANY
       const layout = computeSankeyLayout(
         makeData([100, 100, 100], [100, 100, 100, 100, 100, 100, 100]),
         SVG_H
       );
-      expect(layout.linkOpacity).toBe(LINK_OPACITY_MANY);
+      expect(layout.linkOpacity).toBe(SANKEY_LAYOUT.LINK_OPACITY_MANY);
     });
-  });
-});
-
-// ── buildLinkPath ────────────────────────────────────────────────────────────
-
-describe("buildLinkPath", () => {
-  it("returns a string starting with M", () => {
-    const path = buildLinkPath(0, 10, 50, 100, 20, 60);
-    expect(path).toMatch(/^M/);
-  });
-
-  it("returns a string containing C (cubic bezier)", () => {
-    const path = buildLinkPath(0, 10, 50, 100, 20, 60);
-    expect(path).toContain("C");
-  });
-
-  it("returns a string containing L (lineto)", () => {
-    const path = buildLinkPath(0, 10, 50, 100, 20, 60);
-    expect(path).toContain("L");
-  });
-
-  it("returns a string ending with Z (closepath)", () => {
-    const path = buildLinkPath(0, 10, 50, 100, 20, 60);
-    expect(path.trim()).toMatch(/Z$/);
-  });
-
-  it("first control point x is at 55% of dx from source", () => {
-    // sx=0, tx=200 → dx=200, cp=0.55*200=110
-    const path = buildLinkPath(0, 10, 50, 200, 20, 60);
-    // Match "C110" allowing for floating-point suffix like "C110.000000001,"
-    expect(path).toMatch(/C110(\.\d+)?,/);
   });
 });
 

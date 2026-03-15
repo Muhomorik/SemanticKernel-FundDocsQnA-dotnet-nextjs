@@ -3,38 +3,29 @@
 import { useId, useMemo } from "react";
 import { useTheme } from "next-themes";
 import {
-  buildLinkPath,
   computeSankeyLayout,
   FlowSide,
   formatOwnerCount,
-  SANKEY_CONSTANTS,
+  type LayoutNode,
+  sankeyLinkPath,
+  SANKEY_LAYOUT,
   TooltipState,
   truncateLabel,
 } from "@/lib/ownership-flow";
 import { SankeyEmpty } from "./sankey-empty";
 
-const {
-  LEFT_NODE_X,
-  LEFT_LABEL_END,
-  HUB_X,
-  HUB_W,
-  NODE_W,
-  NODE_R,
-  RIGHT_NODE_X,
-  RIGHT_LABEL_START,
-} = SANKEY_CONSTANTS;
+const { NODE_R, HUB_RENDER_W, LABEL_GAP, SVG_W } = SANKEY_LAYOUT;
 
 // ── Theme-aware colors ───────────────────────────────────────────────────────
 
 const C_SHARED = {
   outNode: "oklch(0.58 0.18 25)",
   outNodeEnd: "oklch(0.52 0.16 25)",
-  outLink0: "oklch(0.58 0.18 25)",
-  outLink1: "oklch(0.55 0.08 45)",
+  outLink: "oklch(0.58 0.18 25)",
   inNode: "oklch(0.58 0.13 155)",
   inNodeEnd: "oklch(0.52 0.11 155)",
-  inLink0: "oklch(0.55 0.08 45)",
-  inLink1: "oklch(0.58 0.13 155)",
+  inLink: "oklch(0.58 0.13 155)",
+  hubLink: "oklch(0.55 0.08 45)",
   labelDim: "oklch(0.68 0.02 80)",
   outVal: "oklch(0.72 0.18 25)",
   inVal: "oklch(0.72 0.14 155)",
@@ -84,17 +75,22 @@ export function SankeyChart({
   const {
     outNodes,
     inNodes,
-    outHubSlices,
-    inHubSlices,
+    hubNode,
+    outLinks,
+    inLinks,
     totalOut,
     totalIn,
     net,
-    hubY,
-    hubH,
     linkOpacity,
   } = layout;
 
-  const hubRight = HUB_X + HUB_W;
+  // Hub rendering position — use d3-sankey position but render wider
+  const hubX = hubNode ? (hubNode.x0! + hubNode.x1!) / 2 - HUB_RENDER_W / 2 : 0;
+  const hubY = hubNode?.y0 ?? 0;
+  const hubH = hubNode ? hubNode.y1! - hubNode.y0! : 0;
+  const hubCx = hubNode ? (hubNode.x0! + hubNode.x1!) / 2 : 0;
+  const hubCy = hubNode ? (hubNode.y0! + hubNode.y1!) / 2 : 0;
+
   const netLabel =
     net > 0
       ? `▲ +${formatOwnerCount(net)}`
@@ -129,7 +125,7 @@ export function SankeyChart({
 
   return (
     <svg
-      viewBox={`0 0 1200 ${svgHeight}`}
+      viewBox={`0 0 ${SVG_W} ${svgHeight}`}
       width="100%"
       preserveAspectRatio="xMidYMid meet"
       role="img"
@@ -174,7 +170,7 @@ export function SankeyChart({
         ))}
 
         {/* Out link gradients */}
-        {outNodes.map((_, i) => (
+        {outLinks.map((_, i) => (
           <linearGradient
             key={i}
             id={`${uid}-lgO${i}`}
@@ -183,21 +179,17 @@ export function SankeyChart({
             x2="1"
             y2="0"
           >
-            <stop
-              offset="0%"
-              stopColor={C.outLink0}
-              stopOpacity={linkOpacity}
-            />
+            <stop offset="0%" stopColor={C.outLink} stopOpacity={linkOpacity} />
             <stop
               offset="100%"
-              stopColor={C.outLink1}
+              stopColor={C.hubLink}
               stopOpacity={linkOpacity}
             />
           </linearGradient>
         ))}
 
         {/* In link gradients */}
-        {inNodes.map((_, i) => (
+        {inLinks.map((_, i) => (
           <linearGradient
             key={i}
             id={`${uid}-lgI${i}`}
@@ -206,10 +198,10 @@ export function SankeyChart({
             x2="1"
             y2="0"
           >
-            <stop offset="0%" stopColor={C.inLink0} stopOpacity={linkOpacity} />
+            <stop offset="0%" stopColor={C.hubLink} stopOpacity={linkOpacity} />
             <stop
               offset="100%"
-              stopColor={C.inLink1}
+              stopColor={C.inLink}
               stopOpacity={linkOpacity}
             />
           </linearGradient>
@@ -217,207 +209,201 @@ export function SankeyChart({
       </defs>
 
       {/* Outflow links (node → hub) */}
-      {outNodes.map((node, i) => {
-        const slice = outHubSlices[i];
-        const nodeMidY = node.y + node.h / 2;
-        const path = buildLinkPath(
-          LEFT_NODE_X + NODE_W,
-          node.y,
-          node.y + node.h,
-          HUB_X,
-          slice.y1,
-          slice.y2
-        );
-        return (
-          <path
-            key={i}
-            d={path}
-            fill={`url(#${uid}-lgO${i})`}
-            className="cursor-pointer transition-opacity hover:opacity-100"
-            style={{ opacity: linkOpacity }}
-            onMouseEnter={(e) => handleEnter(e, node.name, node.value, "out")}
-            onMouseMove={handleMove}
-            onMouseLeave={handleLeave}
-            aria-label={`${node.name}: ${formatOwnerCount(node.value)} investors left`}
-          />
-        );
-        void nodeMidY;
-      })}
+      {outLinks.map((link, i) => (
+        <path
+          key={i}
+          d={sankeyLinkPath(link) || ""}
+          stroke={`url(#${uid}-lgO${i})`}
+          strokeWidth={Math.max(1, link.width ?? 0)}
+          fill="none"
+          className="cursor-pointer transition-opacity hover:opacity-100"
+          style={{ opacity: linkOpacity }}
+          onMouseEnter={(e) =>
+            handleEnter(e, link.displayName, link.value ?? 0, "out")
+          }
+          onMouseMove={handleMove}
+          onMouseLeave={handleLeave}
+          aria-label={`${link.displayName}: ${formatOwnerCount(link.value ?? 0)} investors left`}
+        />
+      ))}
 
       {/* Inflow links (hub → node) */}
-      {inNodes.map((node, i) => {
-        const slice = inHubSlices[i];
-        const path = buildLinkPath(
-          hubRight,
-          slice.y1,
-          slice.y2,
-          RIGHT_NODE_X,
-          node.y,
-          node.y + node.h
-        );
-        return (
-          <path
-            key={i}
-            d={path}
-            fill={`url(#${uid}-lgI${i})`}
-            className="cursor-pointer transition-opacity hover:opacity-100"
-            style={{ opacity: linkOpacity }}
-            onMouseEnter={(e) => handleEnter(e, node.name, node.value, "in")}
-            onMouseMove={handleMove}
-            onMouseLeave={handleLeave}
-            aria-label={`${node.name}: ${formatOwnerCount(node.value)} investors joined`}
-          />
-        );
-      })}
+      {inLinks.map((link, i) => (
+        <path
+          key={i}
+          d={sankeyLinkPath(link) || ""}
+          stroke={`url(#${uid}-lgI${i})`}
+          strokeWidth={Math.max(1, link.width ?? 0)}
+          fill="none"
+          className="cursor-pointer transition-opacity hover:opacity-100"
+          style={{ opacity: linkOpacity }}
+          onMouseEnter={(e) =>
+            handleEnter(e, link.displayName, link.value ?? 0, "in")
+          }
+          onMouseMove={handleMove}
+          onMouseLeave={handleLeave}
+          aria-label={`${link.displayName}: ${formatOwnerCount(link.value ?? 0)} investors joined`}
+        />
+      ))}
 
-      {/* Hub rectangle */}
-      <rect
-        x={HUB_X}
-        y={hubY}
-        width={HUB_W}
-        height={hubH}
-        rx={4}
-        fill={`url(#${uid}-hub)`}
-      />
+      {/* Hub rectangle (wider than d3-sankey node for visual balance) */}
+      {hubNode && (
+        <rect
+          x={hubX}
+          y={hubY}
+          width={HUB_RENDER_W}
+          height={hubH}
+          rx={4}
+          fill={`url(#${uid}-hub)`}
+        />
+      )}
 
       {/* Hub labels */}
-      <text
-        x={HUB_X + HUB_W / 2}
-        y={hubY + hubH / 2 - (netLabel ? 20 : 10)}
-        textAnchor="middle"
-        fontSize={11}
-        fontWeight={600}
-        fontFamily="DM Sans, sans-serif"
-        letterSpacing="0.03em"
-        fill={C.hubText}
-      >
-        Investor
-      </text>
-      <text
-        x={HUB_X + HUB_W / 2}
-        y={hubY + hubH / 2 - (netLabel ? 6 : -4)}
-        textAnchor="middle"
-        fontSize={11}
-        fontWeight={600}
-        fontFamily="DM Sans, sans-serif"
-        letterSpacing="0.03em"
-        fill={C.hubText}
-      >
-        Pool
-      </text>
-      <text
-        x={HUB_X + HUB_W / 2}
-        y={hubY + hubH / 2 + 10}
-        textAnchor="middle"
-        fontSize={10}
-        fontFamily="DM Sans, sans-serif"
-        fill={C.hubSubtext}
-      >
-        {`-${formatOwnerCount(totalOut)}`}
-      </text>
-      <text
-        x={HUB_X + HUB_W / 2}
-        y={hubY + hubH / 2 + 22}
-        textAnchor="middle"
-        fontSize={10}
-        fontFamily="DM Sans, sans-serif"
-        fill={C.hubSubtext}
-      >
-        {`+${formatOwnerCount(totalIn)}`}
-      </text>
-      {netLabel && (
-        <text
-          x={HUB_X + HUB_W / 2}
-          y={hubY + hubH / 2 + 38}
-          textAnchor="middle"
-          fontSize={10}
-          fontWeight={600}
-          fontFamily="DM Sans, sans-serif"
-          fill={netColor}
-        >
-          {netLabel}
-        </text>
+      {hubNode && (
+        <>
+          <text
+            x={hubCx}
+            y={hubCy - (netLabel ? 20 : 10)}
+            textAnchor="middle"
+            fontSize={11}
+            fontWeight={600}
+            fontFamily="DM Sans, sans-serif"
+            letterSpacing="0.03em"
+            fill={C.hubText}
+          >
+            Investor
+          </text>
+          <text
+            x={hubCx}
+            y={hubCy - (netLabel ? 6 : -4)}
+            textAnchor="middle"
+            fontSize={11}
+            fontWeight={600}
+            fontFamily="DM Sans, sans-serif"
+            letterSpacing="0.03em"
+            fill={C.hubText}
+          >
+            Pool
+          </text>
+          <text
+            x={hubCx}
+            y={hubCy + 10}
+            textAnchor="middle"
+            fontSize={10}
+            fontFamily="DM Sans, sans-serif"
+            fill={C.hubSubtext}
+          >
+            {`-${formatOwnerCount(totalOut)}`}
+          </text>
+          <text
+            x={hubCx}
+            y={hubCy + 22}
+            textAnchor="middle"
+            fontSize={10}
+            fontFamily="DM Sans, sans-serif"
+            fill={C.hubSubtext}
+          >
+            {`+${formatOwnerCount(totalIn)}`}
+          </text>
+          {netLabel && (
+            <text
+              x={hubCx}
+              y={hubCy + 38}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={600}
+              fontFamily="DM Sans, sans-serif"
+              fill={netColor}
+            >
+              {netLabel}
+            </text>
+          )}
+        </>
       )}
 
       {/* Outflow column header */}
-      <text
-        x={LEFT_NODE_X - 6}
-        y={hubY - 14}
-        textAnchor="end"
-        fontSize={10}
-        fontWeight={500}
-        fontFamily="DM Sans, sans-serif"
-        letterSpacing="0.04em"
-        fill={C.outVal}
-      >
-        OUTFLOWS
-      </text>
+      {outNodes.length > 0 && (
+        <text
+          x={outNodes[0].x0! - LABEL_GAP}
+          y={(outNodes[0].y0 ?? 0) - 14}
+          textAnchor="end"
+          fontSize={10}
+          fontWeight={500}
+          fontFamily="DM Sans, sans-serif"
+          letterSpacing="0.04em"
+          fill={C.outVal}
+        >
+          OUTFLOWS
+        </text>
+      )}
 
       {/* Inflow column header */}
-      <text
-        x={RIGHT_NODE_X + NODE_W + 6}
-        y={hubY - 14}
-        textAnchor="start"
-        fontSize={10}
-        fontWeight={500}
-        fontFamily="DM Sans, sans-serif"
-        letterSpacing="0.04em"
-        fill={C.inVal}
-      >
-        INFLOWS
-      </text>
+      {inNodes.length > 0 && (
+        <text
+          x={inNodes[0].x1! + LABEL_GAP}
+          y={(inNodes[0].y0 ?? 0) - 14}
+          textAnchor="start"
+          fontSize={10}
+          fontWeight={500}
+          fontFamily="DM Sans, sans-serif"
+          letterSpacing="0.04em"
+          fill={C.inVal}
+        >
+          INFLOWS
+        </text>
+      )}
 
-      {/* One-sided info notes */}
+      {/* One-sided info notes — centered in the empty column area */}
       {!data.out.length && (
         <text
-          x={(LEFT_NODE_X + LEFT_LABEL_END) / 2}
-          y={hubY + hubH / 2}
+          x={SANKEY_LAYOUT.MARGIN.left / 2}
+          y={hubCy}
           textAnchor="middle"
           fontSize={11}
           fontFamily="DM Sans, sans-serif"
           fill={C.labelDim}
         >
-          No funds lost owners
+          No net outflows
         </text>
       )}
       {!data.in.length && (
         <text
-          x={(RIGHT_NODE_X + NODE_W + RIGHT_LABEL_START) / 2 + 30}
-          y={hubY + hubH / 2}
+          x={SVG_W - SANKEY_LAYOUT.MARGIN.right / 2}
+          y={hubCy}
           textAnchor="middle"
           fontSize={11}
           fontFamily="DM Sans, sans-serif"
           fill={C.labelDim}
         >
-          No funds gained owners
+          No net inflows
         </text>
       )}
 
       {/* Outflow nodes + labels */}
-      {outNodes.map((node, i) => {
-        const midY = node.y + node.h / 2;
+      {outNodes.map((node: LayoutNode, i: number) => {
+        const midY = (node.y0! + node.y1!) / 2;
         return (
-          <g key={i}>
+          <g key={node.id}>
             <rect
-              x={LEFT_NODE_X}
-              y={node.y}
-              width={NODE_W}
-              height={node.h}
+              x={node.x0}
+              y={node.y0}
+              width={node.x1! - node.x0!}
+              height={node.y1! - node.y0!}
               rx={NODE_R}
               fill={`url(#${uid}-gO${i})`}
             />
             <text
-              x={LEFT_LABEL_END}
+              x={node.x0! - LABEL_GAP}
               y={midY - 5}
               textAnchor="end"
               fontSize={11}
               fontFamily="DM Sans, sans-serif"
               fill={C.labelDim}
             >
-              {truncateLabel(node.name)}
+              {truncateLabel(node.displayName)}
             </text>
             <text
-              x={LEFT_LABEL_END}
+              x={node.x0! - LABEL_GAP}
               y={midY + 8}
               textAnchor="end"
               fontSize={11}
@@ -432,30 +418,30 @@ export function SankeyChart({
       })}
 
       {/* Inflow nodes + labels */}
-      {inNodes.map((node, i) => {
-        const midY = node.y + node.h / 2;
+      {inNodes.map((node: LayoutNode, i: number) => {
+        const midY = (node.y0! + node.y1!) / 2;
         return (
-          <g key={i}>
+          <g key={node.id}>
             <rect
-              x={RIGHT_NODE_X}
-              y={node.y}
-              width={NODE_W}
-              height={node.h}
+              x={node.x0}
+              y={node.y0}
+              width={node.x1! - node.x0!}
+              height={node.y1! - node.y0!}
               rx={NODE_R}
               fill={`url(#${uid}-gI${i})`}
             />
             <text
-              x={RIGHT_LABEL_START}
+              x={node.x1! + LABEL_GAP}
               y={midY - 5}
               textAnchor="start"
               fontSize={11}
               fontFamily="DM Sans, sans-serif"
               fill={C.labelDim}
             >
-              {truncateLabel(node.name)}
+              {truncateLabel(node.displayName)}
             </text>
             <text
-              x={RIGHT_LABEL_START}
+              x={node.x1! + LABEL_GAP}
               y={midY + 8}
               textAnchor="start"
               fontSize={11}

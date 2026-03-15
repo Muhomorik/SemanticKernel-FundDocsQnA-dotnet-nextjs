@@ -26,22 +26,22 @@ describe("SankeyChart", () => {
     expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("renders the correct number of outflow node rects", () => {
+  it("renders outflow and inflow link paths", () => {
     const { container } = render(
       <SankeyChart data={FLOW} svgHeight={300} onTooltipChange={() => {}} />
     );
-    // Rects: 2 out + 2 in + 1 hub = 5 total
-    const rects = container.querySelectorAll("rect");
-    expect(rects.length).toBe(5);
-  });
-
-  it("renders link paths for each outflow node", () => {
-    const { container } = render(
-      <SankeyChart data={FLOW} svgHeight={300} onTooltipChange={() => {}} />
-    );
-    // All paths in SVG — out links + in links
+    // Out links + in links = 2 + 2 = 4 paths
     const paths = container.querySelectorAll("path");
     expect(paths.length).toBe(FLOW.out.length + FLOW.in.length);
+  });
+
+  it("renders node rects for out, in, and hub", () => {
+    const { container } = render(
+      <SankeyChart data={FLOW} svgHeight={300} onTooltipChange={() => {}} />
+    );
+    // 2 out + 2 in + 1 hub = 5 rects
+    const rects = container.querySelectorAll("rect");
+    expect(rects.length).toBe(5);
   });
 
   it("shows SankeyEmpty when both arrays are empty", () => {
@@ -61,7 +61,7 @@ describe("SankeyChart", () => {
       <SankeyChart data={onlyIn} svgHeight={300} onTooltipChange={() => {}} />
     );
     expect(container.querySelector("svg")).toBeInTheDocument();
-    expect(screen.getByText(/No funds lost owners/i)).toBeInTheDocument();
+    expect(screen.getByText(/No net outflows/i)).toBeInTheDocument();
   });
 
   it("renders chart with info note when in array is empty", () => {
@@ -73,7 +73,7 @@ describe("SankeyChart", () => {
       <SankeyChart data={onlyOut} svgHeight={300} onTooltipChange={() => {}} />
     );
     expect(container.querySelector("svg")).toBeInTheDocument();
-    expect(screen.getByText(/No funds gained owners/i)).toBeInTheDocument();
+    expect(screen.getByText(/No net inflows/i)).toBeInTheDocument();
   });
 
   it("calls onTooltipChange with side=out on outflow link mouseenter", () => {

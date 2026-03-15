@@ -5,6 +5,7 @@ import { SankeyEmpty } from "./sankey-empty";
 interface SankeyCardProps {
   title: string;
   subtitle: string;
+  note?: string;
   data: FlowSide | undefined;
   svgHeight: number;
   isLoading: boolean;
@@ -17,6 +18,7 @@ interface SankeyCardProps {
 export function SankeyCard({
   title,
   subtitle,
+  note,
   data,
   svgHeight,
   isLoading,
@@ -46,21 +48,32 @@ export function SankeyCard({
       </div>
       <p className="text-muted-foreground mb-4 text-sm">{subtitle}</p>
 
-      {/* Chart area */}
-      {isLoading ? (
-        <div
-          className="bg-muted animate-pulse rounded-lg"
-          style={{ height: svgHeight }}
-          aria-label="Loading chart"
-        />
-      ) : data ? (
-        <SankeyChart
-          data={data}
-          svgHeight={svgHeight}
-          onTooltipChange={onTooltipChange}
-        />
-      ) : (
-        <SankeyEmpty variant="none" />
+      {/* Chart area — horizontally scrollable on small screens */}
+      <div className="-mx-2 overflow-x-auto px-2">
+        <div className="min-w-[600px]">
+          {isLoading ? (
+            <div
+              className="bg-muted animate-pulse rounded-lg"
+              style={{ height: svgHeight }}
+              aria-label="Loading chart"
+            />
+          ) : data ? (
+            <SankeyChart
+              data={data}
+              svgHeight={svgHeight}
+              onTooltipChange={onTooltipChange}
+            />
+          ) : (
+            <SankeyEmpty variant="none" />
+          )}
+        </div>
+      </div>
+
+      {/* Data methodology note */}
+      {note && (
+        <p className="text-muted-foreground/60 mt-3 text-[11px] leading-relaxed">
+          {note}
+        </p>
       )}
     </div>
   );
