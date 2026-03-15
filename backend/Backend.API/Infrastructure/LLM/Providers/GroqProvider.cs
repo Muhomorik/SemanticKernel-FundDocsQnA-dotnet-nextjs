@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Backend.API.Domain.Interfaces;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -60,5 +61,26 @@ public class GroqProvider : ILlmProvider
         }
 
         return response.Content ?? "No answer generated";
+    }
+
+    public async IAsyncEnumerable<string> StreamChatCompletionAsync(
+        string systemPrompt,
+        string userPrompt,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Streaming chat completion using Groq");
+
+        var chatHistory = new ChatHistory();
+        chatHistory.AddSystemMessage(systemPrompt);
+        chatHistory.AddUserMessage(userPrompt);
+
+        await foreach (var chunk in _chatService.GetStreamingChatMessageContentsAsync(
+            chatHistory, cancellationToken: cancellationToken))
+        {
+            if (!string.IsNullOrEmpty(chunk.Content))
+            {
+                yield return chunk.Content;
+            }
+        }
     }
 }

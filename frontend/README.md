@@ -2,7 +2,7 @@
 
 > Part of [PDF Q&A Application](../README.md). See [Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md) for all environment variables.
 
-Next.js frontend for asking questions about PDF documents.
+Next.js frontend for asking questions about PDF documents. Features **streaming chat responses** via Server-Sent Events (SSE) — LLM answers appear token-by-token in real-time, like ChatGPT.
 
 ## Tech Stack
 
@@ -64,12 +64,12 @@ npm run test:coverage
 
 Tests are located in the `__tests__` directory, mirroring the app structure:
 
-```
+```text
 __tests__/
 ├── app/
 │   └── page.test.tsx
 └── lib/
-    └── api.test.tsx (future)
+    └── api-streaming.test.ts
 ```
 
 Example test:

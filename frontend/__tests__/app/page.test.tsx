@@ -10,7 +10,7 @@ describe("Home Page", () => {
   it("renders the main heading", () => {
     renderWithProvider(<Home />);
     const heading = screen.getByRole("heading", {
-      name: /Ask about your documents/i,
+      name: /Ask anything about your funds/i,
     });
     expect(heading).toBeInTheDocument();
   });
@@ -18,7 +18,7 @@ describe("Home Page", () => {
   it("displays the description text", () => {
     renderWithProvider(<Home />);
     const description = screen.getByText(
-      /Get AI-powered answers from your pre-processed PDF documents/i
+      /Hybrid AI answers from PDF factsheets and fund data/i
     );
     expect(description).toBeInTheDocument();
   });

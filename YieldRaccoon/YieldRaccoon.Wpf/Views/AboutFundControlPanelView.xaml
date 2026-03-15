@@ -37,11 +37,28 @@
                 Margin="{StaticResource yr.LabelSpacing}"
                 Style="{StaticResource yr.SubheaderStyle}"
                 Text="Options" />
-            <mah:ToggleSwitch
-                IsOn="{Binding AutoStartOverview}"
-                OffContent="Auto-start disabled"
-                OnContent="Auto-start enabled"
-                ToolTip="Automatically start browsing when window opens" />
+            <!--  Auto-mode indicator (CLI-driven, read-only)  -->
+            <Border
+                Padding="8,4"
+                Background="{DynamicResource MahApps.Brushes.Accent}"
+                CornerRadius="4"
+                Visibility="{Binding AutoStartOverview, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="12"
+                        Foreground="White"
+                        Text="&#xE945;" />
+                    <TextBlock
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Style="{StaticResource yr.CaptionStyle}"
+                        Text="Auto mode" />
+                </StackPanel>
+            </Border>
 
             <TextBlock
                 Margin="{StaticResource yr.SubsectionSpacing}"

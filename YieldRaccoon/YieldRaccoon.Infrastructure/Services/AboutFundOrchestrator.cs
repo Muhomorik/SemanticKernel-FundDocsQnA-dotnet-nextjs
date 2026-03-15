@@ -174,10 +174,11 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync()
+    public async Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync(int? limit = null)
     {
-        _logger.Info("Loading fund schedule from database");
-        _schedule = await _fundProfileRepository.GetFundsOrderedByLastVisitAsync(ScheduleLimit)
+        var effectiveLimit = limit ?? ScheduleLimit;
+        _logger.Info("Loading fund schedule from database (limit: {0})", effectiveLimit);
+        _schedule = await _fundProfileRepository.GetFundsOrderedByLastVisitAsync(effectiveLimit)
             .ConfigureAwait(false);
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;

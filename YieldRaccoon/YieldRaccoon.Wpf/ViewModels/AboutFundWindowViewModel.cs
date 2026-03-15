@@ -26,6 +26,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
     private readonly YieldRaccoonOptions _options;
     private readonly IAboutFundOrchestrator _orchestrator;
     private readonly IScheduler _uiScheduler;
+    private readonly AutoStartOptions _autoStartOptions;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
 
@@ -153,22 +154,27 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         IAboutFundOrchestrator orchestrator,
         AboutFundScheduleViewModel fundScheduleViewModel,
         AboutFundControlPanelViewModel controlPanelViewModel,
-        IScheduler uiScheduler)
+        IScheduler uiScheduler,
+        AutoStartOptions autoStartOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
+        _autoStartOptions = autoStartOptions ?? throw new ArgumentNullException(nameof(autoStartOptions));
 
         FundScheduleViewModel = fundScheduleViewModel ?? throw new ArgumentNullException(nameof(fundScheduleViewModel));
         ControlPanelViewModel = controlPanelViewModel ?? throw new ArgumentNullException(nameof(controlPanelViewModel));
 
-        Title = "AboutFund - Overview";
+        Title = _autoStartOptions.AutoOverview
+            ? $"AboutFund - Overview [AUTO: {_autoStartOptions.OverviewFundCount} funds]"
+            : "AboutFund - Overview";
         BrowserUrl = BlankPageUrl;
         IsLoading = false;
 
-        // Initialize AutoStartOverview from options
-        ControlPanelViewModel.AutoStartOverview = _options.AutoStartOverview;
+        // Initialize AutoStartOverview from CLI args
+        if (_autoStartOptions.AutoOverview)
+            ControlPanelViewModel.AutoStartOverview = true;
 
         // Initialize commands
         NavigateCommand = new DelegateCommand(ExecuteNavigate);
@@ -197,6 +203,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         _options = new YieldRaccoonOptions { FundDetailsPageUrlTemplate = "https://example.com/" };
         _orchestrator = null!;
         _uiScheduler = null!;
+        _autoStartOptions = AutoStartOptions.None;
 
         FundScheduleViewModel = new AboutFundScheduleViewModel(LogManager.GetCurrentClassLogger());
         ControlPanelViewModel = new AboutFundControlPanelViewModel(LogManager.GetCurrentClassLogger());
@@ -228,7 +235,8 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
             // Offload to thread pool — SQLite's ToListAsync() is synchronous and would
             // freeze the UI for ~3 s. Safe: no session is active yet, so no concurrent
             // DbContext access can occur.
-            var schedule = await Task.Run(() => _orchestrator.LoadScheduleAsync());
+            var limit = _autoStartOptions.AutoOverview ? _autoStartOptions.OverviewFundCount : (int?)null;
+            var schedule = await Task.Run(() => _orchestrator.LoadScheduleAsync(limit));
             FundScheduleViewModel.LoadSchedule(schedule);
 
             _logger.Info("Fund schedule loaded: {0} funds", schedule.Count);

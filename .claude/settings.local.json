@@ -8,7 +8,8 @@
       "mcp__microsoft-learn__microsoft_docs_search",
       "mcp__microsoft-learn__microsoft_code_sample_search",
       "mcp__microsoft-learn__microsoft_docs_fetch",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__next-devtools__browser_eval"
     ],
     "deny": [
       "Bash(git diff:*)",

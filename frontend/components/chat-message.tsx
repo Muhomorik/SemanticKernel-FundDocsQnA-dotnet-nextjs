@@ -7,6 +7,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: SourceReference[];
+  isStreaming?: boolean;
 }
 
 interface ChatMessageProps {
@@ -55,6 +56,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         >
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
             {message.content}
+            {message.isStreaming && (
+              <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-current align-text-bottom" />
+            )}
           </p>
         </div>
 

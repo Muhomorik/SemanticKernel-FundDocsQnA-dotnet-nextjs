@@ -20,15 +20,6 @@ public class YieldRaccoonOptions
     public string FundDetailsPageUrlTemplate { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets whether the about-fund overview should auto-start navigating through funds.
-    /// </summary>
-    /// <remarks>
-    /// When true, the browsing session starts automatically when the AboutFund window opens.
-    /// Default: false (user must click "Start Overview" button).
-    /// </remarks>
-    public bool AutoStartOverview { get; set; } = false;
-
-    /// <summary>
     /// Gets or sets whether to use minimal delays for page interactions and browsing pauses.
     /// </summary>
     /// <remarks>

@@ -5,9 +5,10 @@ import { ChatMessage, ChatMessageSkeleton, type Message } from "./chat-message";
 import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
-import { askQuestion, ApiError } from "@/lib/api";
+import { askQuestionStream, ApiError } from "@/lib/api";
 import { AlertCircle, RotateCcw, Plus } from "lucide-react";
 import { useChatContext } from "./chat-context";
+import { DemoBanner } from "./demo-banner";
 
 export function ChatInterface() {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -44,16 +45,49 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    try {
-      const response = await askQuestion(question);
+    const assistantId = `assistant-${Date.now()}`;
+    const abortController = new AbortController();
 
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: response.answer,
-        sources: response.sources,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+    try {
+      await askQuestionStream(
+        question,
+        {
+          onSources: (sources) => {
+            // Create assistant message with sources, content starts empty
+            const msg: Message = {
+              id: assistantId,
+              role: "assistant",
+              content: "",
+              sources,
+              isStreaming: true,
+            };
+            setMessages((prev) => [...prev, msg]);
+          },
+          onDelta: (text) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + text } : m
+              )
+            );
+          },
+          onDone: () => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, isStreaming: false } : m
+              )
+            );
+          },
+          onError: (errorMsg) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, isStreaming: false } : m
+              )
+            );
+            setError(errorMsg);
+          },
+        },
+        abortController.signal
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.statusCode === 400) {
@@ -90,26 +124,18 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       {/* Info Banner - always visible */}
-      <div className="border-border/30 bg-muted/20 border-b px-4 py-2">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-muted-foreground text-center text-xs leading-relaxed">
-            <span className="font-medium">Demo Notice:</span> This site runs on
-            free tier resources and may experience downtime when limits are
-            reached. Currently processing 15 of 68 SEB funds.
-          </p>
-        </div>
-      </div>
+      <DemoBanner />
 
       {/* Hero section - only shown when no messages */}
       {!hasMessages && !isLoading && (
         <div className="flex flex-col items-center px-6 pt-6 pb-4">
           <div className="animate-fade-up text-center">
             <h1 className="font-serif text-2xl font-medium tracking-tight sm:text-3xl">
-              Ask about your documents
+              Ask anything about your funds
             </h1>
             <p className="text-muted-foreground mt-2 max-w-md text-sm">
-              Get AI-powered answers from your pre-processed PDF documents with
-              source references.
+              Hybrid AI answers from PDF factsheets and fund data — powered by
+              Semantic Kernel, OpenAI, and function calling.
             </p>
           </div>
         </div>
@@ -138,7 +164,9 @@ export function ChatInterface() {
                 <ChatMessage key={message.id} message={message} />
               ))}
 
-              {isLoading && <ChatMessageSkeleton />}
+              {isLoading && !messages.some((m) => m.isStreaming) && (
+                <ChatMessageSkeleton />
+              )}
 
               {error && (
                 <div className="animate-fade-up bg-destructive/5 border-destructive/20 flex items-start gap-3 rounded-xl border p-4">

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using Autofac;
+using CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Web.WebView2.Core;
@@ -35,6 +36,14 @@ public partial class App
         LogManager.Setup().LoadConfigurationFromFile("NLog.config");
         Logger.Info("Application starting...");
 
+        // Parse command-line arguments for auto-start modes
+        var autoStartOptions = Parser.Default
+            .ParseArguments<AutoStartOptions>(e.Args)
+            .MapResult(opts => opts, _ => AutoStartOptions.None);
+
+        Logger.Info("CLI args: AutoList={0}, AutoOverview={1}, OverviewFundCount={2}",
+            autoStartOptions.AutoList, autoStartOptions.AutoOverview, autoStartOptions.OverviewFundCount);
+
         // Apply YieldRaccoon theme (system accent color via RuntimeThemeGenerator)
         ApplyYieldRaccoonTheme();
 
@@ -50,6 +59,9 @@ public partial class App
         // Register configuration options
         var options = configuration.GetSection("YieldRaccoon").Get<YieldRaccoonOptions>() ?? new YieldRaccoonOptions();
         builder.RegisterInstance(options).AsSelf().SingleInstance();
+
+        // Register CLI auto-start options
+        builder.RegisterInstance(autoStartOptions).AsSelf().SingleInstance();
 
         // Load database options from appsettings.json
         var databaseOptions = configuration.GetSection("Database").Get<DatabaseOptions>() ?? new DatabaseOptions();

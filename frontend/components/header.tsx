@@ -35,17 +35,17 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href={isOnFlowPage ? "/" : "/ownership-flow"}
-            className="text-muted-foreground hover:text-foreground hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200 sm:flex"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200"
           >
             {isOnFlowPage ? (
               <>
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Fund Insights
+                <span className="hidden sm:inline">Fund Insights</span>
               </>
             ) : (
               <>
                 <Activity className="h-3.5 w-3.5" />
-                Ownership Flow
+                <span className="hidden sm:inline">Ownership Flow</span>
               </>
             )}
           </Link>

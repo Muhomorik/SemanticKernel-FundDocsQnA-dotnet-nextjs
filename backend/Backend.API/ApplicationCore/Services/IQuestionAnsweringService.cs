@@ -11,4 +11,8 @@ public interface IQuestionAnsweringService
     Task<AskQuestionResponse> AnswerQuestionAsync(
         AskQuestionRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<StreamingAnswerContext> BeginStreamingAnswerAsync(
+        AskQuestionRequest request,
+        CancellationToken cancellationToken = default);
 }

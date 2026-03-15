@@ -305,4 +305,116 @@ public class QuestionAnsweringServiceTests
     }
 
     #endregion
+
+    #region Streaming Tests
+
+    [Test]
+    public async Task BeginStreamingAnswerAsync_ValidQuestion_ReturnsSourcesAndStream()
+    {
+        // Arrange
+        var request = _fixture.Create<AskQuestionRequest>();
+        var searchResults = _fixture.CreateMany<SearchResult>(2).ToList();
+
+        _questionSanitizerMock
+            .Setup(x => x.Sanitize(request.Question))
+            .Returns(request.Question);
+
+        _semanticSearchMock
+            .Setup(x => x.SearchAsync(request.Question, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(searchResults);
+
+        _llmProviderMock
+            .Setup(x => x.StreamChatCompletionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(MockStream("Hello ", "world"));
+
+        // Act
+        var result = await _sut.BeginStreamingAnswerAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.That(result.Sources, Is.Not.Empty);
+
+        var chunks = new List<string>();
+        await foreach (var chunk in result.AnswerStream)
+        {
+            chunks.Add(chunk);
+        }
+
+        Assert.That(chunks, Is.EqualTo(new[] { "Hello ", "world" }));
+    }
+
+    [Test]
+    public async Task BeginStreamingAnswerAsync_NoSearchResults_ReturnsEmptySourcesAndFallbackStream()
+    {
+        // Arrange
+        var request = _fixture.Create<AskQuestionRequest>();
+
+        _questionSanitizerMock
+            .Setup(x => x.Sanitize(request.Question))
+            .Returns(request.Question);
+
+        _semanticSearchMock
+            .Setup(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SearchResult>());
+
+        // Act
+        var result = await _sut.BeginStreamingAnswerAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.That(result.Sources, Is.Empty);
+
+        var chunks = new List<string>();
+        await foreach (var chunk in result.AnswerStream)
+        {
+            chunks.Add(chunk);
+        }
+
+        Assert.That(chunks, Has.Count.EqualTo(1));
+        Assert.That(chunks[0], Is.EqualTo("I don't have enough information to answer this question."));
+
+        _llmProviderMock.Verify(
+            x => x.StreamChatCompletionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task BeginStreamingAnswerAsync_CallsServicesInCorrectOrder()
+    {
+        // Arrange
+        var request = _fixture.Create<AskQuestionRequest>();
+        var searchResults = _fixture.CreateMany<SearchResult>(1).ToList();
+        var callOrder = new List<string>();
+
+        _questionSanitizerMock
+            .Setup(x => x.Sanitize(It.IsAny<string>()))
+            .Callback(() => callOrder.Add("sanitize"))
+            .Returns(request.Question);
+
+        _semanticSearchMock
+            .Setup(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("search"))
+            .ReturnsAsync(searchResults);
+
+        _llmProviderMock
+            .Setup(x => x.StreamChatCompletionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(MockStream("answer"));
+
+        // Act
+        var result = await _sut.BeginStreamingAnswerAsync(request, CancellationToken.None);
+
+        // Assert — sanitize and search happen eagerly, stream is lazy
+        Assert.That(callOrder, Is.EqualTo(new[] { "sanitize", "search" }));
+        Assert.That(result.Sources, Is.Not.Empty);
+    }
+
+    private static async IAsyncEnumerable<string> MockStream(params string[] chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            yield return chunk;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    #endregion
 }

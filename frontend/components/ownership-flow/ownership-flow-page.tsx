@@ -9,6 +9,7 @@ import {
   SelectedPeriod,
   TooltipState,
 } from "@/lib/ownership-flow";
+import { DemoBanner } from "../demo-banner";
 import { PeriodSelector } from "./period-selector";
 import { SankeyCard } from "./sankey-card";
 import { SankeyTooltip } from "./sankey-tooltip";
@@ -85,8 +86,11 @@ export function OwnershipFlowPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      {/* Info Banner - always visible */}
+      <DemoBanner />
+
       {/* Page header */}
-      <div className="mb-8">
+      <div className="mt-6 mb-8">
         <h1 className="font-serif text-3xl font-medium tracking-tight">
           Ownership Flow
         </h1>
@@ -122,7 +126,8 @@ export function OwnershipFlowPage() {
       <div className="flex flex-col gap-6">
         <SankeyCard
           title="Category overview"
-          subtitle="Investor movement grouped by fund category"
+          subtitle="Net investor movement grouped by fund category"
+          note="Shows net change per category — individual funds within a category may move in the opposite direction. Funds with fewer than 100 owners are excluded."
           data={flowData?.cat}
           svgHeight={300}
           isLoading={isLoadingFlow || isLoadingPeriods}
@@ -132,12 +137,18 @@ export function OwnershipFlowPage() {
         <SankeyCard
           title="Top funds"
           subtitle="Top 10 funds gaining and losing investors"
+          note="Shows the 10 largest movers in each direction. Only funds with 100+ owners are included."
           data={flowData?.fund}
           svgHeight={520}
           isLoading={isLoadingFlow || isLoadingPeriods}
           periodLabel={flowData?.periodLabel}
           onTooltipChange={setTooltip}
         />
+        {/* Data freshness note */}
+        <p className="text-muted-foreground/50 text-center text-[11px] leading-relaxed">
+          Ownership data may take up to 4 days to update — the most recent
+          period may be incomplete.
+        </p>
       </div>
 
       {/* Shared tooltip — one instance for both charts */}

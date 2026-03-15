@@ -456,6 +456,44 @@ curl -X POST http://localhost:5000/api/ask \
 | `400 Bad Request` | Invalid question (empty or too short) |
 | `500 Internal Server Error` | Processing error |
 
+### POST /api/ask/stream
+
+Ask a question with **streaming response** via Server-Sent Events (SSE). Tokens arrive incrementally as the LLM generates them, providing a real-time typing effect.
+
+```bash
+curl -N -X POST http://localhost:5000/api/ask/stream \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is the risk level of Spiltan Globalfond?"}'
+```
+
+**Response** (`Content-Type: text/event-stream`):
+
+```text
+event: sources
+data: [{"file":"Spiltan_Globalfond.pdf","page":1}]
+
+event: delta
+data: "The fund is "
+
+event: delta
+data: "classified as risk level 4..."
+
+event: done
+data: {}
+```
+
+| Event | Description |
+| --- | --- |
+| `sources` | Source references from semantic search (sent first, before LLM starts) |
+| `delta` | A text chunk from the LLM response |
+| `done` | Stream complete |
+| `error` | Error occurred mid-stream (`{"message":"..."}`) |
+
+| Status | Description |
+| --- | --- |
+| `200 OK` | SSE stream started |
+| `400 Bad Request` | Invalid question (returned as JSON before stream starts) |
+
 ### Health Endpoints
 
 | Endpoint | Description |
