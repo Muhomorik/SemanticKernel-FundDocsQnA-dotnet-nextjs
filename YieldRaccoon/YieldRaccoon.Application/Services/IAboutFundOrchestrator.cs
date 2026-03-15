@@ -86,8 +86,12 @@ public interface IAboutFundOrchestrator : IDisposable
     /// <summary>
     /// Loads the fund schedule from the database without starting a session.
     /// </summary>
+    /// <param name="limit">
+    /// Maximum number of funds to include in the schedule.
+    /// When <c>null</c>, uses the orchestrator's default limit (80).
+    /// </param>
     /// <returns>The list of funds scheduled for browsing.</returns>
-    Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync();
+    Task<IReadOnlyList<AboutFundScheduleItem>> LoadScheduleAsync(int? limit = null);
 
     /// <summary>
     /// Starts manual collection mode: parses the OrderBookId from the URL, begins passive

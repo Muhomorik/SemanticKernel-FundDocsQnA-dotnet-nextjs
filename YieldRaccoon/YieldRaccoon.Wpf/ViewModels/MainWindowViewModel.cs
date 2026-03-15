@@ -44,8 +44,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IFundStatisticsExportWindowService _fundStatisticsExportWindowService;
     private readonly ICloudSyncWindowService _cloudSyncWindowService;
     private readonly IBackendSyncStatusProvider _backendSyncStatusProvider;
+    private readonly AutoStartOptions _autoStartOptions;
     private readonly CompositeDisposable _disposables = new();
     private bool _disposed;
+    private bool _autoListSessionStarted;
 
     #region UI State Properties
 
@@ -149,13 +151,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Gets or sets whether auto-start is enabled for sessions.
+    /// Gets whether CLI auto-start mode is active (read-only indicator for UI badge).
     /// </summary>
-    public bool IsAutoStartEnabled
-    {
-        get => GetProperty(() => IsAutoStartEnabled);
-        set => SetProperty(() => IsAutoStartEnabled, value);
-    }
+    public bool IsCliAutoMode => _autoStartOptions.IsAnyAutoModeActive;
 
     /// <summary>
     /// Gets or sets whether a delay timer is in progress before next batch.
@@ -370,6 +368,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="cloudSyncWindowService">Service for showing the Cloud Sync window.</param>
     /// <param name="databaseOptions">Database configuration options for provider display.</param>
     /// <param name="backendSyncStatusProvider">Provider for backend sync status notifications.</param>
+    /// <param name="autoStartOptions">CLI auto-start options for automated session startup.</param>
     public MainWindowViewModel(
         ILogger logger,
         IScheduler uiScheduler,
@@ -381,7 +380,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IFundStatisticsExportWindowService fundStatisticsExportWindowService,
         ICloudSyncWindowService cloudSyncWindowService,
         DatabaseOptions databaseOptions,
-        IBackendSyncStatusProvider backendSyncStatusProvider)
+        IBackendSyncStatusProvider backendSyncStatusProvider,
+        AutoStartOptions autoStartOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -400,6 +400,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         _backendSyncStatusProvider =
             backendSyncStatusProvider ?? throw new ArgumentNullException(nameof(backendSyncStatusProvider));
+        _autoStartOptions = autoStartOptions ?? throw new ArgumentNullException(nameof(autoStartOptions));
 
         ArgumentNullException.ThrowIfNull(databaseOptions);
         var dbPath = Path.GetFullPath(databaseOptions.ConnectionString.Replace("Data Source=", ""));
@@ -414,7 +415,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _logger.Info("MainWindowViewModel constructor called");
 
         // Initialize UI state properties
-        Title = "Yield Raccoon - we walk in the dark";
+        Title = _autoStartOptions.IsAnyAutoModeActive
+            ? "Yield Raccoon - we walk in the dark [AUTO]"
+            : "Yield Raccoon - we walk in the dark";
         StatusMessage = "Ready";
         BrowserUrl = _options.FundListPageUrlOverviewTab;
         IsLoading = false;
@@ -425,7 +428,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Initialize session state properties
         IsSessionActive = false;
-        IsAutoStartEnabled = false;
         IsDelayInProgress = false;
         CurrentBatchNumber = 0;
         EstimatedBatchCount = 0;
@@ -470,6 +472,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _fundStatisticsExportWindowService = null!; // Design-time only
         _cloudSyncWindowService = null!; // Design-time only
         _backendSyncStatusProvider = new NullBackendSyncStatusProvider();
+        _autoStartOptions = AutoStartOptions.None;
 
         DatabaseProviderName = "InMemory";
         IsBackendSyncVisible = false;
@@ -484,7 +487,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Design-time session properties
         IsSessionActive = false;
-        IsAutoStartEnabled = false;
         IsDelayInProgress = false;
         CurrentBatchNumber = 0;
         EstimatedBatchCount = 0;
@@ -648,7 +650,13 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private void ExecuteLoaded()
     {
         _logger.Info("Window loaded - setting initial state");
-        IsAutoStartEnabled = false;
+
+        // Auto-open AboutFund window when CLI --auto-overview is active
+        if (_autoStartOptions.AutoOverview)
+        {
+            _logger.Info("CLI auto-overview mode active - opening AboutFund window");
+            ExecuteOpenAboutFund();
+        }
     }
 
     /// <summary>
@@ -941,6 +949,16 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             }
         }
         // When session is active, status updates come from the orchestrator's SessionState observable
+
+        // Auto-start crawl session on first data arrival when CLI --auto-list is active
+        if (_autoStartOptions.AutoList && !_autoListSessionStarted && !IsSessionActive
+            && FundCount > 0 && TotalFundCount > FundCount)
+        {
+            _autoListSessionStarted = true;
+            _logger.Info("CLI auto-list: first batch received ({0}/{1}), starting crawl session",
+                FundCount, TotalFundCount);
+            ExecuteStartSession();
+        }
 
         CommandManager.InvalidateRequerySuggested();
     }

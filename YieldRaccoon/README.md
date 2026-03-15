@@ -52,6 +52,35 @@ dotnet build
 dotnet run --project YieldRaccoon.Wpf
 ```
 
+## Command-Line Arguments
+
+Auto-start modes for hands-free crawling sessions. Parsed via [CommandLineParser](https://github.com/commandlineparser/commandline).
+
+```bash
+# Auto-start fund list crawl
+dotnet run --project YieldRaccoon.Wpf -- --auto-list
+
+# Auto-open AboutFund and crawl 50 funds
+dotnet run --project YieldRaccoon.Wpf -- --auto-overview 50
+
+# Both modes together
+dotnet run --project YieldRaccoon.Wpf -- --auto-list --auto-overview 30
+```
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `--auto-list` | Flag | Auto-start Main Window crawl session when WebView2 is ready |
+| `--auto-overview N` | Int | Auto-open AboutFund window and start overview with N funds |
+| `--help` | Flag | Show all available arguments (auto-generated) |
+
+When auto mode is active, an accent-colored "Auto mode" badge appears in the control panel instead of the old toggle switch.
+
+**Windows shortcut:** Right-click the `.exe` shortcut → Properties → in the **Target** field, append the arguments after the path:
+
+```text
+"C:\Path\To\YieldRaccoon.Wpf.exe" --auto-list --auto-overview 50
+```
+
 ## Configuration (User Secrets)
 
 Settings are loaded from .NET User Secrets under the `YieldRaccoon` section:
@@ -62,7 +91,6 @@ dotnet user-secrets set "YieldRaccoon:FundListPageUrlOverviewTab" "https://<fund
 dotnet user-secrets set "YieldRaccoon:FundDetailsPageUrlTemplate" "https://<fund-provider>.com/fund/{0}"
 
 # Optional — behavior flags
-dotnet user-secrets set "YieldRaccoon:AutoStartOverview" "true"
 dotnet user-secrets set "YieldRaccoon:FastMode" "true"
 ```
 
@@ -70,7 +98,6 @@ dotnet user-secrets set "YieldRaccoon:FastMode" "true"
 | ------- | ------- | ----------- |
 | `FundListPageUrlOverviewTab` | *(empty)* | URL to the fund list/search page |
 | `FundDetailsPageUrlTemplate` | *(empty)* | URL template for fund detail pages (`{0}` = OrderbookId) |
-| `AutoStartOverview` | `false` | Auto-start browsing when AboutFund window opens |
 | `FastMode` | `false` | Use minimal delays (3-7s clicks, 2s panel animations, 3-8s between pages) instead of human-like timings |
 
 ## Project Structure
@@ -108,7 +135,7 @@ YieldRaccoon.sln
     ├── Views/                        # XAML views (MainWindow, AboutFundWindow, ExportWindow, SettingsWindow)
     ├── Services/                     # WebView2 interceptor, page interactor, PrivacyFilterService,
     │                                 # ExportWindowService
-    └── Configuration/                # DatabaseOptions, YieldRaccoonOptions (FastMode, AutoStartOverview)
+    └── Configuration/                # DatabaseOptions, YieldRaccoonOptions, AutoStartOptions (CLI args)
 ```
 
 ## Architecture

@@ -38,6 +38,9 @@
     <!-- WebView2 for embedded Chromium browser -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
 
+    <!-- CLI argument parsing -->
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+
     <!-- Logging -->
     <PackageReference Include="NLog" Version="6.0.7" />
     <PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />

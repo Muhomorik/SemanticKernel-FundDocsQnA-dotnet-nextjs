@@ -385,11 +385,29 @@
                             Style="{StaticResource yr.SubheaderStyle}"
                             Text="Session control" />
 
-                        <mah:ToggleSwitch
+                        <!--  Auto-mode indicator (CLI-driven, read-only)  -->
+                        <Border
                             Margin="{StaticResource yr.ItemSpacing}"
-                            IsOn="{Binding IsAutoStartEnabled}"
-                            OffContent="Auto-start disabled"
-                            OnContent="Auto-start enabled" />
+                            Padding="8,4"
+                            Background="{DynamicResource MahApps.Brushes.Accent}"
+                            CornerRadius="4"
+                            Visibility="{Binding IsCliAutoMode, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontFamily="Segoe Fluent Icons"
+                                    FontSize="12"
+                                    Foreground="White"
+                                    Text="&#xE945;" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Style="{StaticResource yr.CaptionStyle}"
+                                    Text="Auto mode" />
+                            </StackPanel>
+                        </Border>
 
                         <Grid Margin="{StaticResource yr.ItemSpacing}">
                             <Grid.ColumnDefinitions>
