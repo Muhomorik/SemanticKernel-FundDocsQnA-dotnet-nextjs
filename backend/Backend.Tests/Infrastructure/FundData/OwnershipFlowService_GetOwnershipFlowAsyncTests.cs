@@ -341,6 +341,39 @@ public class OwnershipFlowService_GetOwnershipFlowAsyncTests
         Assert.That(threeMonths.Fund.In[0].Value, Is.EqualTo(800));
     }
 
+    // ─── Monday edge case: from == to (regression test) ────────────────────────
+    //
+    // On Monday, BuildWeeklyPeriods creates a current week with from == to.
+    // The service must handle this gracefully — return valid data, not throw.
+
+    [Test]
+    public async Task GetOwnershipFlowAsync_FromEqualsTo_NoData_DoesNotThrow()
+    {
+        var monday = new DateOnly(2026, 3, 16);
+
+        var result = await _sut.GetOwnershipFlowAsync(monday, monday);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.PeriodLabel, Is.Not.Null.And.Not.Empty);
+    }
+
+    [Test]
+    public async Task GetOwnershipFlowAsync_FromEqualsTo_WithData_DoesNotThrow()
+    {
+        var monday = new DateOnly(2026, 3, 16);
+
+        await SeedFund("SE0008613939", "Monday Fund", "Aktiefond Global", numberOfOwners: 1000,
+            historyRecords:
+            [
+                (new DateOnly(2026, 3, 16), 1000),
+            ]);
+
+        var result = await _sut.GetOwnershipFlowAsync(monday, monday);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.PeriodLabel, Is.Not.Null.And.Not.Empty);
+    }
+
     // ─── Weekly period with sparse NumberOfOwners (production scenario) ─────────
     //
     // In production, NumberOfOwners is updated infrequently. A 7-day window often

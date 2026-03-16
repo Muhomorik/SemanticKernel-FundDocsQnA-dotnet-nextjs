@@ -128,6 +128,28 @@ public class OwnershipFlowService_GetAvailablePeriodsTests
         }
     }
 
+    // ─── Monday edge case (from == to regression) ──────────────────────────────
+    //
+    // Bug: On Monday, GetMonday(today) == today, so the current partial week is
+    // MakeWeekPeriod(monday, monday) — from == to. The controller used to reject
+    // this with 400 ("from must be earlier than to"), breaking the ownership flow
+    // page. Fix: controller allows from == to, service returns empty flow data.
+
+    [Test]
+    public void GetAvailablePeriods_MondayCurrentWeek_HasFromEqualsTo()
+    {
+        // Verify the current week period has from == to on Monday — this is
+        // expected behavior. The controller must allow it (no 400).
+        var result = _sut.GetAvailablePeriods();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (today.DayOfWeek != DayOfWeek.Monday) Assert.Ignore("Only relevant on Mondays");
+
+        var currentWeek = result.Weekly[^1];
+        Assert.That(currentWeek.From, Is.EqualTo(currentWeek.To),
+            "On Monday, current partial week should have from == to");
+    }
+
     // ─── FormatPeriodLabel tests (internal static) ──────────────────────────────
 
     [Test]
