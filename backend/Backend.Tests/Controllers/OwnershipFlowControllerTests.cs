@@ -99,14 +99,20 @@ public class OwnershipFlowControllerTests
     // ─── GetOwnershipFlow — date validation ──────────────────────────────────
 
     [Test]
-    public async Task GetOwnershipFlow_FromEqualsTo_Returns400()
+    public async Task GetOwnershipFlow_FromEqualsTo_Returns200WithEmptyData()
     {
-        var sut = CreateController(OptionsWithSql());
+        // On Monday, BuildWeeklyPeriods produces from == to for the current week.
+        // The controller must allow this and return empty flow data (not 400).
         var date = new DateOnly(2025, 2, 10);
 
+        _serviceMock
+            .Setup(s => s.GetOwnershipFlowAsync(date, date, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EmptyFlowResponse("Feb 10 – 10"));
+
+        var sut = CreateController(OptionsWithSql());
         var result = await sut.GetOwnershipFlow(date, date, CancellationToken.None);
 
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
     }
 
     [Test]
@@ -120,18 +126,6 @@ public class OwnershipFlowControllerTests
             CancellationToken.None);
 
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task GetOwnershipFlow_FromEqualsTo_ErrorMentionsFromBeforeTo()
-    {
-        var sut = CreateController(OptionsWithSql());
-        var date = new DateOnly(2025, 2, 10);
-
-        var result = await sut.GetOwnershipFlow(date, date, CancellationToken.None);
-
-        var body = ((BadRequestObjectResult)result.Result!).Value?.ToString();
-        Assert.That(body, Does.Contain("from").IgnoreCase.Or.Contain("earlier").IgnoreCase);
     }
 
     [Test]

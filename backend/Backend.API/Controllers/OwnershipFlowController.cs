@@ -66,8 +66,8 @@ public class OwnershipFlowController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        if (from >= to)
-            return BadRequest(new { error = "Parameter 'from' must be earlier than 'to'." });
+        if (from > to)
+            return BadRequest(new { error = "Parameter 'from' must not be later than 'to'." });
 
         if (to.DayNumber - from.DayNumber > 365)
             return BadRequest(new { error = "Date range cannot exceed 365 days." });

@@ -6,14 +6,19 @@ import { ChatInput } from "./chat-input";
 import { ExampleQueries } from "./example-queries";
 import { Button } from "@/components/ui/button";
 import { askQuestionStream, ApiError } from "@/lib/api";
-import { AlertCircle, RotateCcw, Plus } from "lucide-react";
+import { AlertCircle, RotateCcw, Plus, Snowflake } from "lucide-react";
 import { useChatContext } from "./chat-context";
 import { DemoBanner } from "./demo-banner";
 
 export function ChatInterface() {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  // Error variant: "cold-start" for Azure App Service cold start errors (502, 503, network timeout),
+  // "destructive" for all other errors (400, 500, unexpected)
+  const [error, setError] = React.useState<{
+    message: string;
+    variant: "destructive" | "cold-start";
+  } | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const { shouldReset, clearReset, resetChat } = useChatContext();
 
@@ -83,26 +88,49 @@ export function ChatInterface() {
                 m.id === assistantId ? { ...m, isStreaming: false } : m
               )
             );
-            setError(errorMsg);
+            setError({ message: errorMsg, variant: "destructive" });
           },
         },
         abortController.signal
       );
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.statusCode === 400) {
-          setError("Please enter a valid question (at least 3 characters).");
+        // Azure App Service cold start: IIS reverse proxy returns 502 (Bad Gateway)
+        // when Kestrel hasn't started yet, or 503 (Service Unavailable) when the
+        // app pool is recycling. See: https://learn.microsoft.com/azure/app-service/troubleshoot-http-502-http-503
+        if (err.statusCode === 502 || err.statusCode === 503) {
+          setError({
+            message:
+              "The server is waking up from a cold start — this usually takes ~30 seconds. Please retry shortly.",
+            variant: "cold-start",
+          });
+        } else if (err.statusCode === 400) {
+          setError({
+            message: "Please enter a valid question (at least 3 characters).",
+            variant: "destructive",
+          });
         } else if (err.statusCode && err.statusCode >= 500) {
-          setError("The server encountered an error. Please try again later.");
+          setError({
+            message: "The server encountered an error. Please try again later.",
+            variant: "destructive",
+          });
         } else if (!err.statusCode) {
-          setError(
-            "Unable to connect to the server. Please check your connection."
-          );
+          // No status code means the fetch threw a network error (TypeError: Failed to fetch).
+          // On Azure free tier this can happen when the app is completely cold and the
+          // connection times out before the reverse proxy responds.
+          setError({
+            message:
+              "Unable to reach the server — it may be waking up from a cold start. Please retry in ~30 seconds.",
+            variant: "cold-start",
+          });
         } else {
-          setError(err.message);
+          setError({ message: err.message, variant: "destructive" });
         }
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError({
+          message: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -168,14 +196,41 @@ export function ChatInterface() {
                 <ChatMessageSkeleton />
               )}
 
-              {error && (
+              {error && error.variant === "cold-start" && (
+                // Cold-start alert: friendly blue styling with snowflake icon.
+                // Shown for 502/503 (Azure App Service cold start) and network timeouts.
+                <div className="animate-fade-up flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/40">
+                  <Snowflake className="mt-0.5 h-5 w-5 shrink-0 text-sky-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                      Server is warming up
+                    </p>
+                    <p className="mt-1 text-sm text-sky-600/80 dark:text-sky-400/80">
+                      {error.message}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRetry}
+                    className="shrink-0 border-sky-300 text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
+                  >
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                    Retry
+                  </Button>
+                </div>
+              )}
+
+              {error && error.variant === "destructive" && (
                 <div className="animate-fade-up bg-destructive/5 border-destructive/20 flex items-start gap-3 rounded-xl border p-4">
                   <AlertCircle className="text-destructive mt-0.5 h-5 w-5 shrink-0" />
                   <div className="flex-1">
                     <p className="text-destructive text-sm font-medium">
                       Something went wrong
                     </p>
-                    <p className="text-destructive/80 mt-1 text-sm">{error}</p>
+                    <p className="text-destructive/80 mt-1 text-sm">
+                      {error.message}
+                    </p>
                   </div>
                   <Button
                     variant="outline"
