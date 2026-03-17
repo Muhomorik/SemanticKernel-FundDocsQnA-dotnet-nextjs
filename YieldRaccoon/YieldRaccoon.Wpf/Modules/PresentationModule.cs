@@ -55,8 +55,8 @@ public class PresentationModule : Module
 
         // Event store registration
         // Register crawl event store as singleton for session-wide event sourcing
-        builder.RegisterType<InMemoryCrawlEventStore>()
-            .As<ICrawlEventStore>()
+        builder.RegisterType<InMemoryFundListEventStore>()
+            .As<IFundListEventStore>()
             .SingleInstance();
 
         // Register about-fund event store as singleton for browsing session event sourcing
@@ -114,14 +114,14 @@ public class PresentationModule : Module
 
         // Session scheduler registration
         // Register session scheduler for pre-calculating batch timings with randomized delays
-        builder.RegisterType<CrawlSessionScheduler>()
-            .As<ICrawlSessionScheduler>()
+        builder.RegisterType<FundListSessionScheduler>()
+            .As<IFundListSessionScheduler>()
             .SingleInstance();
 
         // Session orchestrator registration
         // Register orchestrator for session lifecycle, batch workflow, and timer management
-        builder.RegisterType<CrawlSessionOrchestrator>()
-            .As<ICrawlSessionOrchestrator>()
+        builder.RegisterType<FundListOrchestrator>()
+            .As<IFundListOrchestrator>()
             .SingleInstance();
 
         // AboutFund page data collector registration
@@ -291,8 +291,8 @@ public class PresentationModule : Module
         else
         {
             // Non-DualWrite: register services directly, no-op sync status provider
-            builder.RegisterType<FundIngestionService>()
-                .As<IFundIngestionService>()
+            builder.RegisterType<FundListIngestionService>()
+                .As<IFundListIngestionService>()
                 .InstancePerDependency();
 
             builder.RegisterType<AboutFundChartIngestionService>()
@@ -361,8 +361,8 @@ public class PresentationModule : Module
             .SingleInstance();
 
         // Inner SQLite services — registered with named keys so decorators can resolve them
-        builder.RegisterType<FundIngestionService>()
-            .Named<IFundIngestionService>("sqlite")
+        builder.RegisterType<FundListIngestionService>()
+            .Named<IFundListIngestionService>("sqlite")
             .InstancePerDependency();
 
         builder.RegisterType<AboutFundChartIngestionService>()
@@ -372,13 +372,13 @@ public class PresentationModule : Module
         // DualWrite decorators — resolve inner services by named key
         // NLogModule injects ILogger via pipeline middleware, which doesn't apply to lambda
         // registrations — use LogManager.GetLogger() directly instead of ctx.Resolve<ILogger>()
-        builder.Register(ctx => new DualWriteFundIngestionService(
-                LogManager.GetLogger(typeof(DualWriteFundIngestionService).FullName!),
-                ctx.ResolveNamed<IFundIngestionService>("sqlite"),
+        builder.Register(ctx => new DualWriteFundListIngestionService(
+                LogManager.GetLogger(typeof(DualWriteFundListIngestionService).FullName!),
+                ctx.ResolveNamed<IFundListIngestionService>("sqlite"),
                 ctx.Resolve<IFundSyncApiClient>(),
                 ctx.Resolve<IFundProfileRepository>(),
                 ctx.Resolve<Subject<BackendSyncStatus>>()))
-            .As<IFundIngestionService>()
+            .As<IFundListIngestionService>()
             .InstancePerDependency();
 
         builder.Register(ctx => new DualWriteChartIngestionService(

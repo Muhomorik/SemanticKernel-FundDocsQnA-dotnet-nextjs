@@ -26,7 +26,7 @@ If Backend API URL is not configured, the window shows a warning and the sync bu
 | Endpoint | Caller | Purpose |
 | -------- | ------ | ------- |
 | `POST /api/funds/full-sync` | `CloudSyncService` (on-demand) | Per-fund: insert-if-not-exists profile + sparse upsert full history (all 7 time-varying fields) |
-| `POST /api/funds/list` | `DualWriteFundIngestionService` (crawl session) | Batch upsert of daily snapshots — profile metadata + Nav/NavDate from the fund listing page |
+| `POST /api/funds/list` | `DualWriteFundListIngestionService` (crawl session) | Batch upsert of daily snapshots — profile metadata + Nav/NavDate from the fund listing page |
 | `POST /api/funds/about` | `DualWriteChartIngestionService` (about-fund page) | Single fund: upsert profile + insert-only chart history across 7 time periods |
 
 ## Full sync flow
@@ -73,15 +73,15 @@ A configurable delay (`throttleMs`) is inserted between calls to avoid overwhelm
 
 When the `DualWrite` provider is configured, fund data is automatically synced to the Backend API as it is crawled — no manual cloud sync needed. Two decorators handle the two data sources:
 
-### CrawlSessionOrchestrator → DualWriteFundIngestionService
+### FundListOrchestrator → DualWriteFundListIngestionService
 
-The crawl session (fund listing page) produces one daily snapshot per fund (Nav, NavDate, plus profile metadata). `DualWriteFundIngestionService` wraps `FundIngestionService` and fires a background sync after each batch is persisted locally.
+The crawl session (fund listing page) produces one daily snapshot per fund (Nav, NavDate, plus profile metadata). `DualWriteFundListIngestionService` wraps `FundListIngestionService` and fires a background sync after each batch is persisted locally.
 
 ```mermaid
 sequenceDiagram
-    participant CSO as CrawlSessionOrchestrator
-    participant DW as DualWriteFundIngestionService
-    participant SQLite as FundIngestionService
+    participant CSO as FundListOrchestrator
+    participant DW as DualWriteFundListIngestionService
+    participant SQLite as FundListIngestionService
     participant Repo as FundProfileRepository
     participant API as Backend API
 
@@ -101,7 +101,7 @@ sequenceDiagram
     end
 ```
 
-The API DTO is always built from the `FundDataDto` (which carries the daily Nav/NavDate snapshot), enriched with authoritative timestamps (`FirstSeenAt`, `CrawlerLastUpdatedAt`, `AboutFundLastVisitedAt`) from the persisted profile when available.
+The API DTO is always built from the `FundListDataDto` (which carries the daily Nav/NavDate snapshot), enriched with authoritative timestamps (`FirstSeenAt`, `CrawlerLastUpdatedAt`, `AboutFundLastVisitedAt`) from the persisted profile when available.
 
 ### AboutFundOrchestrator → AboutFundChartIngestionService
 

@@ -8,7 +8,7 @@ namespace YieldRaccoon.Application.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Independent from <see cref="ICrawlEventStore"/> to maintain bounded context separation.
+/// Independent from <see cref="IFundListEventStore"/> to maintain bounded context separation.
 /// </para>
 /// </remarks>
 public interface IAboutFundEventStore

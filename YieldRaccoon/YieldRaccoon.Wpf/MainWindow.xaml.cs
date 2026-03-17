@@ -13,7 +13,7 @@ public partial class MainWindow : MetroWindow
 {
     private readonly ILogger _logger;
     private readonly MainWindowViewModel _viewModel;
-    private WebView2ResponseInterceptor? _responseInterceptor;
+    private FundListResponseInterceptor? _responseInterceptor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -56,7 +56,7 @@ public partial class MainWindow : MetroWindow
             Browser.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
 
             // Initialize response interceptor
-            _responseInterceptor = new WebView2ResponseInterceptor(Browser, _logger);
+            _responseInterceptor = new FundListResponseInterceptor(Browser, _logger);
             _responseInterceptor.FundDataIntercepted += OnFundDataIntercepted;
             _responseInterceptor.Initialize();
 
@@ -172,7 +172,7 @@ public partial class MainWindow : MetroWindow
     /// <summary>
     /// Handles intercepted fund data from network responses.
     /// </summary>
-    private void OnFundDataIntercepted(object? sender, Models.FundDataInterceptedEventArgs e)
+    private void OnFundDataIntercepted(object? sender, Models.FundListDataInterceptedEventArgs e)
     {
         _logger.Info($"Fund data intercepted: {e.FundData?.Funds?.Count ?? 0} funds from {e.SourceUri}");
 

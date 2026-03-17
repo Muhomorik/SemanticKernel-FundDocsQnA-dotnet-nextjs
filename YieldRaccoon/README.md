@@ -106,12 +106,13 @@ dotnet user-secrets set "YieldRaccoon:FastMode" "true"
 YieldRaccoon.sln
 ├── YieldRaccoon.Domain/              # Core business logic (no dependencies)
 │   ├── Entities/                     # FundProfile, FundHistoryRecord
+│   ├── Events/FundList/              # IFundListEvent, session & batch events
 │   ├── Events/AboutFund/             # IAboutFundEvent, session & navigation events
 │   └── ValueObjects/                 # IsinId, OrderBookId, AboutFundSessionId, AboutFundFetchSlot
 │
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── Configuration/                # Options records (ResponseParser, PageInteractor, RandomDelayProvider, FundDetailsUrlBuilder)
-│   ├── DTOs/                         # FundDataDto
+│   ├── DTOs/                         # FundListDataDto
 │   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
 │   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
@@ -121,7 +122,7 @@ YieldRaccoon.sln
 ├── YieldRaccoon.Infrastructure/      # Technical concerns
 │   ├── Data/                         # EF Core DbContext, configurations, value converters
 │   │   └── Repositories/             # EfCore* and InMemory* repository implementations
-│   ├── EventStore/                   # InMemoryCrawlEventStore, InMemoryAboutFundEventStore
+│   ├── EventStore/                   # InMemoryFundListEventStore, InMemoryAboutFundEventStore
 │   ├── Models/                       # Anti-corruption layer (chart API response shapes)
 │   └── Services/                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
 │                                     # ChartIngestionService, FundDataExportService,
@@ -160,8 +161,8 @@ flowchart TB
     end
 
     subgraph Application["Application Layer"]
-        DTO[FundDataDto]
-        SVC[FundIngestionService]
+        DTO[FundListDataDto]
+        SVC[FundListIngestionService]
         IRepo["IFundProfileRepository\nIFundHistoryRepository"]
     end
 
@@ -203,7 +204,7 @@ flowchart TB
 **Key points:**
 
 - Repositories accept **domain entities** (`FundProfile`, `FundHistoryRecord`), not DTOs
-- `FundIngestionService` maps DTOs to entities before calling repositories
+- `FundListIngestionService` maps DTOs to entities before calling repositories
 - DI container resolves the correct implementation based on `DatabaseOptions.Provider`
 - InMemory repositories use `ConcurrentDictionary` for thread-safe, session-scoped storage
 - `GetFundsOrderedByLastVisitAsync` returns funds prioritized for browsing (never-visited first, then oldest visit date)
@@ -248,26 +249,26 @@ Events track crawl session lifecycle and batch loading progress.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> CrawlSessionStarted
-    CrawlSessionStarted --> BatchLoadScheduled
+    [*] --> FundListSessionStarted
+    FundListSessionStarted --> FundListBatchScheduled
 
     state "Batch Cycle" as BC {
-        BatchLoadDelayStarted --> BatchLoadDelayCompleted
-        BatchLoadDelayCompleted --> BatchLoadStarted
-        BatchLoadStarted --> BatchLoadCompleted
+        FundListBatchDelayStarted --> FundListBatchDelayCompleted
+        FundListBatchDelayCompleted --> FundListBatchStarted
+        FundListBatchStarted --> FundListBatchCompleted
     }
 
-    BatchLoadScheduled --> BC
-    BC --> BatchLoadScheduled: More funds
-    BC --> CrawlSessionCompleted: All loaded
-    CrawlSessionCompleted --> DailyCrawlScheduled
+    FundListBatchScheduled --> BC
+    BC --> FundListBatchScheduled: More funds
+    BC --> FundListSessionCompleted: All loaded
+    FundListSessionCompleted --> FundListDailyCrawlScheduled
 ```
 
 | Category | Events |
 | ---------- | -------- |
 | Session | `Started`, `Completed`, `Failed`, `Cancelled` |
 | Batch | `Scheduled`, `DelayStarted`, `DelayCompleted`, `Started`, `Completed`, `Failed` |
-| Daily | `DailyCrawlScheduled`, `DailyCrawlReady` |
+| Daily | `FundListDailyCrawlScheduled`, `FundListDailyCrawlReady` |
 
 ### AboutFund Browsing Events
 
@@ -306,7 +307,7 @@ sequenceDiagram
     participant User
     participant VM as ViewModel
     participant Orchestrator
-    participant Ingestion as FundIngestionService
+    participant Ingestion as FundListIngestionService
     participant Repo as Repository
     participant WebView2
     participant API as Fund API
@@ -320,7 +321,7 @@ sequenceDiagram
         WebView2->>API: HTTP request
         API-->>WebView2: JSON response (intercepted)
         WebView2-->>VM: OnFundDataReceived
-        VM->>VM: Map to FundDataDto[]
+        VM->>VM: Map to FundListDataDto[]
         VM->>Orchestrator: NotifyBatchLoaded(funds)
         Orchestrator->>Ingestion: IngestBatch(funds)
         Ingestion->>Repo: AddOrUpdate(FundProfile)
@@ -732,14 +733,14 @@ When `DualWrite` is configured, fund data is written to both SQLite (local) and 
 
 This is implemented via the **Decorator pattern** at the service level:
 
-- `DualWriteFundIngestionService` wraps `FundIngestionService` for crawl batch sync
+- `DualWriteFundListIngestionService` wraps `FundListIngestionService` for crawl batch sync
 - `DualWriteChartIngestionService` wraps `AboutFundChartIngestionService` for about-fund chart sync
 
 ```mermaid
 sequenceDiagram
     participant Crawler as Crawl Session
-    participant DW as DualWriteFundIngestionService
-    participant SQLite as FundIngestionService (SQLite)
+    participant DW as DualWriteFundListIngestionService
+    participant SQLite as FundListIngestionService (SQLite)
     participant API as Backend API
     participant StatusBar as Status Bar
 

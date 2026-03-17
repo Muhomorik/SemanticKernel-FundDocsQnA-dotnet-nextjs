@@ -7,7 +7,7 @@ namespace YieldRaccoon.Infrastructure.Tests.Services;
 /// relate to listing publication dates for the same NAV value.
 /// </summary>
 /// <remarks>
-/// <para><b>Problem:</b> <c>FundIngestionService</c> (listing) and <c>AboutFundChartIngestionService</c> (chart)
+/// <para><b>Problem:</b> <c>FundListIngestionService</c> (listing) and <c>AboutFundChartIngestionService</c> (chart)
 /// both write <c>FundHistoryRecord</c> with a unique constraint on <c>(IsinId, NavDate)</c>.
 /// The listing parses NavDate from text; the chart converts Unix timestamps via UTC.
 /// For the same NAV value (457.83), the listing reports 2026-02-18 while the chart
