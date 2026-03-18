@@ -203,6 +203,18 @@ public class PresentationModule : Module
             .As<IAboutFundResponseInterceptor>()
             .InstancePerDependency();
 
+        // FundList page interactor registration
+        // Executes page interactions (pagination clicks, scrolling) on the fund list page
+        builder.RegisterType<WebView2FundListPageInteractor>()
+            .As<IFundListPageInteractor>()
+            .InstancePerDependency();
+
+        // FundList response interceptor registration
+        // Captures fund list API responses from WebView2 network traffic
+        builder.RegisterType<FundListResponseInterceptor>()
+            .As<IFundListResponseInterceptor>()
+            .InstancePerDependency();
+
         // Cloud sync window service registration
         // Register window service for showing Cloud Sync window from ViewModels
         builder.RegisterType<CloudSyncWindowService>()

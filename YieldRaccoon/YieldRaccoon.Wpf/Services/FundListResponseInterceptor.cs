@@ -10,36 +10,41 @@ using System.Text.Json.Serialization;
 namespace YieldRaccoon.Wpf.Services;
 
 /// <summary>
-/// Service that intercepts WebView2 network responses to capture fund data from JavaScript API calls.
+/// Intercepts WebView2 network responses to capture fund list data from API calls.
 /// </summary>
-public class FundListResponseInterceptor : IDisposable
+/// <remarks>
+/// <para>
+/// Follows the same initialization pattern as <see cref="AboutFundResponseInterceptor"/>:
+/// call <see cref="Initialize"/> after <c>CoreWebView2InitializationCompleted</c>.
+/// </para>
+/// <para>
+/// Filters responses by URL pattern, parses fund list JSON, enriches with
+/// pagination metadata scraped from the DOM, then raises <see cref="FundDataIntercepted"/>.
+/// </para>
+/// </remarks>
+public class FundListResponseInterceptor : IFundListResponseInterceptor
 {
     private readonly ILogger _logger;
-    private readonly WebView2 _webView;
+    private WebView2? _webView;
     private bool _disposed;
 
-    /// <summary>
-    /// Event raised when fund list data is intercepted from a network response.
-    /// </summary>
+    /// <inheritdoc />
     public event EventHandler<FundListDataInterceptedEventArgs>? FundDataIntercepted;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FundListResponseInterceptor"/> class.
     /// </summary>
-    /// <param name="webView">The WebView2 control to monitor.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
-    public FundListResponseInterceptor(WebView2 webView, ILogger logger)
+    public FundListResponseInterceptor(ILogger logger)
     {
-        _webView = webView ?? throw new ArgumentNullException(nameof(webView));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    /// <summary>
-    /// Initializes the interceptor and starts monitoring network responses.
-    /// Must be called after WebView2 CoreWebView2 is initialized.
-    /// </summary>
-    public void Initialize()
+    /// <inheritdoc />
+    public void Initialize(WebView2 webView)
     {
+        _webView = webView ?? throw new ArgumentNullException(nameof(webView));
+
         if (_webView.CoreWebView2 == null)
             throw new InvalidOperationException(
                 "WebView2 CoreWebView2 must be initialized before calling Initialize()");
@@ -61,19 +66,17 @@ public class FundListResponseInterceptor : IDisposable
     {
         try
         {
-            // Log all requests for debugging (can be removed in production)
-            _logger.Trace($"Response received: {e.Request.Uri} - Status: {e.Response.StatusCode}");
+            _logger.Trace("Response received: {0} - Status: {1}", e.Request.Uri, e.Response.StatusCode);
 
-            // Filter by URL pattern - adjust these patterns to match your actual API endpoints
             if (ShouldInterceptResponse(e.Request.Uri))
             {
-                _logger.Debug($"Intercepting response from: {e.Request.Uri}");
+                _logger.Debug("Intercepting response from: {0}", e.Request.Uri);
 
                 // Only process successful responses
                 if (e.Response.StatusCode == 200)
                     await ProcessResponseAsync(e);
                 else
-                    _logger.Warn($"Non-200 status code for intercepted URL: {e.Response.StatusCode}");
+                    _logger.Warn("Non-200 status code for intercepted URL: {0}", e.Response.StatusCode);
             }
         }
         catch (Exception ex)
@@ -87,21 +90,12 @@ public class FundListResponseInterceptor : IDisposable
     /// </summary>
     /// <param name="uri">The request URI.</param>
     /// <returns>True if the response should be intercepted; otherwise, false.</returns>
-    private bool ShouldInterceptResponse(string uri)
+    internal static bool ShouldInterceptResponse(string uri)
     {
-        // Add your URL patterns here
-        // Examples:
-        // - API endpoint: uri.Contains("/api/funds")
-        // - JavaScript function: uri.Contains("getFundList")
-        // - Specific domain: uri.StartsWith("https://api.yoursite.com/funds")
-
         var patterns = new[]
         {
             "/_api/fund-guide/list" // returns fundListViews JSON
-            // Add more fund API endpoints here as needed
         };
-
-        _logger.Trace($"Checking if URI should be intercepted: {uri}");
 
         return patterns.Any(pattern => uri.Contains(pattern, StringComparison.OrdinalIgnoreCase));
     }
@@ -126,14 +120,14 @@ public class FundListResponseInterceptor : IDisposable
             using var reader = new StreamReader(contentStream);
             var jsonContent = await reader.ReadToEndAsync();
 
-            _logger.Debug($"Response content length: {jsonContent.Length} characters");
+            _logger.Debug("Response content length: {0} characters", jsonContent.Length);
 
             // Parse JSON
             var fundData = ParseFundData(jsonContent);
 
             if (fundData != null)
             {
-                _logger.Info($"Successfully parsed fund data with {fundData.Funds?.Count ?? 0} funds");
+                _logger.Info("Successfully parsed fund data with {0} funds", fundData.Funds?.Count ?? 0);
 
                 // Extract pagination info from the page DOM
                 await EnrichWithPaginationMetadataAsync(fundData);
@@ -173,7 +167,7 @@ public class FundListResponseInterceptor : IDisposable
     {
         try
         {
-            if (_webView.CoreWebView2 == null)
+            if (_webView?.CoreWebView2 == null)
             {
                 _logger.Debug("CoreWebView2 not available, skipping pagination metadata extraction");
                 return;
@@ -228,7 +222,7 @@ public class FundListResponseInterceptor : IDisposable
                     fundData.TotalCount = paginationInfo.TotalCount;
 
                     _logger.Info(
-                        $"Extracted pagination info: {paginationInfo.CurrentCount} of {paginationInfo.TotalCount}");
+                        "Extracted pagination info: {0} of {1}", paginationInfo.CurrentCount, paginationInfo.TotalCount);
                 }
             }
             else
@@ -253,16 +247,13 @@ public class FundListResponseInterceptor : IDisposable
         [JsonPropertyName("totalCount")] public int TotalCount { get; set; }
     }
 
-
     /// <summary>
     /// Parses fund data from JSON content.
-    /// Adjust this method based on your actual API response structure.
     /// </summary>
-    private FundListInterceptedResponse? ParseFundData(string jsonContent)
+    internal FundListInterceptedResponse? ParseFundData(string jsonContent)
     {
         try
         {
-            // Option 1: Direct deserialization if response matches FundListInterceptedResponse structure
             var fundData = JsonSerializer.Deserialize<FundListInterceptedResponse>(jsonContent, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -274,7 +265,7 @@ public class FundListResponseInterceptor : IDisposable
         {
             _logger.Debug(ex, "Direct deserialization failed, trying alternative structures");
 
-            // Option 2: Try parsing as raw array
+            // Try parsing as raw array
             try
             {
                 var funds = JsonSerializer.Deserialize<List<FundListInterceptedFund>>(jsonContent, new JsonSerializerOptions
@@ -293,9 +284,7 @@ public class FundListResponseInterceptor : IDisposable
         }
     }
 
-    /// <summary>
-    /// Releases all resources used by the interceptor.
-    /// </summary>
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
@@ -305,7 +294,6 @@ public class FundListResponseInterceptor : IDisposable
     /// <summary>
     /// Releases unmanaged and optionally managed resources.
     /// </summary>
-    /// <param name="disposing">True to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
@@ -315,9 +303,10 @@ public class FundListResponseInterceptor : IDisposable
         {
             _logger.Debug("FundListResponseInterceptor disposing");
 
-            // Unsubscribe from events
             if (_webView?.CoreWebView2 != null)
                 _webView.CoreWebView2.WebResourceResponseReceived -= OnWebResourceResponseReceived;
+
+            _webView = null;
         }
 
         _disposed = true;
