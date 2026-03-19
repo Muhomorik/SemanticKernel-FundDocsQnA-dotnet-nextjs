@@ -113,9 +113,11 @@ YieldRaccoon.sln
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── Configuration/                # Options records (ResponseParser, PageInteractor, RandomDelayProvider, FundDetailsUrlBuilder)
 │   ├── DTOs/                         # FundListDataDto
-│   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases
+│   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases,
+│   │                                 # FundListBatchSchedule, FundListSessionPhase
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
-│   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
+│   └── Services/                     # IFundListOrchestrator, IFundListScheduleCalculator,
+│                                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
 │                                     # IAboutFundChartIngestionService, IFundDataExportService,
 │                                     # IRandomDelayProvider
 │
@@ -124,7 +126,8 @@ YieldRaccoon.sln
 │   │   └── Repositories/             # EfCore* and InMemory* repository implementations
 │   ├── EventStore/                   # InMemoryFundListEventStore, InMemoryAboutFundEventStore
 │   ├── Models/                       # Anti-corruption layer (chart API response shapes)
-│   └── Services/                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
+│   └── Services/                     # FundListOrchestrator, FundListScheduleCalculator,
+│                                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
 │                                     # ChartIngestionService, FundDataExportService,
 │                                     # RandomDelayProvider, FundDetailsUrlBuilder
 │
@@ -300,22 +303,26 @@ stateDiagram-v2
 
 ## Crawl Pipeline
 
-Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists.
+Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists. The orchestrator pre-calculates all batch timings upfront and schedules `Observable.Timer` for each batch — no delays are computed on-the-fly.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant VM as ViewModel
     participant Orchestrator
+    participant Calculator as FundListScheduleCalculator
     participant Ingestion as FundListIngestionService
     participant Repo as Repository
     participant WebView2
     participant API as Fund API
 
     User->>VM: StartSessionCommand
-    VM->>Orchestrator: Start crawl session
+    VM->>Orchestrator: StartSession()
+    Orchestrator->>Calculator: CalculateSessionSchedule(74 batches)
+    Calculator-->>Orchestrator: List<FundListBatchSchedule>
+    Orchestrator->>Orchestrator: Schedule all Observable.Timer upfront
     loop Until all funds loaded
-        Orchestrator->>Orchestrator: Wait (randomized delay)
+        Note over Orchestrator: Timer fires at pre-calculated time
         Orchestrator->>VM: LoadBatchRequested
         VM->>WebView2: Execute JS (click "Show more")
         WebView2->>API: HTTP request
@@ -334,11 +341,24 @@ sequenceDiagram
 
 **Commands:**
 
-- `StartSessionCommand` - Begins automated crawl with randomized delays
+- `StartSessionCommand` - Begins automated crawl with pre-calculated schedule
 - `LoadNextBatchCommand` - Manual single batch load
 - `StopSessionCommand` - Cancel running session
+- `AdvanceToNextBatchCommand` - Skip delay, immediately load next batch
 
-**Features:** ISIN deduplication, randomized delays (20-60s), progress tracking.
+**Features:** ISIN deduplication, pre-calculated randomized delays, progress tracking, advance/skip capability.
+
+### FundList Scheduling
+
+Both orchestrators (FundList and AboutFund) share the same three-layer scheduling architecture:
+
+1. **Schedule calculation** (`IFundListScheduleCalculator`) — pure computation; rolls randomized delays via `IRandomDelayProvider`, returns `List<FundListBatchSchedule>` with absolute fire times. No I/O, no side effects.
+2. **Timer scheduling** (`ScheduleBatchTimers()` in orchestrator) — creates `Observable.Timer()` for each pending batch at pre-calculated times, plus a 1-second ticker for UI countdown refresh.
+3. **Batch execution** (`ExecuteBatchLoad()`) — when timer fires, transitions to `Loading` phase, emits `LoadBatchRequested` intent signal for the view to click "Show more".
+
+**Session phases:** `Idle` → `DelayBeforeNextBatch` → `Loading` → `DelayBeforeNextBatch` → ... → `Idle`
+
+**State projection:** All session state is tracked in-memory (phase, batch statuses dictionary, schedule list). Domain events are still appended for auditing but are not re-queried for state projection.
 
 ## AboutFund Collection
 
@@ -487,9 +507,9 @@ stateDiagram-v2
 
 **Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting. A safety-net timer forces completion if the final HTTP response never arrives.
 
-### Three-Tier Scheduling
+### Three-Tier Scheduling (AboutFund)
 
-The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly:
+The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly (same pattern as FundList scheduling above, but with per-fund sub-steps):
 
 1. **Session schedule** (`List<AboutFundCollectionSchedule>`) — one entry per fund with absolute start/stop times and inter-page delays
 2. **Step schedule** (`AboutFundScheduledStep`) — per-step absolute fire times within each fund, derived from `IAboutFundPageInteractor.GetMinimumDelay()` (configurable via `PageInteractorOptions`) plus randomized padding via `IRandomDelayProvider` (configurable via `RandomDelayProviderOptions`). Both use minimal timings when `FastMode` is enabled.
