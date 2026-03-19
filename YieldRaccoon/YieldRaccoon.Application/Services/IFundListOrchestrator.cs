@@ -40,12 +40,31 @@ public interface IFundListOrchestrator : IDisposable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Delegates to <see cref="IFundListSessionScheduler"/> to pre-calculate all batch times,
-    /// then immediately requests loading the first batch.
+    /// Delegates to <see cref="IFundListScheduleCalculator"/> to pre-calculate all batch times,
+    /// schedules all batch timers upfront, then starts the countdown to the first batch.
     /// </para>
     /// </remarks>
     /// <returns>The new session's unique correlation ID.</returns>
     FundListSessionId StartSession();
+
+    /// <summary>
+    /// Skips the current delay and immediately loads the next batch.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Cancels all scheduled batch timers, skips the delay, and immediately
+    /// requests loading the next pending batch. If no pending batches remain,
+    /// completes the session.
+    /// </para>
+    /// </remarks>
+    void AdvanceToNextBatch();
+
+    /// <summary>
+    /// Toggles whether the orchestrator should automatically advance to the next batch
+    /// when the current one completes, rescheduling remaining batch timers.
+    /// </summary>
+    /// <param name="enabled">True to enable auto-advance, false to disable.</param>
+    void SetAutoAdvance(bool enabled);
 
     /// <summary>
     /// Cancels the active session with the given reason.

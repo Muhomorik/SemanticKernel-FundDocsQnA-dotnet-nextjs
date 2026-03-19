@@ -301,6 +301,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ICommand StopSessionCommand { get; }
 
     /// <summary>
+    /// Gets the command to skip the current delay and immediately load the next batch.
+    /// </summary>
+    public ICommand AdvanceToNextBatchCommand { get; }
+
+    /// <summary>
     /// Gets the command executed when the window is loaded.
     /// </summary>
     public ICommand LoadedCommand { get; }
@@ -444,6 +449,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadNextBatchCommand = new DelegateCommand(ExecuteLoadNextBatch, CanExecuteLoadNextBatch, true);
         StartSessionCommand = new DelegateCommand(ExecuteStartSession, CanExecuteStartSession, true);
         StopSessionCommand = new DelegateCommand(ExecuteStopSession, CanExecuteStopSession, true);
+        AdvanceToNextBatchCommand = new DelegateCommand(ExecuteAdvanceToNextBatch, CanExecuteAdvanceToNextBatch, true);
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
         OpenSettingsCommand = new DelegateCommand(ExecuteOpenSettings);
         OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
@@ -500,6 +506,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadNextBatchCommand = new DelegateCommand(() => { });
         StartSessionCommand = new DelegateCommand(() => { });
         StopSessionCommand = new DelegateCommand(() => { });
+        AdvanceToNextBatchCommand = new DelegateCommand(() => { });
         LoadedCommand = new DelegateCommand(() => { });
         OpenSettingsCommand = new DelegateCommand(() => { });
         OpenAboutFundCommand = new DelegateCommand(() => { });
@@ -811,6 +818,25 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         _logger.Info("Stopping crawl session via orchestrator");
         _orchestrator.CancelSession("User cancelled");
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>
+    /// Determines whether the advance to next batch command can be executed.
+    /// </summary>
+    private bool CanExecuteAdvanceToNextBatch()
+    {
+        return IsSessionActive && IsDelayInProgress;
+    }
+
+    /// <summary>
+    /// Executes the advance to next batch command.
+    /// Skips the current delay and immediately loads the next batch.
+    /// </summary>
+    private void ExecuteAdvanceToNextBatch()
+    {
+        _logger.Info("Advancing to next batch via orchestrator");
+        _orchestrator.AdvanceToNextBatch();
         CommandManager.InvalidateRequerySuggested();
     }
 

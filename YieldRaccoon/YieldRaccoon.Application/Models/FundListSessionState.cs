@@ -20,6 +20,11 @@ namespace YieldRaccoon.Application.Models;
 public sealed record FundListSessionState
 {
     /// <summary>
+    /// Gets the current lifecycle phase of the session.
+    /// </summary>
+    public FundListSessionPhase Phase { get; init; }
+
+    /// <summary>
     /// Gets whether a fund list session is currently active.
     /// </summary>
     public bool IsActive { get; init; }
@@ -72,6 +77,7 @@ public sealed record FundListSessionState
     /// </summary>
     public static FundListSessionState Inactive => new()
     {
+        Phase = FundListSessionPhase.Idle,
         IsActive = false,
         SessionId = null,
         CurrentBatchNumber = 0,

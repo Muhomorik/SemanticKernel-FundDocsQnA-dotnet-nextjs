@@ -112,10 +112,10 @@ public class PresentationModule : Module
             .As<IFundStatisticsExportWindowService>()
             .InstancePerDependency();
 
-        // Session scheduler registration
-        // Register session scheduler for pre-calculating batch timings with randomized delays
-        builder.RegisterType<FundListSessionScheduler>()
-            .As<IFundListSessionScheduler>()
+        // Schedule calculator registration
+        // Register pure computation service for pre-calculating batch timings with randomized delays
+        builder.RegisterType<FundListScheduleCalculator>()
+            .As<IFundListScheduleCalculator>()
             .SingleInstance();
 
         // Session orchestrator registration
