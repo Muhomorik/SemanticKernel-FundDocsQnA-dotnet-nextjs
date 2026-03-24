@@ -206,7 +206,7 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
         _autoStartOptions = AutoStartOptions.None;
 
         FundScheduleViewModel = new AboutFundScheduleViewModel(LogManager.GetCurrentClassLogger());
-        ControlPanelViewModel = new AboutFundControlPanelViewModel(LogManager.GetCurrentClassLogger());
+        ControlPanelViewModel = new AboutFundControlPanelViewModel(LogManager.GetCurrentClassLogger(), new Configuration.UserSettings());
 
         Title = "AboutFund - Overview (Design)";
         BrowserUrl = BlankPageUrl;

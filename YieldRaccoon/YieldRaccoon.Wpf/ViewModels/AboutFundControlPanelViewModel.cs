@@ -4,6 +4,7 @@ using DevExpress.Mvvm;
 using NLog;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Domain.ValueObjects;
+using YieldRaccoon.Wpf.Configuration;
 
 namespace YieldRaccoon.Wpf.ViewModels;
 
@@ -261,7 +262,8 @@ public class AboutFundControlPanelViewModel : ViewModelBase
     /// Initializes a new instance of the <see cref="AboutFundControlPanelViewModel"/> class.
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
-    public AboutFundControlPanelViewModel(ILogger logger)
+    /// <param name="userSettings">User settings for persisted step preferences.</param>
+    public AboutFundControlPanelViewModel(ILogger logger, UserSettings userSettings)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -278,7 +280,8 @@ public class AboutFundControlPanelViewModel : ViewModelBase
             () => NextFundRequested?.Invoke(this, EventArgs.Empty),
             () => IsSessionActive);
 
-        InitializeStepToggles();
+        var enabledSteps = AboutFundCollectionStepKinds.FromNames(userSettings?.EnabledCrawlerSteps);
+        InitializeStepToggles(enabledSteps);
 
         _logger.Debug("AboutFundControlPanelViewModel initialized");
     }
@@ -297,7 +300,7 @@ public class AboutFundControlPanelViewModel : ViewModelBase
         StopOverviewCommand = new DelegateCommand(() => { });
         NextFundCommand = new DelegateCommand(() => { });
 
-        InitializeStepToggles();
+        InitializeStepToggles(AboutFundCollectionStepKinds.Defaults);
     }
 
     /// <inheritdoc />
@@ -461,9 +464,9 @@ public class AboutFundControlPanelViewModel : ViewModelBase
 
     #endregion
 
-    private void InitializeStepToggles()
+    private void InitializeStepToggles(IReadOnlySet<AboutFundCollectionStepKind> enabledSteps)
     {
         foreach (var step in AboutFundCollectionStepKinds.Configurable)
-            StepToggles.Add(new AboutFundStepToggleViewModel(step, AboutFundCollectionStepKinds.Defaults.Contains(step)));
+            StepToggles.Add(new AboutFundStepToggleViewModel(step, enabledSteps.Contains(step)));
     }
 }

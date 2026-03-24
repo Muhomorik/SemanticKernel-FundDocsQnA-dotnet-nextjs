@@ -678,8 +678,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (saved)
         {
-            _logger.Info("Settings saved - restart required for changes to take effect");
-            StatusMessage = "Settings saved. Restart the application to apply changes.";
+            _logger.Info("Settings saved");
+            StatusMessage = "Settings saved.";
         }
     }
 

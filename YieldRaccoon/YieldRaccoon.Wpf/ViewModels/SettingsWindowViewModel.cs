@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using Microsoft.Win32;
 using NLog;
+using YieldRaccoon.Application.Models;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Models;
 using YieldRaccoon.Wpf.Services;
@@ -17,11 +19,13 @@ public class SettingsWindowViewModel : ViewModelBase
 {
     private readonly ILogger _logger;
     private readonly IUserSettingsService _settingsService;
+    private readonly UserSettings _userSettings;
     private readonly DatabaseOptions _databaseOptions;
     private readonly string _originalDatabasePath;
     private readonly DatabaseProvider _originalProvider;
     private readonly string _originalBackendApiUrl;
     private readonly string _originalBackendApiKey;
+    private readonly IReadOnlySet<AboutFundCollectionStepKind> _originalEnabledSteps;
 
     /// <summary>
     /// Event raised when the window should close with a result.
@@ -43,6 +47,7 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _userSettings = userSettings ?? throw new ArgumentNullException(nameof(userSettings));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
         // Initialize provider options
@@ -52,13 +57,18 @@ public class SettingsWindowViewModel : ViewModelBase
 
         // Extract the database path from the connection string
         _originalDatabasePath = ExtractDatabasePath(databaseOptions.ConnectionString);
-        DatabasePath = userSettings?.DatabasePath ?? _originalDatabasePath;
+        DatabasePath = userSettings.DatabasePath ?? _originalDatabasePath;
 
         // Initialize Backend API settings for DualWrite
         _originalBackendApiUrl = databaseOptions.BackendApiUrl ?? string.Empty;
         _originalBackendApiKey = databaseOptions.BackendApiKey ?? string.Empty;
-        BackendApiUrl = userSettings?.BackendApiUrl ?? _originalBackendApiUrl;
-        BackendApiKey = userSettings?.BackendApiKey ?? _originalBackendApiKey;
+        BackendApiUrl = userSettings.BackendApiUrl ?? _originalBackendApiUrl;
+        BackendApiKey = userSettings.BackendApiKey ?? _originalBackendApiKey;
+
+        // Initialize crawler step toggles from persisted settings
+        _originalEnabledSteps = AboutFundCollectionStepKinds.FromNames(userSettings.EnabledCrawlerSteps);
+        foreach (var step in AboutFundCollectionStepKinds.Configurable)
+            StepToggles.Add(new AboutFundStepToggleViewModel(step, _originalEnabledSteps.Contains(step)));
 
         // Initialize commands
         BrowseCommand = new DelegateCommand(ExecuteBrowse);
@@ -76,15 +86,20 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         _logger = LogManager.GetCurrentClassLogger();
         _settingsService = null!;
+        _userSettings = new UserSettings();
         _databaseOptions = new DatabaseOptions();
         _originalDatabasePath = DatabaseOptions.DefaultDatabaseFileName;
         _originalProvider = DatabaseProvider.DualWrite;
         _originalBackendApiUrl = string.Empty;
         _originalBackendApiKey = string.Empty;
+        _originalEnabledSteps = AboutFundCollectionStepKinds.Defaults;
         DatabasePath = _originalDatabasePath;
 
         AvailableProviders = CreateProviderOptions();
         SelectedProvider = AvailableProviders[0];
+
+        foreach (var step in AboutFundCollectionStepKinds.Configurable)
+            StepToggles.Add(new AboutFundStepToggleViewModel(step, true));
 
         BrowseCommand = new DelegateCommand(() => { });
         ResetToDefaultCommand = new DelegateCommand(() => { });
@@ -109,6 +124,7 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             if (SetProperty(() => SelectedProvider, value))
             {
+                RaisePropertyChanged(() => HasRestartChanges);
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
                 RaisePropertyChanged(() => IsDatabasePathVisible);
@@ -143,6 +159,7 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             if (SetProperty(() => BackendApiUrl, value))
             {
+                RaisePropertyChanged(() => HasRestartChanges);
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
                 RaisePropertyChanged(() => IsBackendApiUrlInvalid);
@@ -173,6 +190,7 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             if (SetProperty(() => BackendApiKey, value))
             {
+                RaisePropertyChanged(() => HasRestartChanges);
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
             }
@@ -189,6 +207,7 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             if (SetProperty(() => DatabasePath, value))
             {
+                RaisePropertyChanged(() => HasRestartChanges);
                 RaisePropertyChanged(() => HasChanges);
                 RaisePropertyChanged(() => RestartRequiredMessage);
             }
@@ -196,18 +215,41 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets whether there are unsaved changes that require a restart.
+    /// Gets the crawler step toggles for configuring default enabled steps.
     /// </summary>
-    public bool HasChanges =>
+    public ObservableCollection<AboutFundStepToggleViewModel> StepToggles { get; } = new();
+
+    /// <summary>
+    /// Gets whether there are unsaved changes that require a restart (DB/API settings).
+    /// </summary>
+    public bool HasRestartChanges =>
         !string.Equals(DatabasePath, _originalDatabasePath, StringComparison.OrdinalIgnoreCase)
         || SelectedProvider?.Provider != _originalProvider
         || !string.Equals(BackendApiUrl ?? string.Empty, _originalBackendApiUrl, StringComparison.Ordinal)
         || !string.Equals(BackendApiKey ?? string.Empty, _originalBackendApiKey, StringComparison.Ordinal);
 
     /// <summary>
-    /// Gets the restart required message, shown when settings have changed.
+    /// Gets whether the crawler step selection differs from the persisted state.
     /// </summary>
-    public string RestartRequiredMessage => HasChanges
+    public bool HasStepChanges
+    {
+        get
+        {
+            var currentEnabled = new HashSet<AboutFundCollectionStepKind>(
+                StepToggles.Where(t => t.IsEnabled).Select(t => t.StepKind));
+            return !currentEnabled.SetEquals(_originalEnabledSteps);
+        }
+    }
+
+    /// <summary>
+    /// Gets whether there are any unsaved changes (restart-requiring or step-only).
+    /// </summary>
+    public bool HasChanges => HasRestartChanges || HasStepChanges;
+
+    /// <summary>
+    /// Gets the restart required message, shown when DB/API settings have changed.
+    /// </summary>
+    public string RestartRequiredMessage => HasRestartChanges
         ? "Restart required for changes to take effect"
         : string.Empty;
 
@@ -289,6 +331,10 @@ public class SettingsWindowViewModel : ViewModelBase
         DatabasePath = DatabaseOptions.DefaultDatabaseFileName;
         BackendApiUrl = string.Empty;
         BackendApiKey = string.Empty;
+
+        foreach (var toggle in StepToggles)
+            toggle.IsEnabled = true;
+
         _logger.Debug("Settings reset to defaults");
     }
 
@@ -301,6 +347,9 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         try
         {
+            var enabledSteps = StepToggles.Where(t => t.IsEnabled).Select(t => t.StepKind);
+            var stepNames = AboutFundCollectionStepKinds.ToNames(enabledSteps);
+
             _logger.Info($"Saving settings - Provider: {SelectedProvider.Provider}, Database path: {DatabasePath}");
 
             var settings = new UserSettings
@@ -308,10 +357,14 @@ public class SettingsWindowViewModel : ViewModelBase
                 DatabaseProvider = SelectedProvider.Provider,
                 DatabasePath = DatabasePath,
                 BackendApiUrl = string.IsNullOrWhiteSpace(BackendApiUrl) ? null : BackendApiUrl.TrimEnd('/'),
-                BackendApiKey = string.IsNullOrWhiteSpace(BackendApiKey) ? null : BackendApiKey
+                BackendApiKey = string.IsNullOrWhiteSpace(BackendApiKey) ? null : BackendApiKey,
+                EnabledCrawlerSteps = stepNames
             };
 
             _settingsService.Save(settings);
+
+            // Sync the DI singleton so future AboutFund windows pick up new defaults without restart
+            _userSettings.EnabledCrawlerSteps = stepNames;
 
             _logger.Info("Settings saved successfully");
             CloseRequested?.Invoke(this, true);
