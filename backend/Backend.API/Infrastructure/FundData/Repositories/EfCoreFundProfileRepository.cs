@@ -62,6 +62,7 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
             existing.GovernanceScore = profile.GovernanceScore;
             existing.LowCarbon = profile.LowCarbon;
             existing.EuArticleType = profile.EuArticleType;
+            existing.Description = profile.Description;
 
             // Only update timestamps if explicitly set (non-null) on the incoming profile.
             // The /api/funds/list endpoint sends timestamps from YieldRaccoon — they get applied.

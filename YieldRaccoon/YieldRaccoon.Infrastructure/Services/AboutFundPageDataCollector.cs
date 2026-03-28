@@ -213,6 +213,9 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
     {
         _logger.Trace("Response captured: {0} {1} -> {2}", request.Method, request.Url, request.StatusCode);
 
+        // Capture fund-reference metadata (passive, not a slot)
+        TryCaptureMetadata(request);
+
         if (!TryRouteResponse(request))
             return;
 
@@ -225,6 +228,48 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         if (shouldComplete)
             CompleteCollection();
     }
+
+    #region Metadata capture
+
+    /// <summary>
+    /// URL fragment that identifies the fund-reference API response.
+    /// </summary>
+    private const string FundReferenceUrlFragment = "_api/fund-reference/reference/";
+
+    /// <summary>
+    /// Checks whether the intercepted response is a fund-reference API call
+    /// and, if so, stores the raw JSON on the current page data for later
+    /// description extraction. Does not affect slot routing or completion.
+    /// </summary>
+    private void TryCaptureMetadata(AboutFundInterceptedRequest request)
+    {
+        var url = request.Url.AbsoluteUri;
+
+        if (!url.Contains(FundReferenceUrlFragment, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (request.StatusCode is < 200 or >= 300)
+        {
+            _logger.Warn("Fund-reference response matched but status {0} — skipping capture",
+                request.StatusCode);
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (_current == null)
+            {
+                _logger.Warn("Fund-reference response received but no collection is active");
+                return;
+            }
+
+            _current = _current with { FundReferenceJson = request.ResponseBody };
+        }
+
+        _logger.Debug("Captured fund-reference metadata ({0} chars)", request.ResponseBody.Length);
+    }
+
+    #endregion
 
     #region Response routing
 

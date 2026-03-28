@@ -91,6 +91,17 @@ public sealed record AboutFundPageData
 
     #endregion
 
+    #region Metadata capture
+
+    /// <summary>
+    /// Raw JSON from the <c>_api/fund-reference/reference/{orderBookId}</c> response,
+    /// captured passively on page load. Not a data slot — does not participate in
+    /// completion checks, slot counts, or progress reporting.
+    /// </summary>
+    public string? FundReferenceJson { get; init; }
+
+    #endregion
+
     #region Completion checks
 
     /// <summary>

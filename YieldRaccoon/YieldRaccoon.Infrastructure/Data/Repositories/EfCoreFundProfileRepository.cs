@@ -39,14 +39,16 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
         else
         {
             // Preserve fields not owned by the crawl ingestion pipeline.
-            // AboutFundLastVisitedAt is set exclusively by the orchestrator;
+            // AboutFundLastVisitedAt and Description are set exclusively by the orchestrator;
             // FirstSeenAt is set once on insert and must never change.
             var preservedLastVisitedAt = existing.AboutFundLastVisitedAt;
+            var preservedDescription = existing.Description;
             var preservedFirstSeenAt = existing.FirstSeenAt;
 
             _context.Entry(existing).CurrentValues.SetValues(fundProfile);
 
             existing.AboutFundLastVisitedAt = preservedLastVisitedAt;
+            existing.Description = preservedDescription;
             _context.Entry(existing).Property(e => e.FirstSeenAt).CurrentValue = preservedFirstSeenAt;
         }
     }
@@ -141,6 +143,19 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
         if (profile is not null)
         {
             profile.AboutFundLastVisitedAt = visitedAt;
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateDescriptionAsync(IsinId isinId, string? description,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FundProfiles.FindAsync(new object[] { isinId }, cancellationToken)
+            .ConfigureAwait(false);
+        if (profile is not null)
+        {
+            profile.Description = description;
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }

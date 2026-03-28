@@ -121,6 +121,9 @@ public sealed class FundProfile
     /// <summary>Timestamp when this fund was last visited by the about-fund orchestrator.</summary>
     public DateTimeOffset? AboutFundLastVisitedAt { get; set; }
 
+    /// <summary>Fund description text from the fund-reference API.</summary>
+    public string? Description { get; set; }
+
     /// <summary>Collection of historical snapshots for this fund.</summary>
     public ICollection<FundHistoryRecord> HistoryRecords { get; init; } = new List<FundHistoryRecord>();
 
