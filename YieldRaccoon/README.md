@@ -113,7 +113,7 @@ YieldRaccoon.sln
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── Configuration/                # Options records (ResponseParser, PageInteractor, RandomDelayProvider, FundDetailsUrlBuilder)
 │   ├── DTOs/                         # FundListDataDto
-│   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases,
+│   ├── Models/                       # AboutFundPageData (7 slots + FundReferenceJson metadata), CollectionSchedule/Step, session phases,
 │   │                                 # FundListBatchSchedule, FundListSessionPhase
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
 │   └── Services/                     # IFundListOrchestrator, IFundListScheduleCalculator,
@@ -125,7 +125,7 @@ YieldRaccoon.sln
 │   ├── Data/                         # EF Core DbContext, configurations, value converters
 │   │   └── Repositories/             # EfCore* and InMemory* repository implementations
 │   ├── EventStore/                   # InMemoryFundListEventStore, InMemoryAboutFundEventStore
-│   ├── Models/                       # Anti-corruption layer (chart API response shapes)
+│   ├── Models/                       # Anti-corruption layer (chart API + fund-reference response shapes)
 │   └── Services/                     # FundListOrchestrator, FundListScheduleCalculator,
 │                                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
 │                                     # ChartIngestionService, FundDataExportService,
@@ -364,7 +364,7 @@ Both orchestrators (FundList and AboutFund) share the same three-layer schedulin
 
 ### WebView2 Network Interception
 
-How the AboutFund browser's network traffic is intercepted and routed to data collection. The `AboutFundResponseInterceptor` captures HTTP responses via `CoreWebView2.WebResourceResponseReceived` and forwards them to `IAboutFundPageDataCollector.NotifyResponseCaptured()`. The collector routes matched responses to data slots using `EndpointPattern` URL fragment matching (configured via `ResponseParserOptions`). After the final interaction (`SelectMax`) succeeds, the collector enters the Draining phase — the next matched response triggers completion and chart data ingestion.
+How the AboutFund browser's network traffic is intercepted and routed to data collection. The `AboutFundResponseInterceptor` captures HTTP responses via `CoreWebView2.WebResourceResponseReceived` and forwards them to `IAboutFundPageDataCollector.NotifyResponseCaptured()`. The collector routes matched responses to data slots using `EndpointPattern` URL fragment matching (configured via `ResponseParserOptions`). It also passively captures the fund-reference API response (`_api/fund-reference/reference/{orderBookId}`) on page load — this provides fund metadata (including the fund description) without requiring any button clicks. After the final interaction (`SelectMax`) succeeds, the collector enters the Draining phase — the next matched response triggers completion and chart data ingestion.
 
 ```mermaid
 sequenceDiagram
@@ -507,6 +507,8 @@ stateDiagram-v2
 
 **Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting. A safety-net timer forces completion if the final HTTP response never arrives.
 
+**Metadata capture:** The fund-reference API response (`_api/fund-reference/reference/{orderBookId}`) is captured passively on page load into `AboutFundPageData.FundReferenceJson`. This is not a data slot — it does not participate in completion checks, slot counts, or progress reporting. After collection completes, the orchestrator extracts the `description` field and persists it to `FundProfile.Description`.
+
 ### Three-Tier Scheduling (AboutFund)
 
 The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly (same pattern as FundList scheduling above, but with per-fund sub-steps):
@@ -528,6 +530,7 @@ After page data collection completes, `AboutFundChartIngestionService` runs the 
 5. Convert Unix timestamps to Stockholm-time `DateOnly` (handles CET/CEST transitions)
 6. Map to `FundHistoryRecord` entities (Nav + NavDate populated from chart data)
 7. Persist via `AddRangeIfNotExistsAsync` (existing records silently skipped)
+8. Extract fund description from `FundReferenceJson` (if captured) and persist to `FundProfile.Description`
 
 ## Database
 
@@ -563,7 +566,7 @@ Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
 
 | Table | Purpose |
 | ------- | --------- |
-| `FundProfiles` | Static fund data (name, fees, ESG scores, visit tracking) - keyed by ISIN |
+| `FundProfiles` | Static fund data (name, fees, ESG scores, description, visit tracking) - keyed by ISIN |
 | `FundHistoryRecords` | Time-series data (NAV, owners, ratings) - FK to FundProfiles, unique per (FundId, NavDate) |
 
 <details>
@@ -607,7 +610,8 @@ CREATE TABLE FundProfiles (
     EuArticleType            TEXT,
     FirstSeenAt              TEXT    NOT NULL,
     CrawlerLastUpdatedAt     TEXT,
-    AboutFundLastVisitedAt   TEXT
+    AboutFundLastVisitedAt   TEXT,
+    Description              TEXT
 );
 
 CREATE TABLE FundHistoryRecords (
