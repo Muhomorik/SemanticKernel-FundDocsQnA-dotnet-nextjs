@@ -19,6 +19,8 @@ A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates
 **Try it live:** [Fund Insights](https://agreeable-mushroom-0c5446003.6.azurestaticapps.net/)
 
 > ⚠️ **Demo Notice:** This site runs on free tier resources and may experience downtime when limits are reached. Currently processing 15 of 68 SEB funds.
+>
+> ❄️ **Cold Start:** The backend runs on Azure App Service free tier — expect ~30s cold start after 1 hour of inactivity.
 
 ![Main demo](docs/images/main_demo.gif)
 

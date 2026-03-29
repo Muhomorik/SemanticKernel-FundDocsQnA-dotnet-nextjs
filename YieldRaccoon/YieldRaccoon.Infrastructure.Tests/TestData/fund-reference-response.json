@@ -1,0 +1,45 @@
+{
+  "rating": 3,
+  "managementFee": 0.85,
+  "riskLevel": {
+    "riskNumber": 4,
+    "riskText": "Medium"
+  },
+  "isin": "SE0000000001",
+  "name": "Test Global Equity Fund",
+  "description": "A diversified global equity fund investing across developed markets with focus on quality companies.",
+  "nav": 142.50,
+  "navDate": "2026-03-27T00:00:00",
+  "currency": "SEK",
+  "indexFund": false,
+  "sharpeRatio": 0.72,
+  "standardDeviation": 12.5,
+  "capital": 2500000000.0,
+  "startDate": "2015-01-15",
+  "fundManagers": [
+    {
+      "name": "Jane Smith",
+      "startDate": "2020-06-01"
+    }
+  ],
+  "adminCompany": {
+    "name": "Test Asset Management AB",
+    "country": "Sweden",
+    "url": ""
+  },
+  "pricingFrequency": "Daily",
+  "categories": [
+    "Global",
+    "Equity"
+  ],
+  "fundTypeName": "Equity Fund",
+  "fundType": "EQUITY_FUND",
+  "primaryBenchmark": null,
+  "hedgeFund": false,
+  "ucitsFund": true,
+  "recommendedHoldingPeriod": "At least 5 years",
+  "ppmCode": null,
+  "managedType": "ACTIVE",
+  "fundRatings": [],
+  "excludedFromPromotion": false
+}

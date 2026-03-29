@@ -151,7 +151,7 @@ mindmap
 | `get_top_performing_funds` | "Best performing fund last month" | Compares NAV at start vs end of period, ranks by % change |
 | `get_funds_by_owner_change` | "Which fund gained most owners in 2 weeks" | Compares `NumberOfOwners` at start vs end, ranks by delta |
 | `get_category_performance` | "Best performing category this week" | Averages per-fund NAV % change within each category |
-| `get_fund_profile` | "Tell me about SEB Emerging Markets Fund" | Returns static fund data: fees, risk, ESG, sustainability |
+| `get_fund_profile` | "Tell me about SEB Emerging Markets Fund" | Returns static fund data: fees, risk, ESG, sustainability, description |
 | `search_funds` | "Low-risk passive index funds" | Multi-criteria filter: risk, category, managed type, sustainability, EU article |
 | `get_available_categories` | *(helper for LLM)* | Lists all categories so the LLM uses valid names |
 

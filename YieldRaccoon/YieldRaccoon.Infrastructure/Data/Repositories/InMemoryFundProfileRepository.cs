@@ -110,4 +110,16 @@ public class InMemoryFundProfileRepository : IFundProfileRepository
 
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task UpdateDescriptionAsync(IsinId isinId, string? description,
+        CancellationToken cancellationToken = default)
+    {
+        if (_profiles.TryGetValue(isinId, out var profile))
+        {
+            profile.Description = description;
+        }
+
+        return Task.CompletedTask;
+    }
 }

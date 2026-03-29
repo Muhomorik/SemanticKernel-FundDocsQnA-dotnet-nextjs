@@ -25,4 +25,10 @@ public class UserSettings
     /// Backend API key for DualWrite provider. When null, the default from appsettings.json is used.
     /// </summary>
     public string? BackendApiKey { get; set; }
+
+    /// <summary>
+    /// Enabled crawler step names for AboutFund collection (e.g. "Select1Month", "Select3Years").
+    /// When null, all default steps are enabled. Takes effect immediately without restart.
+    /// </summary>
+    public List<string>? EnabledCrawlerSteps { get; set; }
 }

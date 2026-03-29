@@ -77,6 +77,9 @@ public class FundProfileConfiguration : IEntityTypeConfiguration<FundProfile>
         builder.Property(f => f.GovernanceScore).HasColumnType("DECIMAL(18,6)");
         builder.Property(f => f.EuArticleType).HasMaxLength(50);
 
+        // Fund description text from fund-reference API
+        builder.Property(f => f.Description).HasMaxLength(4000);
+
         // One-to-many relationship with historical snapshots
         builder.HasMany(f => f.HistoryRecords)
             .WithOne(h => h.FundProfile)

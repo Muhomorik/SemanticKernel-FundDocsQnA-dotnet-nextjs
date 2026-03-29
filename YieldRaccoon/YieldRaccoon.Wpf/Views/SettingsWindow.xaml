@@ -9,9 +9,9 @@
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Settings"
     Width="550"
-    Height="440"
+    Height="520"
     MinWidth="450"
-    MinHeight="400"
+    MinHeight="470"
     d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel,
                                      IsDesignTimeCreatable=True}"
     Icon="/Resources/YieldRaccoon.ico"
@@ -23,6 +23,7 @@
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -107,9 +108,39 @@
                 mahShared:PasswordBoxBindingBehavior.Password="{Binding BackendApiKey, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
         </StackPanel>
 
+        <!--  Default Crawler Steps Section  -->
+        <StackPanel Grid.Row="3" Margin="0,0,0,8">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Default crawler steps" />
+            <TextBlock
+                Margin="{StaticResource yr.CompactSpacing}"
+                Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                Style="{StaticResource yr.SmallStyle}"
+                Text="Select which time periods to collect by default" />
+            <ItemsControl
+                Margin="{StaticResource yr.CompactSpacing}"
+                ItemsSource="{Binding StepToggles}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox
+                            Margin="0,2"
+                            Content="{Binding Label}"
+                            IsChecked="{Binding IsEnabled}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
         <!--  Info text  -->
         <TextBlock
-            Grid.Row="3"
+            Grid.Row="4"
             Margin="0,0,0,8"
             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
             Style="{StaticResource yr.SmallStyle}"
@@ -120,11 +151,11 @@
 
         <!--  Restart warning  -->
         <StackPanel
-            Grid.Row="4"
+            Grid.Row="5"
             Margin="{StaticResource yr.ItemSpacing}"
             VerticalAlignment="Top"
             Orientation="Horizontal"
-            Visibility="{Binding HasChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
+            Visibility="{Binding HasRestartChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock
                 Margin="0,0,4,0"
                 VerticalAlignment="Center"
@@ -140,7 +171,7 @@
         </StackPanel>
 
         <!--  Buttons  -->
-        <Grid Grid.Row="6">
+        <Grid Grid.Row="7">
             <Button
                 HorizontalAlignment="Left"
                 Command="{Binding ResetToDefaultCommand}"

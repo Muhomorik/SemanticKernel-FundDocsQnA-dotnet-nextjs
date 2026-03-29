@@ -33,6 +33,7 @@ public sealed record ApiFundFullSyncProfileMetadataDto
     public bool? HasCashDividends { get; init; }
     public bool? HasCurrencyExchangeFee { get; init; }
     public string? RecommendedHoldingPeriod { get; init; }
+    public string? Description { get; init; }
 
     #endregion
 

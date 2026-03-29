@@ -96,4 +96,16 @@ public interface IFundProfileRepository
     /// <param name="visitedAt">The timestamp of the visit.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task UpdateLastVisitedAtAsync(IsinId isinId, DateTimeOffset visitedAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the <see cref="FundProfile.Description"/> for the given fund.
+    /// </summary>
+    /// <remarks>
+    /// Called by the about-fund orchestrator after extracting the description
+    /// from the fund-reference API response.
+    /// </remarks>
+    /// <param name="isinId">The fund's ISIN identifier.</param>
+    /// <param name="description">The fund description text, or <c>null</c> to clear.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UpdateDescriptionAsync(IsinId isinId, string? description, CancellationToken cancellationToken = default);
 }

@@ -27,7 +27,7 @@ namespace YieldRaccoon.Wpf.ViewModels;
 /// <list type="bullet">
 ///   <item>Manages pure visual components (streaming toggle, visibility states)</item>
 ///   <item>Subscribes to observable streams from orchestrator for state updates</item>
-///   <item>Delegates all business logic to <see cref="ICrawlSessionOrchestrator"/></item>
+///   <item>Delegates all business logic to <see cref="IFundListOrchestrator"/></item>
 ///   <item>Does NOT directly manipulate the event store</item>
 /// </list>
 /// </para>
@@ -37,7 +37,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly ILogger _logger;
     private readonly IScheduler _uiScheduler;
     private readonly YieldRaccoonOptions _options;
-    private readonly ICrawlSessionOrchestrator _orchestrator;
+    private readonly IFundListOrchestrator _orchestrator;
     private readonly ISettingsDialogService _settingsDialogService;
     private readonly IAboutFundWindowService _aboutFundWindowService;
     private readonly IExportWindowService _exportWindowService;
@@ -108,7 +108,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets the observable collection of intercepted funds.
     /// </summary>
-    public ObservableCollection<InterceptedFundViewModel> Funds { get; } = new();
+    public ObservableCollection<FundListInterceptedFundViewModel> Funds { get; } = new();
 
     /// <summary>
     /// Gets or sets the count of intercepted funds.
@@ -212,7 +212,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets the observable collection of scheduled batches for UI display.
     /// </summary>
-    public ObservableCollection<ScheduledBatchItemViewModel> ScheduledBatches { get; } = new();
+    public ObservableCollection<FundListScheduledBatchItemViewModel> ScheduledBatches { get; } = new();
 
     #endregion
 
@@ -301,6 +301,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ICommand StopSessionCommand { get; }
 
     /// <summary>
+    /// Gets the command to skip the current delay and immediately load the next batch.
+    /// </summary>
+    public ICommand AdvanceToNextBatchCommand { get; }
+
+    /// <summary>
     /// Gets the command executed when the window is loaded.
     /// </summary>
     public ICommand LoadedCommand { get; }
@@ -373,7 +378,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         ILogger logger,
         IScheduler uiScheduler,
         YieldRaccoonOptions options,
-        ICrawlSessionOrchestrator orchestrator,
+        IFundListOrchestrator orchestrator,
         ISettingsDialogService settingsDialogService,
         IAboutFundWindowService aboutFundWindowService,
         IExportWindowService exportWindowService,
@@ -444,6 +449,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadNextBatchCommand = new DelegateCommand(ExecuteLoadNextBatch, CanExecuteLoadNextBatch, true);
         StartSessionCommand = new DelegateCommand(ExecuteStartSession, CanExecuteStartSession, true);
         StopSessionCommand = new DelegateCommand(ExecuteStopSession, CanExecuteStopSession, true);
+        AdvanceToNextBatchCommand = new DelegateCommand(ExecuteAdvanceToNextBatch, CanExecuteAdvanceToNextBatch, true);
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
         OpenSettingsCommand = new DelegateCommand(ExecuteOpenSettings);
         OpenAboutFundCommand = new DelegateCommand(ExecuteOpenAboutFund);
@@ -500,6 +506,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadNextBatchCommand = new DelegateCommand(() => { });
         StartSessionCommand = new DelegateCommand(() => { });
         StopSessionCommand = new DelegateCommand(() => { });
+        AdvanceToNextBatchCommand = new DelegateCommand(() => { });
         LoadedCommand = new DelegateCommand(() => { });
         OpenSettingsCommand = new DelegateCommand(() => { });
         OpenAboutFundCommand = new DelegateCommand(() => { });
@@ -530,7 +537,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         // Countdown ticks
         _orchestrator.CountdownTick
             .ObserveOn(_uiScheduler)
-            .Subscribe(OnCountdownTick)
+            .Subscribe(OnFundListCountdownTick)
             .DisposeWith(_disposables);
 
         // Load batch requests - delegate to view via event
@@ -557,7 +564,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Handles session state changes from the orchestrator.
     /// </summary>
-    private void OnSessionStateChanged(CrawlSessionState state)
+    private void OnSessionStateChanged(FundListSessionState state)
     {
         _logger.Trace("Session state changed: Active={0}, Batch={1}/{2}",
             state.IsActive, state.CurrentBatchNumber, state.EstimatedBatchCount);
@@ -576,7 +583,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Handles scheduled batches list changes from the orchestrator.
     /// </summary>
-    private void OnScheduledBatchesChanged(IReadOnlyList<ScheduledBatchItem> batches)
+    private void OnScheduledBatchesChanged(IReadOnlyList<FundListScheduledBatchItem> batches)
     {
         _logger.Trace("Scheduled batches updated: {0} items", batches.Count);
 
@@ -590,7 +597,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 existing.UpdateFrom(batch);
             else
                 // Add new ViewModel
-                ScheduledBatches.Add(ScheduledBatchItemViewModel.FromModel(batch));
+                ScheduledBatches.Add(FundListScheduledBatchItemViewModel.FromModel(batch));
         }
 
         // Remove items that no longer exist in the source
@@ -605,7 +612,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Handles countdown tick events from the orchestrator.
     /// </summary>
-    private void OnCountdownTick(CountdownTick tick)
+    private void OnFundListCountdownTick(FundListCountdownTick tick)
     {
         DelayCountdown = tick.SecondsRemaining;
         SessionStatusMessage = "Next batch in";
@@ -628,7 +635,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Handles session completed events from the orchestrator.
     /// </summary>
-    private void OnSessionCompleted(SessionCompletedInfo info)
+    private void OnSessionCompleted(FundListSessionCompletedInfo info)
     {
         _logger.Info("Session completed: {0} funds in {1}",
             info.TotalFundsLoaded, info.Duration);
@@ -671,8 +678,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         if (saved)
         {
-            _logger.Info("Settings saved - restart required for changes to take effect");
-            StatusMessage = "Settings saved. Restart the application to apply changes.";
+            _logger.Info("Settings saved");
+            StatusMessage = "Settings saved.";
         }
     }
 
@@ -814,6 +821,25 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         CommandManager.InvalidateRequerySuggested();
     }
 
+    /// <summary>
+    /// Determines whether the advance to next batch command can be executed.
+    /// </summary>
+    private bool CanExecuteAdvanceToNextBatch()
+    {
+        return IsSessionActive && IsDelayInProgress;
+    }
+
+    /// <summary>
+    /// Executes the advance to next batch command.
+    /// Skips the current delay and immediately loads the next batch.
+    /// </summary>
+    private void ExecuteAdvanceToNextBatch()
+    {
+        _logger.Info("Advancing to next batch via orchestrator");
+        _orchestrator.AdvanceToNextBatch();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     #endregion
 
     #region Browser Event Handlers
@@ -850,7 +876,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     /// Updates UI state and notifies orchestrator.
     /// </summary>
     /// <param name="fundData">The intercepted fund data.</param>
-    public void OnFundDataReceived(InterceptedFundList? fundData)
+    public void OnFundDataReceived(FundListInterceptedResponse? fundData)
     {
         if (fundData?.Funds == null || fundData.Funds.Count == 0)
         {
@@ -884,7 +910,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             else
             {
                 // Add new ViewModel
-                Funds.Add(InterceptedFundViewModel.FromModel(fund));
+                Funds.Add(FundListInterceptedFundViewModel.FromModel(fund));
                 addedCount++;
                 _logger.Debug("Added fund: {0} ({1})", fund.Name, fund.Isin);
             }
@@ -901,7 +927,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         BrowserScrollToEndRequested?.Invoke(this, EventArgs.Empty);
 
         // Convert to DTOs for persistence and orchestrator notification
-        var fundDtos = fundData.Funds.ToFundDataDtos();
+        var fundDtos = fundData.Funds.ToFundListDataDtos();
 
         // Always persist funds to database (regardless of session state)
         if (fundDtos.Count > 0)

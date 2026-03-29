@@ -17,7 +17,7 @@ namespace YieldRaccoon.Infrastructure.Data.Context;
 /// </list>
 /// </para>
 /// <para>
-/// The event store (<see cref="Application.CrawlEvents.ICrawlEventStore"/>) remains in-memory
+/// The event store (<see cref="Application.Services.IFundListEventStore"/>) remains in-memory
 /// and is not managed by this context.
 /// </para>
 /// </remarks>

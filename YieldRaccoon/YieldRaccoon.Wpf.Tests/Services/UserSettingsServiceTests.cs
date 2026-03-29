@@ -246,5 +246,37 @@ public class UserSettingsServiceTests
         Assert.That(loaded.DatabaseProvider, Is.EqualTo(DatabaseProvider.InMemory));
     }
 
+    [Test]
+    public void SaveThenLoad_EnabledCrawlerSteps_RoundTripsCorrectly()
+    {
+        // Arrange
+        var original = new UserSettings
+        {
+            EnabledCrawlerSteps = ["Select1Month", "Select3Years", "SelectMax"]
+        };
+
+        // Act
+        _sut.Save(original);
+        var loaded = _sut.Load();
+
+        // Assert
+        Assert.That(loaded.EnabledCrawlerSteps, Is.Not.Null);
+        Assert.That(loaded.EnabledCrawlerSteps, Is.EqualTo(original.EnabledCrawlerSteps));
+    }
+
+    [Test]
+    public void Load_OldJsonWithoutEnabledCrawlerSteps_ReturnsNull()
+    {
+        // Arrange — simulate a settings.json from before this feature
+        var json = """{ "databaseProvider": "SQLite", "databasePath": "funds.db" }""";
+        File.WriteAllText(_settingsFilePath, json);
+
+        // Act
+        var loaded = _sut.Load();
+
+        // Assert
+        Assert.That(loaded.EnabledCrawlerSteps, Is.Null);
+    }
+
     #endregion
 }

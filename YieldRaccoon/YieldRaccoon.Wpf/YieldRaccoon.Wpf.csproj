@@ -13,6 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="YieldRaccoon.Wpf.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\YieldRaccoon.Application\YieldRaccoon.Application.csproj" />
     <ProjectReference Include="..\YieldRaccoon.Infrastructure\YieldRaccoon.Infrastructure.csproj" />
   </ItemGroup>

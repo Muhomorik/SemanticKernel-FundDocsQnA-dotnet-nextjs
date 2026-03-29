@@ -83,4 +83,47 @@ public static class AboutFundCollectionStepKinds
 
         return result;
     }
+
+    /// <summary>
+    /// Parses persisted step name strings into an enabled step set.
+    /// Returns <see cref="Defaults"/> when <paramref name="names"/> is null or empty.
+    /// Unknown names are silently ignored for forward compatibility.
+    /// </summary>
+    public static IReadOnlySet<AboutFundCollectionStepKind> FromNames(IEnumerable<string>? names)
+    {
+        if (names == null)
+            return Defaults;
+
+        var parsed = new HashSet<AboutFundCollectionStepKind>();
+
+        foreach (var name in names)
+        {
+            if (Enum.TryParse<AboutFundCollectionStepKind>(name, out var step)
+                && step != AboutFundCollectionStepKind.ActivateSekView)
+            {
+                parsed.Add(step);
+            }
+        }
+
+        return parsed.Count > 0 ? parsed : (IReadOnlySet<AboutFundCollectionStepKind>)Defaults;
+    }
+
+    /// <summary>
+    /// Converts enabled steps to name strings for persistence.
+    /// Returns null when the enabled set matches <see cref="Defaults"/> (avoids storing redundant data).
+    /// </summary>
+    public static List<string>? ToNames(IEnumerable<AboutFundCollectionStepKind> enabledSteps)
+    {
+        var set = new HashSet<AboutFundCollectionStepKind>(
+            enabledSteps.Where(s => s != AboutFundCollectionStepKind.ActivateSekView));
+
+        if (set.SetEquals(Defaults))
+            return null;
+
+        // Preserve canonical order
+        return Configurable
+            .Where(set.Contains)
+            .Select(s => s.ToString())
+            .ToList();
+    }
 }

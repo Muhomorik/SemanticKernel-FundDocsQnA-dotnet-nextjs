@@ -82,7 +82,7 @@ public class DualWriteChartIngestionService : IAboutFundChartIngestionService
                 return;
             }
 
-            var apiProfile = profile.ToApiFundDto();
+            var apiProfile = profile.ToApiFundListDto();
             var historyPoints = ParseChartHistoryPoints(pageData, isinId);
 
             var request = new FundAboutSyncRequest

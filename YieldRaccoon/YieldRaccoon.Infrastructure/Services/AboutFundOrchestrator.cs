@@ -2,12 +2,14 @@ using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using NLog;
 using YieldRaccoon.Application.Models;
 using YieldRaccoon.Application.Repositories;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Domain.Events.AboutFund;
 using YieldRaccoon.Domain.ValueObjects;
+using YieldRaccoon.Infrastructure.Models;
 
 namespace YieldRaccoon.Infrastructure.Services;
 
@@ -422,6 +424,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
                 pageData.OrderBookId, count);
 
             await _fundProfileRepository.UpdateLastVisitedAtAsync(_manualIsinId.Value, DateTimeOffset.UtcNow);
+
+            await PersistFundDescriptionAsync(pageData, _manualIsinId.Value);
         }
         catch (Exception ex)
         {
@@ -689,10 +693,39 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
             await _fundProfileRepository.UpdateLastVisitedAtAsync(isinId, DateTimeOffset.UtcNow);
             _logger.Debug("Updated AboutFundLastVisitedAt for {0} (ISIN: {1})",
                 pageData.OrderBookId, isinId.Isin);
+
+            await PersistFundDescriptionAsync(pageData, isinId);
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to persist chart data for {0}", pageData.OrderBookId);
+        }
+    }
+
+    /// <summary>
+    /// Extracts the fund description from the captured fund-reference JSON
+    /// and persists it to the fund profile.
+    /// </summary>
+    private async Task PersistFundDescriptionAsync(AboutFundPageData pageData, IsinId isinId)
+    {
+        if (string.IsNullOrWhiteSpace(pageData.FundReferenceJson))
+            return;
+
+        try
+        {
+            var description = JsonSerializer
+                .Deserialize<FundReferenceResponse>(pageData.FundReferenceJson)?.Description;
+
+            if (string.IsNullOrWhiteSpace(description))
+                return;
+
+            await _fundProfileRepository.UpdateDescriptionAsync(isinId, description);
+            _logger.Debug("Updated description for {0} (ISIN: {1})",
+                pageData.OrderBookId, isinId.Isin);
+        }
+        catch (JsonException ex)
+        {
+            _logger.Warn(ex, "Failed to deserialize fund-reference JSON for {0}", pageData.OrderBookId);
         }
     }
 

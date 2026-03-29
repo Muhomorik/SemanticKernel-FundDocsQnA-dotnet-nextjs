@@ -106,24 +106,28 @@ dotnet user-secrets set "YieldRaccoon:FastMode" "true"
 YieldRaccoon.sln
 ├── YieldRaccoon.Domain/              # Core business logic (no dependencies)
 │   ├── Entities/                     # FundProfile, FundHistoryRecord
+│   ├── Events/FundList/              # IFundListEvent, session & batch events
 │   ├── Events/AboutFund/             # IAboutFundEvent, session & navigation events
 │   └── ValueObjects/                 # IsinId, OrderBookId, AboutFundSessionId, AboutFundFetchSlot
 │
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── Configuration/                # Options records (ResponseParser, PageInteractor, RandomDelayProvider, FundDetailsUrlBuilder)
-│   ├── DTOs/                         # FundDataDto
-│   ├── Models/                       # AboutFundPageData (7 slots), CollectionSchedule/Step, session phases
+│   ├── DTOs/                         # FundListDataDto
+│   ├── Models/                       # AboutFundPageData (7 slots + FundReferenceJson metadata), CollectionSchedule/Step, session phases,
+│   │                                 # FundListBatchSchedule, FundListSessionPhase
 │   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
-│   └── Services/                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
+│   └── Services/                     # IFundListOrchestrator, IFundListScheduleCalculator,
+│                                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
 │                                     # IAboutFundChartIngestionService, IFundDataExportService,
 │                                     # IRandomDelayProvider
 │
 ├── YieldRaccoon.Infrastructure/      # Technical concerns
 │   ├── Data/                         # EF Core DbContext, configurations, value converters
 │   │   └── Repositories/             # EfCore* and InMemory* repository implementations
-│   ├── EventStore/                   # InMemoryCrawlEventStore, InMemoryAboutFundEventStore
-│   ├── Models/                       # Anti-corruption layer (chart API response shapes)
-│   └── Services/                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
+│   ├── EventStore/                   # InMemoryFundListEventStore, InMemoryAboutFundEventStore
+│   ├── Models/                       # Anti-corruption layer (chart API + fund-reference response shapes)
+│   └── Services/                     # FundListOrchestrator, FundListScheduleCalculator,
+│                                     # AboutFundOrchestrator, PageDataCollector (incl. response routing),
 │                                     # ChartIngestionService, FundDataExportService,
 │                                     # RandomDelayProvider, FundDetailsUrlBuilder
 │
@@ -160,8 +164,8 @@ flowchart TB
     end
 
     subgraph Application["Application Layer"]
-        DTO[FundDataDto]
-        SVC[FundIngestionService]
+        DTO[FundListDataDto]
+        SVC[FundListIngestionService]
         IRepo["IFundProfileRepository\nIFundHistoryRepository"]
     end
 
@@ -203,7 +207,7 @@ flowchart TB
 **Key points:**
 
 - Repositories accept **domain entities** (`FundProfile`, `FundHistoryRecord`), not DTOs
-- `FundIngestionService` maps DTOs to entities before calling repositories
+- `FundListIngestionService` maps DTOs to entities before calling repositories
 - DI container resolves the correct implementation based on `DatabaseOptions.Provider`
 - InMemory repositories use `ConcurrentDictionary` for thread-safe, session-scoped storage
 - `GetFundsOrderedByLastVisitAsync` returns funds prioritized for browsing (never-visited first, then oldest visit date)
@@ -248,26 +252,26 @@ Events track crawl session lifecycle and batch loading progress.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> CrawlSessionStarted
-    CrawlSessionStarted --> BatchLoadScheduled
+    [*] --> FundListSessionStarted
+    FundListSessionStarted --> FundListBatchScheduled
 
     state "Batch Cycle" as BC {
-        BatchLoadDelayStarted --> BatchLoadDelayCompleted
-        BatchLoadDelayCompleted --> BatchLoadStarted
-        BatchLoadStarted --> BatchLoadCompleted
+        FundListBatchDelayStarted --> FundListBatchDelayCompleted
+        FundListBatchDelayCompleted --> FundListBatchStarted
+        FundListBatchStarted --> FundListBatchCompleted
     }
 
-    BatchLoadScheduled --> BC
-    BC --> BatchLoadScheduled: More funds
-    BC --> CrawlSessionCompleted: All loaded
-    CrawlSessionCompleted --> DailyCrawlScheduled
+    FundListBatchScheduled --> BC
+    BC --> FundListBatchScheduled: More funds
+    BC --> FundListSessionCompleted: All loaded
+    FundListSessionCompleted --> FundListDailyCrawlScheduled
 ```
 
 | Category | Events |
 | ---------- | -------- |
 | Session | `Started`, `Completed`, `Failed`, `Cancelled` |
 | Batch | `Scheduled`, `DelayStarted`, `DelayCompleted`, `Started`, `Completed`, `Failed` |
-| Daily | `DailyCrawlScheduled`, `DailyCrawlReady` |
+| Daily | `FundListDailyCrawlScheduled`, `FundListDailyCrawlReady` |
 
 ### AboutFund Browsing Events
 
@@ -299,28 +303,32 @@ stateDiagram-v2
 
 ## Crawl Pipeline
 
-Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists.
+Crawl sessions automatically load all funds by clicking "Show more" buttons on paginated lists. The orchestrator pre-calculates all batch timings upfront and schedules `Observable.Timer` for each batch — no delays are computed on-the-fly.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant VM as ViewModel
     participant Orchestrator
-    participant Ingestion as FundIngestionService
+    participant Calculator as FundListScheduleCalculator
+    participant Ingestion as FundListIngestionService
     participant Repo as Repository
     participant WebView2
     participant API as Fund API
 
     User->>VM: StartSessionCommand
-    VM->>Orchestrator: Start crawl session
+    VM->>Orchestrator: StartSession()
+    Orchestrator->>Calculator: CalculateSessionSchedule(74 batches)
+    Calculator-->>Orchestrator: List<FundListBatchSchedule>
+    Orchestrator->>Orchestrator: Schedule all Observable.Timer upfront
     loop Until all funds loaded
-        Orchestrator->>Orchestrator: Wait (randomized delay)
+        Note over Orchestrator: Timer fires at pre-calculated time
         Orchestrator->>VM: LoadBatchRequested
         VM->>WebView2: Execute JS (click "Show more")
         WebView2->>API: HTTP request
         API-->>WebView2: JSON response (intercepted)
         WebView2-->>VM: OnFundDataReceived
-        VM->>VM: Map to FundDataDto[]
+        VM->>VM: Map to FundListDataDto[]
         VM->>Orchestrator: NotifyBatchLoaded(funds)
         Orchestrator->>Ingestion: IngestBatch(funds)
         Ingestion->>Repo: AddOrUpdate(FundProfile)
@@ -333,17 +341,30 @@ sequenceDiagram
 
 **Commands:**
 
-- `StartSessionCommand` - Begins automated crawl with randomized delays
+- `StartSessionCommand` - Begins automated crawl with pre-calculated schedule
 - `LoadNextBatchCommand` - Manual single batch load
 - `StopSessionCommand` - Cancel running session
+- `AdvanceToNextBatchCommand` - Skip delay, immediately load next batch
 
-**Features:** ISIN deduplication, randomized delays (20-60s), progress tracking.
+**Features:** ISIN deduplication, pre-calculated randomized delays, progress tracking, advance/skip capability.
+
+### FundList Scheduling
+
+Both orchestrators (FundList and AboutFund) share the same three-layer scheduling architecture:
+
+1. **Schedule calculation** (`IFundListScheduleCalculator`) — pure computation; rolls randomized delays via `IRandomDelayProvider`, returns `List<FundListBatchSchedule>` with absolute fire times. No I/O, no side effects.
+2. **Timer scheduling** (`ScheduleBatchTimers()` in orchestrator) — creates `Observable.Timer()` for each pending batch at pre-calculated times, plus a 1-second ticker for UI countdown refresh.
+3. **Batch execution** (`ExecuteBatchLoad()`) — when timer fires, transitions to `Loading` phase, emits `LoadBatchRequested` intent signal for the view to click "Show more".
+
+**Session phases:** `Idle` → `DelayBeforeNextBatch` → `Loading` → `DelayBeforeNextBatch` → ... → `Idle`
+
+**State projection:** All session state is tracked in-memory (phase, batch statuses dictionary, schedule list). Domain events are still appended for auditing but are not re-queried for state projection.
 
 ## AboutFund Collection
 
 ### WebView2 Network Interception
 
-How the AboutFund browser's network traffic is intercepted and routed to data collection. The `AboutFundResponseInterceptor` captures HTTP responses via `CoreWebView2.WebResourceResponseReceived` and forwards them to `IAboutFundPageDataCollector.NotifyResponseCaptured()`. The collector routes matched responses to data slots using `EndpointPattern` URL fragment matching (configured via `ResponseParserOptions`). After the final interaction (`SelectMax`) succeeds, the collector enters the Draining phase — the next matched response triggers completion and chart data ingestion.
+How the AboutFund browser's network traffic is intercepted and routed to data collection. The `AboutFundResponseInterceptor` captures HTTP responses via `CoreWebView2.WebResourceResponseReceived` and forwards them to `IAboutFundPageDataCollector.NotifyResponseCaptured()`. The collector routes matched responses to data slots using `EndpointPattern` URL fragment matching (configured via `ResponseParserOptions`). It also passively captures the fund-reference API response (`_api/fund-reference/reference/{orderBookId}`) on page load — this provides fund metadata (including the fund description) without requiring any button clicks. After the final interaction (`SelectMax`) succeeds, the collector enters the Draining phase — the next matched response triggers completion and chart data ingestion.
 
 ```mermaid
 sequenceDiagram
@@ -486,9 +507,11 @@ stateDiagram-v2
 
 **Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting. A safety-net timer forces completion if the final HTTP response never arrives.
 
-### Three-Tier Scheduling
+**Metadata capture:** The fund-reference API response (`_api/fund-reference/reference/{orderBookId}`) is captured passively on page load into `AboutFundPageData.FundReferenceJson`. This is not a data slot — it does not participate in completion checks, slot counts, or progress reporting. After collection completes, the orchestrator extracts the `description` field and persists it to `FundProfile.Description`.
 
-The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly:
+### Three-Tier Scheduling (AboutFund)
+
+The orchestrator owns all scheduling policy. On session start, it pre-calculates the complete timeline — no delays are computed on-the-fly (same pattern as FundList scheduling above, but with per-fund sub-steps):
 
 1. **Session schedule** (`List<AboutFundCollectionSchedule>`) — one entry per fund with absolute start/stop times and inter-page delays
 2. **Step schedule** (`AboutFundScheduledStep`) — per-step absolute fire times within each fund, derived from `IAboutFundPageInteractor.GetMinimumDelay()` (configurable via `PageInteractorOptions`) plus randomized padding via `IRandomDelayProvider` (configurable via `RandomDelayProviderOptions`). Both use minimal timings when `FastMode` is enabled.
@@ -507,6 +530,7 @@ After page data collection completes, `AboutFundChartIngestionService` runs the 
 5. Convert Unix timestamps to Stockholm-time `DateOnly` (handles CET/CEST transitions)
 6. Map to `FundHistoryRecord` entities (Nav + NavDate populated from chart data)
 7. Persist via `AddRangeIfNotExistsAsync` (existing records silently skipped)
+8. Extract fund description from `FundReferenceJson` (if captured) and persist to `FundProfile.Description`
 
 ## Database
 
@@ -542,7 +566,7 @@ Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
 
 | Table | Purpose |
 | ------- | --------- |
-| `FundProfiles` | Static fund data (name, fees, ESG scores, visit tracking) - keyed by ISIN |
+| `FundProfiles` | Static fund data (name, fees, ESG scores, description, visit tracking) - keyed by ISIN |
 | `FundHistoryRecords` | Time-series data (NAV, owners, ratings) - FK to FundProfiles, unique per (FundId, NavDate) |
 
 <details>
@@ -586,7 +610,8 @@ CREATE TABLE FundProfiles (
     EuArticleType            TEXT,
     FirstSeenAt              TEXT    NOT NULL,
     CrawlerLastUpdatedAt     TEXT,
-    AboutFundLastVisitedAt   TEXT
+    AboutFundLastVisitedAt   TEXT,
+    Description              TEXT
 );
 
 CREATE TABLE FundHistoryRecords (
@@ -732,14 +757,14 @@ When `DualWrite` is configured, fund data is written to both SQLite (local) and 
 
 This is implemented via the **Decorator pattern** at the service level:
 
-- `DualWriteFundIngestionService` wraps `FundIngestionService` for crawl batch sync
+- `DualWriteFundListIngestionService` wraps `FundListIngestionService` for crawl batch sync
 - `DualWriteChartIngestionService` wraps `AboutFundChartIngestionService` for about-fund chart sync
 
 ```mermaid
 sequenceDiagram
     participant Crawler as Crawl Session
-    participant DW as DualWriteFundIngestionService
-    participant SQLite as FundIngestionService (SQLite)
+    participant DW as DualWriteFundListIngestionService
+    participant SQLite as FundListIngestionService (SQLite)
     participant API as Backend API
     participant StatusBar as Status Bar
 

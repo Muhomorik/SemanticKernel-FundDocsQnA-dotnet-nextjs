@@ -25,4 +25,10 @@
     <ProjectReference Include="..\YieldRaccoon.Infrastructure\YieldRaccoon.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="TestData\fund-reference-response.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
