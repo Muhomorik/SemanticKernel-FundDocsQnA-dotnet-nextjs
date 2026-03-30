@@ -1,5 +1,8 @@
 # Fund Insights
 
+> [!NOTE]
+> Microsoft is [sunsetting Semantic Kernel](https://devblogs.microsoft.com/agent-framework/semantic-kernel-and-microsoft-agent-framework/) in favor of the new **Microsoft Agent Framework**. Development continues at [KanelBulleKapital](https://github.com/Muhomorik/KanelBulleKapital) using the Agent Framework.
+
 A tool that analyzes investment fund factsheets (PRIIP/KID documents), generates relevant questions, and provides answers to common investor queries about fund basics, risk profiles, costs, performance scenarios, and investment terms.
 
 | Feature | Description |
