@@ -976,14 +976,21 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         }
         // When session is active, status updates come from the orchestrator's SessionState observable
 
-        // Auto-start crawl session on first data arrival when CLI --auto-list is active
+        // Auto-start crawl session on first data arrival when CLI --auto-list is active.
+        // The first crawler call is deferred by AutoStartOptions.ColdStartDelay (measured
+        // from app launch) so the SQLite DB has time to warm up. See AutoStartOptions for
+        // the full rationale.
         if (_autoStartOptions.AutoList && !_autoListSessionStarted && !IsSessionActive
             && FundCount > 0 && TotalFundCount > FundCount)
         {
             _autoListSessionStarted = true;
-            _logger.Info("CLI auto-list: first batch received ({0}/{1}), starting crawl session",
-                FundCount, TotalFundCount);
-            ExecuteStartSession();
+            var delay = _autoStartOptions.GetColdStartRemaining(AutoStartOptions.ColdStartDelay);
+            _logger.Info(
+                "CLI auto-list: first batch received ({0}/{1}), scheduling crawl session in {2:F1}s (DB cold-start buffer)",
+                FundCount, TotalFundCount, delay.TotalSeconds);
+            Observable.Timer(delay, _uiScheduler)
+                .Subscribe(_ => ExecuteStartSession())
+                .DisposeWith(_disposables);
         }
 
         CommandManager.InvalidateRequerySuggested();

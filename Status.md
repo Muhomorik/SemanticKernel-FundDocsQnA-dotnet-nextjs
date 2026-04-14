@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-04-14 (AboutFund scheduler now excludes funds with stale CrawlerLastUpdatedAt)
+Last Updated: 2026-04-14 (Auto-start sessions now honor a 60s DB cold-start buffer)
 
 **Tech Stack:**
 
@@ -565,6 +565,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | Streaming Mode Privacy | ✅ | **Completed 2026-01-29**: ToggleSwitch in browser toolbar, WebView2 screenshot capture via `CapturePreviewAsync`, Magick.NET OilPaint effect (radius: 6, sigma: 1), "🔴 STREAMING" overlay indicator, auto-update on navigation complete |
 | Build Verification | ✅ | **Completed 2026-01-29**: Clean build with 0 errors, 0 warnings, all nullability warnings resolved |
 | Daily Auto-Start | ✅ | **NEW 2026-04-14**: Settings window now has "Daily auto-start" section (toggle + HH:mm picker + `--auto-list` checkbox). Creates a per-user Windows scheduled task under `\YieldRaccoon\YieldRaccoon-AutoStart` via `TaskScheduler` NuGet with `InteractiveToken` + `LUA` run level (no UAC needed on normal installs). Reconciles persisted setting with actual task state on window open. UAC fallback: on access-denied, prompts user to restart as admin with `--elevated-settings` flag, elevated instance auto-reopens Settings for retry. Files: `AutoStartSchedulerService`, `UserSettings` (new `AutoStart*` fields), `AutoStartOptions.OpenSettingsOnStartup`, `SettingsWindowViewModel` (new properties + `TryApplyAutoStartSchedule` + `TryRestartElevated`). |
+| Auto-Start DB Cold-Start Buffer | ✅ | **NEW 2026-04-14**: When launched with `--auto-list` or `--auto-overview`, the first crawler call is deferred by `AutoStartOptions.ColdStartDelay` (60s) measured from app launch. Prevents the first EF Core / SQLite call from colliding with model-building on a cold DB. `AutoStartOptions` gained `LaunchedAtUtc` and `GetColdStartRemaining(TimeSpan)`. `MainWindowViewModel` schedules `ExecuteStartSession` via `Observable.Timer(delay, _uiScheduler)` (disposed with the VM). `AboutFundWindowViewModel` awaits `Task.Delay(delay)` in `ExecuteLoaded` before `LoadScheduleAsync` when `AutoOverview` is active. Subsequent session steps run at normal cadence; manual launches are unaffected. |
 
 ### NuGet Dependencies
 
