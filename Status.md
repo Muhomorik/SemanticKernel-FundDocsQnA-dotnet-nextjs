@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-14 (Added SSE streaming for chat responses)
+Last Updated: 2026-04-14 (Added daily auto-start via Windows Task Scheduler to YieldRaccoon)
 
 **Tech Stack:**
 
@@ -564,6 +564,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | Fund Ingestion Integration | ✅ | **NEW 2026-01-29**: ICrawlSessionOrchestrator now coordinates database persistence via IFundIngestionService. NotifyBatchLoaded accepts FundDataDto collection, maps to domain entities (FundProfile + FundHistoryRecord), and persists to configured repository (InMemory or SQLite). Added FundDataDtoMapper (InterceptedFund → FundDataDto). |
 | Streaming Mode Privacy | ✅ | **Completed 2026-01-29**: ToggleSwitch in browser toolbar, WebView2 screenshot capture via `CapturePreviewAsync`, Magick.NET OilPaint effect (radius: 6, sigma: 1), "🔴 STREAMING" overlay indicator, auto-update on navigation complete |
 | Build Verification | ✅ | **Completed 2026-01-29**: Clean build with 0 errors, 0 warnings, all nullability warnings resolved |
+| Daily Auto-Start | ✅ | **NEW 2026-04-14**: Settings window now has "Daily auto-start" section (toggle + HH:mm picker + `--auto-list` checkbox). Creates a per-user Windows scheduled task under `\YieldRaccoon\YieldRaccoon-AutoStart` via `TaskScheduler` NuGet with `InteractiveToken` + `LUA` run level (no UAC needed on normal installs). Reconciles persisted setting with actual task state on window open. UAC fallback: on access-denied, prompts user to restart as admin with `--elevated-settings` flag, elevated instance auto-reopens Settings for retry. Files: `AutoStartSchedulerService`, `UserSettings` (new `AutoStart*` fields), `AutoStartOptions.OpenSettingsOnStartup`, `SettingsWindowViewModel` (new properties + `TryApplyAutoStartSchedule` + `TryRestartElevated`). |
 
 ### NuGet Dependencies
 
@@ -576,6 +577,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | **NLog** | 6.0.7 | Logging framework (infrastructure ready) |
 | **NLog.Extensions.Logging** | 6.1.0 | NLog integration with Microsoft.Extensions.Logging |
 | **Magick.NET-Q8-AnyCPU** | 14.10.2 | ImageMagick for streaming mode OilPaint effect |
+| **TaskScheduler** | 2.11.0 | Windows Task Scheduler wrapper for daily auto-start feature |
 
 ### Architecture
 

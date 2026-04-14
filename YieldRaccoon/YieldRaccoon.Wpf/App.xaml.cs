@@ -11,6 +11,7 @@ using NLog;
 using YieldRaccoon.Infrastructure.Data.Context;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Modules;
+using YieldRaccoon.Wpf.Views;
 
 namespace YieldRaccoon.Wpf;
 
@@ -41,8 +42,9 @@ public partial class App
             .ParseArguments<AutoStartOptions>(e.Args)
             .MapResult(opts => opts, _ => AutoStartOptions.None);
 
-        Logger.Info("CLI args: AutoList={0}, AutoOverview={1}, OverviewFundCount={2}",
-            autoStartOptions.AutoList, autoStartOptions.AutoOverview, autoStartOptions.OverviewFundCount);
+        Logger.Info("CLI args: AutoList={0}, AutoOverview={1}, OverviewFundCount={2}, ElevatedSettings={3}",
+            autoStartOptions.AutoList, autoStartOptions.AutoOverview,
+            autoStartOptions.OverviewFundCount, autoStartOptions.OpenSettingsOnStartup);
 
         // Apply YieldRaccoon theme (system accent color via RuntimeThemeGenerator)
         ApplyYieldRaccoonTheme();
@@ -93,6 +95,24 @@ public partial class App
         // Resolve and show main window (DataContext is set by MainWindow constructor)
         var mainWindow = _appScope.Resolve<MainWindow>();
         mainWindow.Show();
+
+        // If the app was restarted as admin to retry a blocked scheduled-task operation,
+        // immediately reopen the Settings window so the user can click Save again without
+        // hunting for it in the menu.
+        if (autoStartOptions.OpenSettingsOnStartup)
+        {
+            try
+            {
+                Logger.Info("Reopening Settings window after elevated restart");
+                var settingsWindow = _appScope.Resolve<SettingsWindow>();
+                settingsWindow.Owner = mainWindow;
+                settingsWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to reopen Settings window after elevated restart");
+            }
+        }
 
         Logger.Info("Application started successfully");
     }

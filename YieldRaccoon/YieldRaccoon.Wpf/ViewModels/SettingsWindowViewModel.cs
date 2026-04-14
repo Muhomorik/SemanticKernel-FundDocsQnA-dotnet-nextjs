@@ -1,5 +1,9 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Input;
 using DevExpress.Mvvm;
 using Microsoft.Win32;
@@ -17,8 +21,11 @@ namespace YieldRaccoon.Wpf.ViewModels;
 /// </summary>
 public class SettingsWindowViewModel : ViewModelBase
 {
+    private const int HResultAccessDenied = unchecked((int)0x80070005);
+
     private readonly ILogger _logger;
     private readonly IUserSettingsService _settingsService;
+    private readonly IAutoStartSchedulerService _autoStartScheduler;
     private readonly UserSettings _userSettings;
     private readonly DatabaseOptions _databaseOptions;
     private readonly string _originalDatabasePath;
@@ -37,16 +44,19 @@ public class SettingsWindowViewModel : ViewModelBase
     /// </summary>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <param name="settingsService">Service for loading and saving user settings.</param>
+    /// <param name="autoStartScheduler">Service managing the Windows scheduled task for daily auto-start.</param>
     /// <param name="databaseOptions">Current database configuration.</param>
     /// <param name="userSettings">Current user settings.</param>
     public SettingsWindowViewModel(
         ILogger logger,
         IUserSettingsService settingsService,
+        IAutoStartSchedulerService autoStartScheduler,
         DatabaseOptions databaseOptions,
         UserSettings userSettings)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _autoStartScheduler = autoStartScheduler ?? throw new ArgumentNullException(nameof(autoStartScheduler));
         _userSettings = userSettings ?? throw new ArgumentNullException(nameof(userSettings));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
 
@@ -70,6 +80,26 @@ public class SettingsWindowViewModel : ViewModelBase
         foreach (var step in AboutFundCollectionStepKinds.Configurable)
             StepToggles.Add(new AboutFundStepToggleViewModel(step, _originalEnabledSteps.Contains(step)));
 
+        // Initialize auto-start settings from persisted state, with a default time of 20:00.
+        var initialTime = userSettings.AutoStartTimeOfDay ?? new TimeSpan(20, 0, 0);
+        AutoStartTime = DateTime.Today.Add(initialTime);
+        AutoStartPassAutoListFlag = userSettings.AutoStartPassAutoListFlag;
+        AutoStartEnabled = userSettings.AutoStartEnabled;
+
+        // Reconcile with the actual scheduled-task state — user may have deleted the task externally.
+        try
+        {
+            if (AutoStartEnabled && !_autoStartScheduler.IsEnabled())
+            {
+                _logger.Warn("Auto-start flag was set but the scheduled task is missing — flipping off");
+                AutoStartEnabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Failed to reconcile auto-start state with Task Scheduler");
+        }
+
         // Initialize commands
         BrowseCommand = new DelegateCommand(ExecuteBrowse);
         ResetToDefaultCommand = new DelegateCommand(ExecuteResetToDefault);
@@ -86,6 +116,7 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         _logger = LogManager.GetCurrentClassLogger();
         _settingsService = null!;
+        _autoStartScheduler = null!;
         _userSettings = new UserSettings();
         _databaseOptions = new DatabaseOptions();
         _originalDatabasePath = DatabaseOptions.DefaultDatabaseFileName;
@@ -258,6 +289,56 @@ public class SettingsWindowViewModel : ViewModelBase
     /// </summary>
     public string SettingsFilePath => _settingsService?.SettingsFilePath ?? string.Empty;
 
+    /// <summary>
+    /// Gets or sets whether daily auto-start is enabled. When true, saving will register a
+    /// Windows scheduled task that launches YieldRaccoon daily at <see cref="AutoStartHour"/>:<see cref="AutoStartMinute"/>.
+    /// </summary>
+    public bool AutoStartEnabled
+    {
+        get => GetProperty(() => AutoStartEnabled);
+        set => SetProperty(() => AutoStartEnabled, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the daily auto-start time, backed by a <see cref="DateTime"/> because
+    /// <c>mah:TimePicker.SelectedDateTime</c> is DateTime-based. Only the hour and minute
+    /// components of the value are persisted — the date portion is ignored.
+    /// </summary>
+    public DateTime? AutoStartTime
+    {
+        get => GetProperty(() => AutoStartTime);
+        set => SetProperty(() => AutoStartTime, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the scheduled task should pass <c>--auto-list</c> to the launched exe
+    /// (starting the fund list crawl automatically). When false, the exe is launched interactively.
+    /// </summary>
+    public bool AutoStartPassAutoListFlag
+    {
+        get => GetProperty(() => AutoStartPassAutoListFlag);
+        set => SetProperty(() => AutoStartPassAutoListFlag, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the inline error banner text shown when the scheduled-task operation fails.
+    /// Null or empty when there is no error.
+    /// </summary>
+    public string? AutoStartError
+    {
+        get => GetProperty(() => AutoStartError);
+        set
+        {
+            if (SetProperty(() => AutoStartError, value))
+                RaisePropertyChanged(() => IsAutoStartErrorVisible);
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the auto-start error banner should be visible.
+    /// </summary>
+    public bool IsAutoStartErrorVisible => !string.IsNullOrEmpty(AutoStartError);
+
     #endregion
 
     #region Commands
@@ -349,8 +430,15 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             var enabledSteps = StepToggles.Where(t => t.IsEnabled).Select(t => t.StepKind);
             var stepNames = AboutFundCollectionStepKinds.ToNames(enabledSteps);
+            // Extract hour/minute from the DateTime the TimePicker returned; date portion is ignored.
+            var pickedTimeOfDay = AutoStartTime?.TimeOfDay ?? new TimeSpan(20, 0, 0);
+            var autoStartTime = AutoStartEnabled
+                ? new TimeSpan(pickedTimeOfDay.Hours, pickedTimeOfDay.Minutes, 0)
+                : (TimeSpan?)null;
 
-            _logger.Info($"Saving settings - Provider: {SelectedProvider.Provider}, Database path: {DatabasePath}");
+            _logger.Info(
+                "Saving settings - Provider: {0}, DB path: {1}, AutoStart: {2} at {3:hh\\:mm}",
+                SelectedProvider.Provider, DatabasePath, AutoStartEnabled, autoStartTime ?? TimeSpan.Zero);
 
             var settings = new UserSettings
             {
@@ -358,13 +446,24 @@ public class SettingsWindowViewModel : ViewModelBase
                 DatabasePath = DatabasePath,
                 BackendApiUrl = string.IsNullOrWhiteSpace(BackendApiUrl) ? null : BackendApiUrl.TrimEnd('/'),
                 BackendApiKey = string.IsNullOrWhiteSpace(BackendApiKey) ? null : BackendApiKey,
-                EnabledCrawlerSteps = stepNames
+                EnabledCrawlerSteps = stepNames,
+                AutoStartEnabled = AutoStartEnabled,
+                AutoStartTimeOfDay = autoStartTime,
+                AutoStartPassAutoListFlag = AutoStartPassAutoListFlag
             };
 
+            // Persist to disk BEFORE touching Task Scheduler — if the scheduler call fails and we
+            // restart as admin, the elevated instance must find the user's pending values on disk.
             _settingsService.Save(settings);
 
-            // Sync the DI singleton so future AboutFund windows pick up new defaults without restart
+            // Sync DI singleton so future AboutFund windows pick up new defaults without restart
             _userSettings.EnabledCrawlerSteps = stepNames;
+            _userSettings.AutoStartEnabled = AutoStartEnabled;
+            _userSettings.AutoStartTimeOfDay = autoStartTime;
+            _userSettings.AutoStartPassAutoListFlag = AutoStartPassAutoListFlag;
+
+            if (!TryApplyAutoStartSchedule(autoStartTime))
+                return; // error banner already set, keep window open
 
             _logger.Info("Settings saved successfully");
             CloseRequested?.Invoke(this, true);
@@ -374,6 +473,84 @@ public class SettingsWindowViewModel : ViewModelBase
             _logger.Error(ex, "Failed to save settings");
         }
     }
+
+    private bool TryApplyAutoStartSchedule(TimeSpan? autoStartTime)
+    {
+        try
+        {
+            if (AutoStartEnabled && autoStartTime.HasValue)
+                _autoStartScheduler.EnableDaily(autoStartTime.Value, AutoStartPassAutoListFlag);
+            else
+                _autoStartScheduler.Disable();
+
+            AutoStartError = null;
+            return true;
+        }
+        catch (Exception ex) when (IsAccessDenied(ex))
+        {
+            _logger.Warn(ex, "Access denied updating scheduled task — prompting for elevation");
+
+            var result = MessageBox.Show(
+                "Windows denied creating the auto-start scheduled task.\n\n" +
+                "Would you like to restart YieldRaccoon as administrator to try again?\n" +
+                "Your settings have already been saved — the elevated instance will reopen this window " +
+                "so you can click Save again.",
+                "Administrator rights required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes && TryRestartElevated())
+                return false; // current instance is shutting down
+
+            AutoStartError = "Access denied. Run YieldRaccoon as administrator to enable auto-start.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to update auto-start scheduled task");
+            AutoStartError = $"Failed to update scheduled task: {ex.Message}";
+            return false;
+        }
+    }
+
+    private bool TryRestartElevated()
+    {
+        try
+        {
+            var exePath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Unable to resolve current process path.");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = "--elevated-settings",
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+
+            Process.Start(psi);
+            _logger.Info("Elevated instance started, shutting down current instance");
+            System.Windows.Application.Current.Shutdown();
+            return true;
+        }
+        catch (Win32Exception ex)
+        {
+            // User cancelled the UAC prompt — ERROR_CANCELLED (1223)
+            _logger.Info(ex, "UAC elevation cancelled by user");
+            AutoStartError = "Elevation cancelled. Auto-start not enabled.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to restart as administrator");
+            AutoStartError = $"Failed to restart as administrator: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static bool IsAccessDenied(Exception ex) =>
+        ex is UnauthorizedAccessException
+        || (ex is COMException cex && cex.HResult == HResultAccessDenied);
 
     private void ExecuteCancel()
     {

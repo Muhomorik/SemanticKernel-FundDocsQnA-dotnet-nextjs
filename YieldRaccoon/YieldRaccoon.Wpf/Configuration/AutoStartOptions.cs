@@ -35,6 +35,17 @@ public class AutoStartOptions
     public int? AutoOverviewFundCount { get; set; }
 
     /// <summary>
+    /// When true, the application opens the Settings window immediately after the main window shows.
+    /// This flag is only passed by the app itself when it restarts as administrator to retry a
+    /// scheduled-task operation that was blocked by UAC. It lets the user click Save again in the
+    /// elevated instance without having to navigate back to Settings manually. The flag has no
+    /// effect on regular interactive launches and is not intended for manual use.
+    /// </summary>
+    [Option("elevated-settings", Required = false,
+        HelpText = "Internal: open Settings on startup after a UAC-elevated restart.")]
+    public bool OpenSettingsOnStartup { get; set; }
+
+    /// <summary>
     /// Gets whether the AboutFund auto-overview mode is active.
     /// </summary>
     public bool AutoOverview => AutoOverviewFundCount.HasValue;
