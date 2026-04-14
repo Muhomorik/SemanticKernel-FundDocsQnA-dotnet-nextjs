@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-04-14 (Added daily auto-start via Windows Task Scheduler to YieldRaccoon)
+Last Updated: 2026-04-14 (AboutFund scheduler now excludes funds with stale CrawlerLastUpdatedAt)
 
 **Tech Stack:**
 
@@ -739,6 +739,7 @@ Refactored the AboutFund window from a 2-column layout (WebView2 + Network Inspe
 - Session cancellation on window close or Stop button
 - Event log panel showing real-time browsing events with icons
 - URL template uses OrderbookId externally (`{0}` placeholder), ISIN internally
+- **Delisting filter (2026-04-14) ✅** — `GetFundsOrderedByLastVisitAsync` excludes funds whose `CrawlerLastUpdatedAt` is null or older than one month. The list crawler has effectively stopped seeing these funds, so the about-fund orchestrator no longer wastes its 80/day budget on dead pages. 4 new filter tests in the repository test suite (`Stale crawler filter` region).
 
 ### Chart Data Ingestion Pipeline ✅ COMPLETED (2026-02-19)
 

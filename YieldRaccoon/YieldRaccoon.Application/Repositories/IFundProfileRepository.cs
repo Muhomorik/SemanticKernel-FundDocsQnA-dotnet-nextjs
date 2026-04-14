@@ -36,6 +36,11 @@ public interface IFundProfileRepository
     /// <remarks>
     /// Used by the about-fund browsing feature to prioritize funds with the oldest
     /// (or missing) visit data. Funds with null <c>AboutFundLastVisitedAt</c> sort first.
+    /// <para>
+    /// Results are pre-filtered: funds whose <c>CrawlerLastUpdatedAt</c> is null or
+    /// older than one month are excluded, because the list crawler has effectively
+    /// stopped seeing them (they are most likely delisted).
+    /// </para>
     /// </remarks>
     /// <param name="limit">Maximum number of funds to return.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

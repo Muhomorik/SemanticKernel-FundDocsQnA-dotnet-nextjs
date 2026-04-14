@@ -43,7 +43,8 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
         {
             Id = fundId.Value,
             Name = "Test Fund",
-            FirstSeenAt = DateTimeOffset.UtcNow
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = DateTimeOffset.UtcNow
         };
         await _sut.AddOrUpdateAsync(profile);
         await _sut.SaveChangesAsync();
