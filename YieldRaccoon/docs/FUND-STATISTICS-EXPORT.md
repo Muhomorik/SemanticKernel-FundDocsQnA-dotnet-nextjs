@@ -27,7 +27,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 | Option | Description | Default |
 | -------- | ------------- | --------- |
 | **Window size** | How many calendar days each time window spans. NAV history is sliced into back-to-back chunks of this size. | 2 weeks (14 days) |
-| **Lookback** | How far back in time to include NAV data. Only data from this many days ago to today is processed. | 6 months (180 days) |
+| **Lookback** | How far back in time to include NAV data. Only data from this many days ago to today is processed. | 1 year (365 days) |
 | **Min owners** | Minimum number of fund owners required. Funds with fewer owners are excluded. | 100 |
 | **Company filter** | Optional. If set, only exports funds from this company (case-insensitive match on `CompanyName`). Leave blank for all companies. | Empty (all) |
 | **Output path** | Where to save the CSV file. Click **Browse** to pick a location. | `YieldRaccoon_stats_2weeks_6months.csv` |
@@ -50,8 +50,8 @@ In the main application window, click **Statistics export** from the toolbar/men
 | 1 month | 30 | Only the last month of NAV data |
 | 2 months | 60 | Last 2 months |
 | 3 months | 90 | Last 3 months |
-| 6 months | 180 | Last 6 months (default) |
-| 1 year | 365 | Last 12 months |
+| 6 months | 180 | Last 6 months |
+| 1 year | 365 | Last 12 months (default) |
 
 ### Running the export
 

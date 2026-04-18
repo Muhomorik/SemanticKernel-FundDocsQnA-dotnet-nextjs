@@ -6,6 +6,7 @@ using NLog;
 using YieldRaccoon.Application.Services;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Models;
+using YieldRaccoon.Wpf.Services;
 
 namespace YieldRaccoon.Wpf.ViewModels;
 
@@ -16,12 +17,18 @@ namespace YieldRaccoon.Wpf.ViewModels;
 public class FundStatisticsExportWindowViewModel : ViewModelBase
 {
     private const int DefaultMinNumberOfOwners = 100;
+    private const int DefaultWindowDays = 14;
+    private const int DefaultLookbackDays = 365;
 
     private readonly ILogger _logger;
     private readonly IFundStatisticsCsvExportService _exportService;
     private readonly IFundMetadataCsvExportService _metadataExportService;
     private readonly DatabaseOptions _databaseOptions;
+    private readonly IUserSettingsService? _userSettingsService;
+    private readonly UserSettings? _userSettings;
+    private readonly AutoStartOptions? _autoStartOptions;
     private readonly string _sourceDirectory;
+    private bool _scheduledAutoRunTriggered;
 
     /// <summary>
     /// Gets the current window service for programmatic close.
@@ -35,27 +42,44 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     /// <param name="exportService">Service for computing and exporting fund statistics.</param>
     /// <param name="metadataExportService">Service for exporting fund profile metadata.</param>
     /// <param name="databaseOptions">Current database configuration.</param>
+    /// <param name="userSettingsService">Persists last-used export values back to disk on successful export.</param>
+    /// <param name="userSettings">Current user settings — pre-populates fields on open.</param>
+    /// <param name="autoStartOptions">CLI options — <c>--auto-weekly-stats</c> flips this VM into scheduled-run mode.</param>
     public FundStatisticsExportWindowViewModel(
         ILogger logger,
         IFundStatisticsCsvExportService exportService,
         IFundMetadataCsvExportService metadataExportService,
-        DatabaseOptions databaseOptions)
+        DatabaseOptions databaseOptions,
+        IUserSettingsService userSettingsService,
+        UserSettings userSettings,
+        AutoStartOptions autoStartOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _metadataExportService = metadataExportService ?? throw new ArgumentNullException(nameof(metadataExportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
+        _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
+        _userSettings = userSettings ?? throw new ArgumentNullException(nameof(userSettings));
+        _autoStartOptions = autoStartOptions ?? throw new ArgumentNullException(nameof(autoStartOptions));
 
         IsSqliteProvider = databaseOptions.Provider is DatabaseProvider.SQLite or DatabaseProvider.DualWrite;
         _sourceDirectory = GetSourceDirectory(databaseOptions.ConnectionString);
         Periods = CreatePeriods();
-        SelectedPeriod = Periods[1]; // 2 weeks default
         LookbackPeriods = CreateLookbackPeriods();
-        SelectedLookbackPeriod = LookbackPeriods[3]; // 6 months default
-        CompanyName = string.Empty;
-        OutputPath = BuildDefaultPath(string.Empty, Periods[1], LookbackPeriods[3]);
-        MetadataOutputPath = BuildDefaultMetadataPath(string.Empty);
-        MinNumberOfOwners = DefaultMinNumberOfOwners;
+
+        // Pre-populate from persisted StatsExport* values when present; otherwise the defaults:
+        // 2 weeks window, 1 year lookback, 100 min owners.
+        SelectedPeriod = FindPeriodOrDefault(Periods, userSettings.StatsExportWindowDays, DefaultWindowDays);
+        SelectedLookbackPeriod = FindPeriodOrDefault(LookbackPeriods, userSettings.StatsExportLookbackDays, DefaultLookbackDays);
+        MinNumberOfOwners = userSettings.StatsExportMinOwners ?? DefaultMinNumberOfOwners;
+        CompanyName = userSettings.StatsExportCompanyFilter ?? string.Empty;
+        OutputPath = !string.IsNullOrWhiteSpace(userSettings.StatsExportOutputPath)
+            ? userSettings.StatsExportOutputPath
+            : BuildDefaultPath(CompanyName, SelectedPeriod, SelectedLookbackPeriod);
+        MetadataOutputPath = !string.IsNullOrWhiteSpace(userSettings.StatsExportMetadataOutputPath)
+            ? userSettings.StatsExportMetadataOutputPath
+            : BuildDefaultMetadataPath(CompanyName);
+
         IsExporting = false;
         StatusMessage = string.Empty;
         IsStatusError = false;
@@ -67,6 +91,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         BrowseMetadataCommand = new DelegateCommand(ExecuteBrowseMetadata, CanExecuteBrowse, true);
         CloseCommand = new DelegateCommand(ExecuteClose);
         WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
+        LoadedCommand = new DelegateCommand(ExecuteLoaded);
 
         _logger.Debug("FundStatisticsExportWindowViewModel initialized, IsSqliteProvider={0}", IsSqliteProvider);
     }
@@ -80,15 +105,18 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _exportService = null!;
         _metadataExportService = null!;
         _databaseOptions = new DatabaseOptions();
+        _userSettingsService = null;
+        _userSettings = null;
+        _autoStartOptions = null;
         _sourceDirectory = string.Empty;
 
         IsSqliteProvider = true;
         Periods = CreatePeriods();
         SelectedPeriod = Periods[1];
         LookbackPeriods = CreateLookbackPeriods();
-        SelectedLookbackPeriod = LookbackPeriods[3];
+        SelectedLookbackPeriod = LookbackPeriods[4]; // 1 year
         CompanyName = string.Empty;
-        OutputPath = @"YieldRaccoon_summary_2weeks_6months.csv";
+        OutputPath = @"YieldRaccoon_summary_2weeks_1year.csv";
         MetadataOutputPath = @"YieldRaccoon_metadata.csv";
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
@@ -102,6 +130,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         BrowseMetadataCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         WindowClosingCommand = new DelegateCommand(() => { });
+        LoadedCommand = new DelegateCommand(() => { });
     }
 
     #region Properties
@@ -261,6 +290,12 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     /// </summary>
     public ICommand WindowClosingCommand { get; }
 
+    /// <summary>
+    /// Gets the command executed when the window is loaded. Used to kick off the scheduled
+    /// auto-run when the app was launched with <c>--auto-weekly-stats</c>.
+    /// </summary>
+    public ICommand LoadedCommand { get; }
+
     #endregion
 
     #region Command Implementations
@@ -283,6 +318,12 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         ProgressValue = 0;
         ProgressText = "Starting...";
 
+        // Scheduled weekly runs always append a date suffix so each week's snapshot is preserved
+        // instead of overwriting the previous one. Manual runs keep the user-picked filename.
+        var isScheduledRun = _autoStartOptions?.AutoWeeklyStats == true;
+        var statsOutputPath = isScheduledRun ? AppendDateSuffix(OutputPath) : OutputPath;
+        var metadataOutputPath = isScheduledRun ? AppendDateSuffix(MetadataOutputPath) : MetadataOutputPath;
+
         try
         {
             var sourcePath = ExtractDatabasePath(_databaseOptions.ConnectionString);
@@ -297,7 +338,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
             var rowCount = await _exportService.ExportAsync(
                 sourcePath,
-                OutputPath,
+                statsOutputPath,
                 SelectedPeriod.Days,
                 companyFilter,
                 MinNumberOfOwners,
@@ -308,14 +349,22 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
             ProgressText = "Writing metadata...";
             var metadataRowCount = await _metadataExportService.ExportAsync(
                 sourcePath,
-                MetadataOutputPath,
+                metadataOutputPath,
                 companyFilter,
                 MinNumberOfOwners);
 
             StatusMessage = $"Exported {rowCount} stat rows + {metadataRowCount} metadata rows";
             IsStatusError = false;
             _logger.Info("Export completed: stats={0} ({1} rows), metadata={2} ({3} rows)",
-                OutputPath, rowCount, MetadataOutputPath, metadataRowCount);
+                statsOutputPath, rowCount, metadataOutputPath, metadataRowCount);
+
+            PersistSuccessfulRun(rowCount, isScheduledRun);
+
+            if (isScheduledRun)
+            {
+                _logger.Info("Scheduled weekly stats run completed; closing window");
+                CurrentWindowService?.Close();
+            }
         }
         catch (FileNotFoundException ex)
         {
@@ -333,6 +382,70 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         {
             IsExporting = false;
         }
+    }
+
+    /// <summary>
+    /// Window Loaded handler. When the app was launched with <c>--auto-weekly-stats</c> and the
+    /// Export command has not run yet for this VM instance, invokes it automatically.
+    /// </summary>
+    private void ExecuteLoaded()
+    {
+        if (_scheduledAutoRunTriggered)
+            return;
+        if (_autoStartOptions?.AutoWeeklyStats != true)
+            return;
+        if (!IsSqliteProvider)
+        {
+            _logger.Warn("Scheduled weekly stats run requested but provider is not SQLite — skipping");
+            return;
+        }
+
+        _scheduledAutoRunTriggered = true;
+        _logger.Info("Auto-triggering Export command for scheduled weekly stats run");
+        if (ExportCommand.CanExecute(null))
+            ExportCommand.Execute(null);
+    }
+
+    private void PersistSuccessfulRun(int rowCount, bool isScheduledRun)
+    {
+        if (_userSettingsService is null || _userSettings is null)
+            return;
+
+        try
+        {
+            _userSettings.StatsExportWindowDays = SelectedPeriod.Days;
+            _userSettings.StatsExportLookbackDays = SelectedLookbackPeriod.Days;
+            _userSettings.StatsExportMinOwners = MinNumberOfOwners;
+            _userSettings.StatsExportCompanyFilter = string.IsNullOrWhiteSpace(CompanyName) ? null : CompanyName.Trim();
+            _userSettings.StatsExportOutputPath = OutputPath;
+            _userSettings.StatsExportMetadataOutputPath = MetadataOutputPath;
+
+            if (isScheduledRun)
+            {
+                _userSettings.WeeklyExportLastRunAt = DateTime.Now;
+                _userSettings.WeeklyExportLastRunRowCount = rowCount;
+            }
+
+            _userSettingsService.Save(_userSettings);
+            _logger.Debug("Persisted stats export settings (scheduled={0}, rows={1})", isScheduledRun, rowCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Failed to persist stats export settings — continuing without");
+        }
+    }
+
+    private static string AppendDateSuffix(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return path;
+
+        var directory = Path.GetDirectoryName(path) ?? string.Empty;
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(path);
+        var extension = Path.GetExtension(path);
+        var dateTag = DateTime.Now.ToString("yyyy-MM-dd");
+        var stamped = $"{nameWithoutExt}_{dateTag}{extension}";
+        return string.IsNullOrEmpty(directory) ? stamped : Path.Combine(directory, stamped);
     }
 
     private bool CanExecuteBrowse() => !IsExporting;
@@ -411,6 +524,15 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         new ExportPeriod("6 months", 180),
         new ExportPeriod("1 year", 365)
     ];
+
+    private static ExportPeriod FindPeriodOrDefault(
+        IReadOnlyList<ExportPeriod> periods, int? requestedDays, int fallbackDays)
+    {
+        var target = requestedDays ?? fallbackDays;
+        return periods.FirstOrDefault(p => p.Days == target)
+               ?? periods.FirstOrDefault(p => p.Days == fallbackDays)
+               ?? periods[0];
+    }
 
     private void UpdateDefaultFilename()
     {

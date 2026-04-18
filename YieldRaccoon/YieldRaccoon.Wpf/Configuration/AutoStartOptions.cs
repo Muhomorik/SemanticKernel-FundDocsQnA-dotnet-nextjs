@@ -80,6 +80,15 @@ public class AutoStartOptions
     public bool OpenSettingsOnStartup { get; set; }
 
     /// <summary>
+    /// When true, the app auto-opens the Statistics Export window pre-populated from
+    /// <c>UserSettings.StatsExport*</c> and auto-invokes the Export command. Intended
+    /// for the weekly Windows scheduled task that runs the export unattended.
+    /// </summary>
+    [Option("auto-weekly-stats", Required = false,
+        HelpText = "Auto-run the statistics export using the last-used export settings.")]
+    public bool AutoWeeklyStats { get; set; }
+
+    /// <summary>
     /// Gets whether the AboutFund auto-overview mode is active.
     /// </summary>
     public bool AutoOverview => AutoOverviewFundCount.HasValue;
@@ -93,7 +102,7 @@ public class AutoStartOptions
     /// <summary>
     /// Gets whether any auto-start mode is active. Drives UI badge visibility.
     /// </summary>
-    public bool IsAnyAutoModeActive => AutoList || AutoOverview;
+    public bool IsAnyAutoModeActive => AutoList || AutoOverview || AutoWeeklyStats;
 
     /// <summary>
     /// Default instance with no auto-start (normal interactive launch).

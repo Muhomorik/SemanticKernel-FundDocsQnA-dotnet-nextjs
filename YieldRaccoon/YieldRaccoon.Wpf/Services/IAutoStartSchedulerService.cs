@@ -31,4 +31,31 @@ public interface IAutoStartSchedulerService
     /// Used to reconcile persisted settings with the actual task state on startup.
     /// </summary>
     bool IsEnabled();
+
+    /// <summary>
+    /// Creates or updates the weekly statistics-export scheduled task.
+    /// Task launches the exe with <c>--auto-weekly-stats</c> on the given day and time.
+    /// </summary>
+    /// <param name="dayOfWeek">Local day of week to fire on.</param>
+    /// <param name="timeOfDay">Local time of day. Only hour/minute are used.</param>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Thrown when Windows denies task creation (Group Policy, hardened image, etc.).
+    /// </exception>
+    void EnableWeeklyStatsExport(DayOfWeek dayOfWeek, TimeSpan timeOfDay);
+
+    /// <summary>
+    /// Removes the weekly statistics-export scheduled task if it exists.
+    /// </summary>
+    void DisableWeeklyStatsExport();
+
+    /// <summary>
+    /// Returns true if the weekly statistics-export scheduled task currently exists.
+    /// </summary>
+    bool IsWeeklyStatsExportEnabled();
+
+    /// <summary>
+    /// Returns the next scheduled fire time for the weekly statistics-export task, or null
+    /// if the task does not exist or has no scheduled next run.
+    /// </summary>
+    DateTime? GetNextWeeklyStatsExportRun();
 }

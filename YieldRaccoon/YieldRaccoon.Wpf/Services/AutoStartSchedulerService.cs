@@ -21,6 +21,8 @@ public class AutoStartSchedulerService : IAutoStartSchedulerService
     private const string FolderName = "YieldRaccoon";
     private const string TaskName = "YieldRaccoon-AutoStart";
     private const string FullTaskPath = @"\YieldRaccoon\YieldRaccoon-AutoStart";
+    private const string WeeklyStatsTaskName = "YieldRaccoon-WeeklyStatsExport";
+    private const string WeeklyStatsFullTaskPath = @"\YieldRaccoon\YieldRaccoon-WeeklyStatsExport";
 
     private readonly ILogger _logger;
 
@@ -113,4 +115,110 @@ public class AutoStartSchedulerService : IAutoStartSchedulerService
         using var taskService = new TaskService();
         return taskService.GetTask(FullTaskPath) is not null;
     }
+
+    /// <inheritdoc />
+    public void EnableWeeklyStatsExport(DayOfWeek dayOfWeek, TimeSpan timeOfDay)
+    {
+        var exePath = Environment.ProcessPath
+            ?? throw new InvalidOperationException("Unable to resolve current process path for scheduled task.");
+        var workingDirectory = Path.GetDirectoryName(exePath) ?? string.Empty;
+
+        using var taskService = new TaskService();
+
+        var folder = taskService.RootFolder.SubFolders
+                         .Cast<TaskFolder>()
+                         .FirstOrDefault(f => string.Equals(f.Name, FolderName, StringComparison.OrdinalIgnoreCase))
+                     ?? taskService.RootFolder.CreateFolder(FolderName);
+
+        var definition = taskService.NewTask();
+        definition.RegistrationInfo.Description = "YieldRaccoon weekly statistics export run.";
+        definition.RegistrationInfo.Author = Environment.UserName;
+
+        definition.Triggers.Add(new WeeklyTrigger
+        {
+            StartBoundary = DateTime.Today.Add(timeOfDay),
+            DaysOfWeek = MapDayOfWeek(dayOfWeek),
+            WeeksInterval = 1
+        });
+
+        definition.Actions.Add(new ExecAction(exePath, "--auto-weekly-stats", workingDirectory));
+
+        definition.Principal.LogonType = TaskLogonType.InteractiveToken;
+        definition.Principal.RunLevel = TaskRunLevel.LUA;
+
+        definition.Settings.DisallowStartIfOnBatteries = false;
+        definition.Settings.StopIfGoingOnBatteries = false;
+        definition.Settings.StartWhenAvailable = true;
+        definition.Settings.WakeToRun = true;
+
+        folder.RegisterTaskDefinition(
+            WeeklyStatsTaskName,
+            definition,
+            TaskCreation.CreateOrUpdate,
+            userId: null,
+            password: null,
+            logonType: TaskLogonType.InteractiveToken);
+
+        _logger.Info(
+            "Registered weekly stats export scheduled task on {0} at {1:hh\\:mm} (exe={2})",
+            dayOfWeek, timeOfDay, exePath);
+    }
+
+    /// <inheritdoc />
+    public void DisableWeeklyStatsExport()
+    {
+        using var taskService = new TaskService();
+
+        var folder = taskService.RootFolder.SubFolders
+            .Cast<TaskFolder>()
+            .FirstOrDefault(f => string.Equals(f.Name, FolderName, StringComparison.OrdinalIgnoreCase));
+
+        if (folder is null)
+        {
+            _logger.Debug("Weekly stats export task folder does not exist, nothing to disable");
+            return;
+        }
+
+        folder.DeleteTask(WeeklyStatsTaskName, exceptionOnNotExists: false);
+        _logger.Info("Removed weekly stats export scheduled task");
+    }
+
+    /// <inheritdoc />
+    public bool IsWeeklyStatsExportEnabled()
+    {
+        using var taskService = new TaskService();
+        return taskService.GetTask(WeeklyStatsFullTaskPath) is not null;
+    }
+
+    /// <inheritdoc />
+    public DateTime? GetNextWeeklyStatsExportRun()
+    {
+        try
+        {
+            using var taskService = new TaskService();
+            var task = taskService.GetTask(WeeklyStatsFullTaskPath);
+            if (task is null)
+                return null;
+
+            var next = task.NextRunTime;
+            return next == DateTime.MinValue ? null : next;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Failed to read weekly stats export next run time");
+            return null;
+        }
+    }
+
+    private static DaysOfTheWeek MapDayOfWeek(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Sunday => DaysOfTheWeek.Sunday,
+        DayOfWeek.Monday => DaysOfTheWeek.Monday,
+        DayOfWeek.Tuesday => DaysOfTheWeek.Tuesday,
+        DayOfWeek.Wednesday => DaysOfTheWeek.Wednesday,
+        DayOfWeek.Thursday => DaysOfTheWeek.Thursday,
+        DayOfWeek.Friday => DaysOfTheWeek.Friday,
+        DayOfWeek.Saturday => DaysOfTheWeek.Saturday,
+        _ => DaysOfTheWeek.Thursday
+    };
 }

@@ -9,9 +9,9 @@
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Settings"
     Width="550"
-    Height="680"
+    Height="860"
     MinWidth="450"
-    MinHeight="620"
+    MinHeight="780"
     d:DataContext="{d:DesignInstance viewModels:SettingsWindowViewModel,
                                      IsDesignTimeCreatable=True}"
     Icon="/Resources/YieldRaccoon.ico"
@@ -23,6 +23,7 @@
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -196,9 +197,63 @@
                 Visibility="{Binding IsAutoStartErrorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
 
+        <!--  Weekly Statistics Export Section  -->
+        <StackPanel Grid.Row="5" Margin="0,0,0,12">
+            <TextBlock
+                Margin="{StaticResource yr.LabelSpacing}"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Weekly statistics export" />
+
+            <TextBlock
+                Margin="{StaticResource yr.CompactSpacing}"
+                Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                Style="{StaticResource yr.SmallStyle}"
+                Text="Uses the latest settings from the Statistics export window." />
+
+            <mah:ToggleSwitch
+                Margin="{StaticResource yr.CompactSpacing}"
+                HorizontalAlignment="Left"
+                IsOn="{Binding WeeklyExportEnabled}"
+                OffContent="Disabled"
+                OnContent="Enabled" />
+
+            <StackPanel
+                Margin="{StaticResource yr.ItemSpacing}"
+                Orientation="Horizontal">
+                <ComboBox
+                    Width="140"
+                    Margin="0,0,8,0"
+                    IsEnabled="{Binding WeeklyExportEnabled}"
+                    ItemsSource="{Binding DaysOfWeek}"
+                    SelectedItem="{Binding WeeklyExportDay}" />
+
+                <mah:TimePicker
+                    Width="140"
+                    Culture="de-DE"
+                    IsEnabled="{Binding WeeklyExportEnabled}"
+                    SelectedDateTime="{Binding WeeklyExportTime}"
+                    SelectedTimeFormat="Short" />
+            </StackPanel>
+
+            <TextBlock
+                Margin="{StaticResource yr.CompactSpacing}"
+                Foreground="{DynamicResource MahApps.Brushes.Gray2}"
+                Style="{StaticResource yr.SmallStyle}"
+                Text="{Binding WeeklyExportLastRunSummary}"
+                Visibility="{Binding HasWeeklyExportLastRun, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <TextBlock
+                Margin="{StaticResource yr.CompactSpacing}"
+                Foreground="{StaticResource yr.ErrorBrush}"
+                Style="{StaticResource yr.SmallStyle}"
+                Text="{Binding WeeklyExportError}"
+                TextWrapping="Wrap"
+                Visibility="{Binding IsWeeklyExportErrorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
         <!--  Info text  -->
         <TextBlock
-            Grid.Row="5"
+            Grid.Row="6"
             Margin="0,0,0,8"
             Foreground="{DynamicResource MahApps.Brushes.Gray2}"
             Style="{StaticResource yr.SmallStyle}"
@@ -209,7 +264,7 @@
 
         <!--  Restart warning  -->
         <StackPanel
-            Grid.Row="6"
+            Grid.Row="7"
             Margin="{StaticResource yr.ItemSpacing}"
             VerticalAlignment="Top"
             Orientation="Horizontal"
@@ -229,7 +284,7 @@
         </StackPanel>
 
         <!--  Buttons  -->
-        <Grid Grid.Row="8">
+        <Grid Grid.Row="9">
             <Button
                 HorizontalAlignment="Left"
                 Command="{Binding ResetToDefaultCommand}"

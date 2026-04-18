@@ -86,6 +86,23 @@ public class SettingsWindowViewModel : ViewModelBase
         AutoStartPassAutoListFlag = userSettings.AutoStartPassAutoListFlag;
         AutoStartEnabled = userSettings.AutoStartEnabled;
 
+        // Weekly statistics export — defaults Thursday 22:00.
+        DaysOfWeek = new[]
+        {
+            DayOfWeek.Monday,
+            DayOfWeek.Tuesday,
+            DayOfWeek.Wednesday,
+            DayOfWeek.Thursday,
+            DayOfWeek.Friday,
+            DayOfWeek.Saturday,
+            DayOfWeek.Sunday
+        };
+        WeeklyExportDay = userSettings.WeeklyExportDay ?? DayOfWeek.Thursday;
+        var initialWeeklyTime = userSettings.WeeklyExportTimeOfDay ?? new TimeSpan(22, 0, 0);
+        WeeklyExportTime = DateTime.Today.Add(initialWeeklyTime);
+        WeeklyExportEnabled = userSettings.WeeklyExportEnabled;
+        UpdateWeeklyExportSummary();
+
         // Reconcile with the actual scheduled-task state — user may have deleted the task externally.
         try
         {
@@ -93,6 +110,11 @@ public class SettingsWindowViewModel : ViewModelBase
             {
                 _logger.Warn("Auto-start flag was set but the scheduled task is missing — flipping off");
                 AutoStartEnabled = false;
+            }
+            if (WeeklyExportEnabled && !_autoStartScheduler.IsWeeklyStatsExportEnabled())
+            {
+                _logger.Warn("Weekly export flag was set but the scheduled task is missing — flipping off");
+                WeeklyExportEnabled = false;
             }
         }
         catch (Exception ex)
@@ -339,6 +361,73 @@ public class SettingsWindowViewModel : ViewModelBase
     /// </summary>
     public bool IsAutoStartErrorVisible => !string.IsNullOrEmpty(AutoStartError);
 
+    /// <summary>
+    /// Gets the days of the week to populate the weekly export day ComboBox.
+    /// </summary>
+    public IReadOnlyList<DayOfWeek> DaysOfWeek { get; } = Array.Empty<DayOfWeek>();
+
+    /// <summary>
+    /// Gets or sets whether the weekly statistics export is enabled. When true, saving creates a
+    /// Windows scheduled task that launches YieldRaccoon weekly on <see cref="WeeklyExportDay"/>
+    /// at <see cref="WeeklyExportTime"/> with the <c>--auto-weekly-stats</c> flag.
+    /// </summary>
+    public bool WeeklyExportEnabled
+    {
+        get => GetProperty(() => WeeklyExportEnabled);
+        set => SetProperty(() => WeeklyExportEnabled, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the weekly export day. Defaults to Thursday.
+    /// </summary>
+    public DayOfWeek WeeklyExportDay
+    {
+        get => GetProperty(() => WeeklyExportDay);
+        set => SetProperty(() => WeeklyExportDay, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the weekly export time. Only the hour and minute components are persisted.
+    /// </summary>
+    public DateTime? WeeklyExportTime
+    {
+        get => GetProperty(() => WeeklyExportTime);
+        set => SetProperty(() => WeeklyExportTime, value);
+    }
+
+    /// <summary>
+    /// Gets the read-only summary of the last successful weekly export run.
+    /// Empty when the scheduled feature has not run yet.
+    /// </summary>
+    public string WeeklyExportLastRunSummary
+    {
+        get => GetProperty(() => WeeklyExportLastRunSummary);
+        private set => SetProperty(() => WeeklyExportLastRunSummary, value);
+    }
+
+    /// <summary>
+    /// Gets whether a last-run summary is available.
+    /// </summary>
+    public bool HasWeeklyExportLastRun => !string.IsNullOrEmpty(WeeklyExportLastRunSummary);
+
+    /// <summary>
+    /// Gets or sets the weekly export error banner text.
+    /// </summary>
+    public string? WeeklyExportError
+    {
+        get => GetProperty(() => WeeklyExportError);
+        set
+        {
+            if (SetProperty(() => WeeklyExportError, value))
+                RaisePropertyChanged(() => IsWeeklyExportErrorVisible);
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the weekly export error banner should be visible.
+    /// </summary>
+    public bool IsWeeklyExportErrorVisible => !string.IsNullOrEmpty(WeeklyExportError);
+
     #endregion
 
     #region Commands
@@ -440,6 +529,11 @@ public class SettingsWindowViewModel : ViewModelBase
                 "Saving settings - Provider: {0}, DB path: {1}, AutoStart: {2} at {3:hh\\:mm}",
                 SelectedProvider.Provider, DatabasePath, AutoStartEnabled, autoStartTime ?? TimeSpan.Zero);
 
+            var pickedWeeklyTimeOfDay = WeeklyExportTime?.TimeOfDay ?? new TimeSpan(22, 0, 0);
+            var weeklyExportTime = WeeklyExportEnabled
+                ? new TimeSpan(pickedWeeklyTimeOfDay.Hours, pickedWeeklyTimeOfDay.Minutes, 0)
+                : (TimeSpan?)null;
+
             var settings = new UserSettings
             {
                 DatabaseProvider = SelectedProvider.Provider,
@@ -449,7 +543,18 @@ public class SettingsWindowViewModel : ViewModelBase
                 EnabledCrawlerSteps = stepNames,
                 AutoStartEnabled = AutoStartEnabled,
                 AutoStartTimeOfDay = autoStartTime,
-                AutoStartPassAutoListFlag = AutoStartPassAutoListFlag
+                AutoStartPassAutoListFlag = AutoStartPassAutoListFlag,
+                WeeklyExportEnabled = WeeklyExportEnabled,
+                WeeklyExportDay = WeeklyExportEnabled ? WeeklyExportDay : _userSettings.WeeklyExportDay,
+                WeeklyExportTimeOfDay = weeklyExportTime,
+                WeeklyExportLastRunAt = _userSettings.WeeklyExportLastRunAt,
+                WeeklyExportLastRunRowCount = _userSettings.WeeklyExportLastRunRowCount,
+                StatsExportWindowDays = _userSettings.StatsExportWindowDays,
+                StatsExportLookbackDays = _userSettings.StatsExportLookbackDays,
+                StatsExportMinOwners = _userSettings.StatsExportMinOwners,
+                StatsExportCompanyFilter = _userSettings.StatsExportCompanyFilter,
+                StatsExportOutputPath = _userSettings.StatsExportOutputPath,
+                StatsExportMetadataOutputPath = _userSettings.StatsExportMetadataOutputPath
             };
 
             // Persist to disk BEFORE touching Task Scheduler — if the scheduler call fails and we
@@ -461,9 +566,15 @@ public class SettingsWindowViewModel : ViewModelBase
             _userSettings.AutoStartEnabled = AutoStartEnabled;
             _userSettings.AutoStartTimeOfDay = autoStartTime;
             _userSettings.AutoStartPassAutoListFlag = AutoStartPassAutoListFlag;
+            _userSettings.WeeklyExportEnabled = WeeklyExportEnabled;
+            _userSettings.WeeklyExportDay = settings.WeeklyExportDay;
+            _userSettings.WeeklyExportTimeOfDay = weeklyExportTime;
 
             if (!TryApplyAutoStartSchedule(autoStartTime))
                 return; // error banner already set, keep window open
+
+            if (!TryApplyWeeklyExportSchedule(WeeklyExportDay, weeklyExportTime))
+                return;
 
             _logger.Info("Settings saved successfully");
             CloseRequested?.Invoke(this, true);
@@ -472,6 +583,62 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             _logger.Error(ex, "Failed to save settings");
         }
+    }
+
+    private bool TryApplyWeeklyExportSchedule(DayOfWeek day, TimeSpan? timeOfDay)
+    {
+        try
+        {
+            if (WeeklyExportEnabled && timeOfDay.HasValue)
+                _autoStartScheduler.EnableWeeklyStatsExport(day, timeOfDay.Value);
+            else
+                _autoStartScheduler.DisableWeeklyStatsExport();
+
+            WeeklyExportError = null;
+            return true;
+        }
+        catch (Exception ex) when (IsAccessDenied(ex))
+        {
+            _logger.Warn(ex, "Access denied updating weekly export task — prompting for elevation");
+
+            var result = MessageBox.Show(
+                "Windows denied creating the weekly statistics export scheduled task.\n\n" +
+                "Would you like to restart YieldRaccoon as administrator to try again?\n" +
+                "Your settings have already been saved — the elevated instance will reopen this window " +
+                "so you can click Save again.",
+                "Administrator rights required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes && TryRestartElevated())
+                return false;
+
+            WeeklyExportError = "Access denied. Run YieldRaccoon as administrator to enable weekly export.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to update weekly export scheduled task");
+            WeeklyExportError = $"Failed to update scheduled task: {ex.Message}";
+            return false;
+        }
+    }
+
+    private void UpdateWeeklyExportSummary()
+    {
+        if (_userSettings?.WeeklyExportLastRunAt is null)
+        {
+            WeeklyExportLastRunSummary = string.Empty;
+        }
+        else
+        {
+            var ran = _userSettings.WeeklyExportLastRunAt.Value;
+            var rows = _userSettings.WeeklyExportLastRunRowCount;
+            WeeklyExportLastRunSummary = rows.HasValue
+                ? $"Last run: {ran:yyyy-MM-dd HH:mm} — {rows.Value:N0} rows"
+                : $"Last run: {ran:yyyy-MM-dd HH:mm}";
+        }
+        RaisePropertyChanged(() => HasWeeklyExportLastRun);
     }
 
     private bool TryApplyAutoStartSchedule(TimeSpan? autoStartTime)

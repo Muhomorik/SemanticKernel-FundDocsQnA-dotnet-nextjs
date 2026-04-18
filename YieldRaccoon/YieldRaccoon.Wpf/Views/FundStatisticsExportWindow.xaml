@@ -23,6 +23,7 @@
 
     <dxmvvm:Interaction.Behaviors>
         <dxmvvm:CurrentWindowService ClosingCommand="{Binding WindowClosingCommand}" />
+        <dxmvvm:EventToCommand Command="{Binding LoadedCommand}" EventName="Loaded" />
     </dxmvvm:Interaction.Behaviors>
 
     <Grid Margin="20">
