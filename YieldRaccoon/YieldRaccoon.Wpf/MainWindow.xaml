@@ -609,6 +609,25 @@
                 </StackPanel>
             </StatusBarItem>
 
+            <!--  Weekly stats export status  -->
+            <StatusBarItem
+                HorizontalAlignment="Right"
+                Visibility="{Binding IsWeeklyExportStatusVisible, Converter={dxmvvm:BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,4,0"
+                        VerticalAlignment="Center"
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="12"
+                        Foreground="{DynamicResource MahApps.Brushes.Gray3}"
+                        Text="&#xE121;" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource yr.CaptionStyle}"
+                        Text="{Binding WeeklyExportStatusMessage}" />
+                </StackPanel>
+            </StatusBarItem>
+
             <!--  Backend sync status (visible only in DualWrite mode)  -->
             <StatusBarItem
                 HorizontalAlignment="Right"

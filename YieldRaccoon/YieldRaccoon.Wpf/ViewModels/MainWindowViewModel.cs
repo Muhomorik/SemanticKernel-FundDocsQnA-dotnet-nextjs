@@ -241,6 +241,24 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         set => SetProperty(() => IsBackendSyncHealthy, value);
     }
 
+    /// <summary>
+    /// Gets whether the weekly statistics export status chip should be shown in the status bar.
+    /// </summary>
+    public bool IsWeeklyExportStatusVisible
+    {
+        get => GetProperty(() => IsWeeklyExportStatusVisible);
+        private set => SetProperty(() => IsWeeklyExportStatusVisible, value);
+    }
+
+    /// <summary>
+    /// Gets the weekly statistics export status message shown in the status bar.
+    /// </summary>
+    public string WeeklyExportStatusMessage
+    {
+        get => GetProperty(() => WeeklyExportStatusMessage);
+        private set => SetProperty(() => WeeklyExportStatusMessage, value);
+    }
+
     #endregion
 
     #region Privacy Mode Properties
@@ -386,7 +404,9 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         ICloudSyncWindowService cloudSyncWindowService,
         DatabaseOptions databaseOptions,
         IBackendSyncStatusProvider backendSyncStatusProvider,
-        AutoStartOptions autoStartOptions)
+        AutoStartOptions autoStartOptions,
+        UserSettings userSettings,
+        IAutoStartSchedulerService autoStartSchedulerService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
@@ -443,6 +463,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         BackendSyncMessage = string.Empty;
         IsBackendSyncHealthy = true;
 
+        // Weekly statistics export status chip — reads from persisted user settings + Task Scheduler.
+        ArgumentNullException.ThrowIfNull(userSettings);
+        ArgumentNullException.ThrowIfNull(autoStartSchedulerService);
+        UpdateWeeklyExportStatus(userSettings, autoStartSchedulerService);
+
         // Initialize commands with CommandManager integration enabled
         RefreshCommand = new DelegateCommand(ExecuteRefresh, CanExecuteRefresh, true);
         ReloadBrowserCommand = new DelegateCommand(ExecuteReloadBrowser, CanExecuteReloadBrowser, true);
@@ -482,6 +507,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         DatabaseProviderName = "InMemory";
         IsBackendSyncVisible = false;
+        IsWeeklyExportStatusVisible = false;
+        WeeklyExportStatusMessage = string.Empty;
         Title = "Yield Raccoon - we walk in the dark (Design Time)";
         StatusMessage = "Ready";
         BrowserUrl = "https://example.com";
@@ -644,6 +671,46 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         StatusMessage = $"Session complete at {DateTime.Now:HH:mm:ss}";
 
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>
+    /// Builds the status-bar chip text for the weekly statistics export feature.
+    /// When enabled, shows the next scheduled run (or the last run if the scheduled task
+    /// is not yet visible to Task Scheduler). Hidden entirely when the feature is off.
+    /// </summary>
+    private void UpdateWeeklyExportStatus(
+        UserSettings userSettings, IAutoStartSchedulerService autoStartSchedulerService)
+    {
+        if (!userSettings.WeeklyExportEnabled)
+        {
+            IsWeeklyExportStatusVisible = false;
+            WeeklyExportStatusMessage = string.Empty;
+            return;
+        }
+
+        try
+        {
+            var nextRun = autoStartSchedulerService.GetNextWeeklyStatsExportRun();
+            if (nextRun.HasValue)
+            {
+                WeeklyExportStatusMessage = $"Weekly export: next {nextRun.Value:ddd HH:mm}";
+            }
+            else if (userSettings.WeeklyExportLastRunAt.HasValue)
+            {
+                WeeklyExportStatusMessage =
+                    $"Weekly export: last {userSettings.WeeklyExportLastRunAt.Value:yyyy-MM-dd HH:mm}";
+            }
+            else
+            {
+                WeeklyExportStatusMessage = "Weekly export: scheduled";
+            }
+            IsWeeklyExportStatusVisible = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Failed to compute weekly export status");
+            IsWeeklyExportStatusVisible = false;
+        }
     }
 
     #endregion
@@ -976,14 +1043,21 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         }
         // When session is active, status updates come from the orchestrator's SessionState observable
 
-        // Auto-start crawl session on first data arrival when CLI --auto-list is active
+        // Auto-start crawl session on first data arrival when CLI --auto-list is active.
+        // The first crawler call is deferred by AutoStartOptions.ColdStartDelay (measured
+        // from app launch) so the SQLite DB has time to warm up. See AutoStartOptions for
+        // the full rationale.
         if (_autoStartOptions.AutoList && !_autoListSessionStarted && !IsSessionActive
             && FundCount > 0 && TotalFundCount > FundCount)
         {
             _autoListSessionStarted = true;
-            _logger.Info("CLI auto-list: first batch received ({0}/{1}), starting crawl session",
-                FundCount, TotalFundCount);
-            ExecuteStartSession();
+            var delay = _autoStartOptions.GetColdStartRemaining(AutoStartOptions.ColdStartDelay);
+            _logger.Info(
+                "CLI auto-list: first batch received ({0}/{1}), scheduling crawl session in {2:F1}s (DB cold-start buffer)",
+                FundCount, TotalFundCount, delay.TotalSeconds);
+            Observable.Timer(delay, _uiScheduler)
+                .Subscribe(_ => ExecuteStartSession())
+                .DisposeWith(_disposables);
         }
 
         CommandManager.InvalidateRequerySuggested();

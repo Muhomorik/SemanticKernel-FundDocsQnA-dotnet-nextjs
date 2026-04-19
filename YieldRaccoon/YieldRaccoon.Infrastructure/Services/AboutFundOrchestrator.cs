@@ -135,7 +135,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     /// 80 calls a day allows us to make a full loop in a month.
     /// </summary>
     private const int ScheduleLimit = 80;
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutFundOrchestrator"/> class.
     /// </summary>
@@ -154,7 +154,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         _fundProfileRepository =
             fundProfileRepository ?? throw new ArgumentNullException(nameof(fundProfileRepository));
         _collector = collector ?? throw new ArgumentNullException(nameof(collector));
-        _chartIngestionService = chartIngestionService ?? throw new ArgumentNullException(nameof(chartIngestionService));
+        _chartIngestionService =
+            chartIngestionService ?? throw new ArgumentNullException(nameof(chartIngestionService));
         _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
         _pageInteractor = pageInteractor ?? throw new ArgumentNullException(nameof(pageInteractor));
         _scheduleCalculator = scheduleCalculator ?? throw new ArgumentNullException(nameof(scheduleCalculator));
@@ -180,14 +181,17 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     {
         var effectiveLimit = limit ?? ScheduleLimit;
         _logger.Info("Loading fund schedule from database (limit: {0})", effectiveLimit);
+
         _schedule = await _fundProfileRepository.GetFundsOrderedByLastVisitAsync(effectiveLimit)
             .ConfigureAwait(false);
+
         _logger.Info("Loaded {0} funds into schedule", _schedule.Count);
         return _schedule;
     }
 
     /// <inheritdoc/>
-    public async Task<AboutFundSessionId> StartSessionAsync(IReadOnlyList<AboutFundCollectionStepKind>? enabledSteps = null)
+    public async Task<AboutFundSessionId> StartSessionAsync(
+        IReadOnlyList<AboutFundCollectionStepKind>? enabledSteps = null)
     {
         _logger.Info("Starting new about-fund browsing session");
 
@@ -759,7 +763,6 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     {
         // Manual collection mode — no session ID, minimal state
         if (_phase == AboutFundSessionPhase.ManualCollecting)
-        {
             return new AboutFundSessionState
             {
                 IsActive = true,
@@ -772,7 +775,6 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
                     : "Manual collection",
                 CollectionProgress = _latestCollectionProgress
             };
-        }
 
         if (_currentSessionId == null || _phase == AboutFundSessionPhase.Idle)
             return AboutFundSessionState.Inactive;
@@ -852,10 +854,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     private int GetScheduleIndex(OrderBookId orderBookId)
     {
         for (var i = 0; i < _schedule.Count; i++)
-        {
             if (_schedule[i].OrderBookId == orderBookId)
                 return i;
-        }
 
         return -1;
     }
@@ -866,10 +866,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     private int GetFundScheduleIndex(OrderBookId orderBookId)
     {
         for (var i = 0; i < _fundSchedules.Count; i++)
-        {
             if (_fundSchedules[i].OrderBookId == orderBookId)
                 return i;
-        }
 
         return -1;
     }

@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- Pulls in Microsoft.VisualBasic.ApplicationServices for single-instance support. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Custom Main lives in Program.cs for single-instance wrapping. -->
+    <StartupObject>YieldRaccoon.Wpf.Program</StartupObject>
     <UserSecretsId>8729093f-fe34-4e8a-9f2f-4311264e3379</UserSecretsId>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
@@ -14,6 +18,16 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="YieldRaccoon.Wpf.Tests" />
+  </ItemGroup>
+
+  <!-- UseWindowsForms=true pulls in Microsoft.VisualBasic.Forms (needed for
+       WindowsFormsApplicationBase single-instance support) but also adds
+       System.Windows.Forms + System.Drawing to implicit usings, which collide
+       with System.Windows.Controls types used in this WPF project. Remove those
+       implicit usings; code that actually needs WinForms types is only Program.cs. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +58,9 @@
 
     <!-- CLI argument parsing -->
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
+
+    <!-- Windows Task Scheduler wrapper (for daily auto-start feature) -->
+    <PackageReference Include="TaskScheduler" Version="2.11.0" />
 
     <!-- Logging -->
     <PackageReference Include="NLog" Version="6.0.7" />

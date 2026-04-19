@@ -232,6 +232,21 @@ public class AboutFundWindowViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // Cold-start buffer: when launched via --auto-overview, defer the first DB hit
+            // (LoadScheduleAsync below) until the cold-start window measured from app launch
+            // has elapsed. See AutoStartOptions.ColdStartDelay for the full rationale.
+            if (_autoStartOptions.AutoOverview)
+            {
+                var delay = _autoStartOptions.GetColdStartRemaining(AutoStartOptions.ColdStartDelay);
+                if (delay > TimeSpan.Zero)
+                {
+                    _logger.Info(
+                        "Auto-start overview: deferring first schedule load by {0:F1}s for DB cold-start",
+                        delay.TotalSeconds);
+                    await Task.Delay(delay);
+                }
+            }
+
             // Offload to thread pool — SQLite's ToListAsync() is synchronous and would
             // freeze the UI for ~3 s. Safe: no session is active yet, so no concurrent
             // DbContext access can occur.

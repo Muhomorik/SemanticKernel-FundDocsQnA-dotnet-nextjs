@@ -70,6 +70,12 @@ public class PresentationModule : Module
             .As<IUserSettingsService>()
             .SingleInstance();
 
+        // Auto-start scheduler service registration
+        // Manages the Windows scheduled task that launches YieldRaccoon daily at a user-chosen time
+        builder.RegisterType<AutoStartSchedulerService>()
+            .As<IAutoStartSchedulerService>()
+            .SingleInstance();
+
         // Settings dialog service registration
         // Register dialog service for showing settings window from ViewModels
         builder.RegisterType<SettingsDialogService>()

@@ -115,7 +115,16 @@ public sealed class FundProfile
     /// <summary>Timestamp when this fund was first discovered.</summary>
     public required DateTimeOffset FirstSeenAt { get; init; }
 
-    /// <summary>Timestamp when fund data was last updated by the crawler.</summary>
+    /// <summary>
+    /// Timestamp when fund data was last updated by the list crawler.
+    /// </summary>
+    /// <remarks>
+    /// Used both as a short-window re-crawl skip signal and as a delisting heuristic
+    /// for the about-fund scheduler in YieldRaccoon: funds whose <c>CrawlerLastUpdatedAt</c>
+    /// is null or older than one month are excluded from the browsing schedule, because
+    /// the list crawler has effectively stopped seeing them (they are most likely
+    /// delisted) and visiting them would waste the daily budget.
+    /// </remarks>
     public DateTimeOffset? CrawlerLastUpdatedAt { get; set; }
 
     /// <summary>Timestamp when this fund was last visited by the about-fund orchestrator.</summary>

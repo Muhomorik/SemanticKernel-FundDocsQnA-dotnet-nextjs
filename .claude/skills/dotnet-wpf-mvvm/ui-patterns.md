@@ -8,6 +8,7 @@ Complete reference for WPF UI patterns including MahApps.Metro integration, XAML
 - Design-Time DataContext
 - EventToCommand Binding
 - Data Binding Patterns
+- Sensitive Data Input (PasswordBox)
 - Visual Tree Navigation
 - Attached Behaviors
 - Common XAML Patterns
@@ -319,16 +320,9 @@ Source ↔ Target (bidirectional):
 
 ### OneWayToSource Binding
 
-Target → Source (View → ViewModel):
+Target → Source (View → ViewModel). Useful for read-only dependency properties, or when the ViewModel should never push values back to the UI.
 
-```xml
-<!-- Useful for read-only dependency properties -->
-<PasswordBox>
-    <i:Interaction.Behaviors>
-        <behaviors:PasswordBindingBehavior Password="{Binding Password, Mode=OneWayToSource}" />
-    </i:Interaction.Behaviors>
-</PasswordBox>
-```
+For `PasswordBox` specifically, prefer the MahApps `PasswordBoxBindingBehavior` with `Mode=TwoWay` — see [Sensitive Data Input (PasswordBox)](#sensitive-data-input-passwordbox) below.
 
 ### OneTime Binding
 
@@ -394,6 +388,45 @@ Bind multiple sources:
     </TextBlock.Text>
 </TextBlock>
 ```
+
+## Sensitive Data Input (PasswordBox)
+
+Use `PasswordBox` to mask any value the user wouldn't want visible over their shoulder: API keys, tokens, passwords, connection strings, or backend URLs that are themselves sensitive.
+
+WPF's `PasswordBox.Password` is deliberately **not** a `DependencyProperty` (to avoid caching secrets in the binding engine), so plain `{Binding Password}` will not work. Use an attached behavior.
+
+### MahApps PasswordBoxBindingBehavior (Preferred)
+
+```xml
+xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+xmlns:mahShared="http://metro.mahapps.com/winfx/xaml/shared"
+
+<PasswordBox
+    Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
+    mah:TextBoxHelper.Watermark="Enter API key..."
+    mahShared:PasswordBoxBindingBehavior.Password="{Binding ApiKey,
+                                                            Mode=TwoWay,
+                                                            UpdateSourceTrigger=PropertyChanged}" />
+```
+
+- `Mode=TwoWay` — ViewModel can preload saved values and receive edits
+- `UpdateSourceTrigger=PropertyChanged` — enables live validation
+- `MahApps.Styles.PasswordBox.Win8` — adds a hold-to-reveal "peek" button
+- `mah:TextBoxHelper.Watermark` — placeholder text
+
+Bind to a plain `string` property on the ViewModel (see [viewmodel-patterns.md — Sensitive Data Properties](viewmodel-patterns.md#sensitive-data-properties)).
+
+### When to Use PasswordBox vs TextBox
+
+Use `PasswordBox` for: API keys, tokens, passwords, connection strings with credentials, backend URLs you don't want exposed in screenshots.
+
+Use `TextBox` for: public URLs, usernames, file paths, non-sensitive identifiers.
+
+### Security Caveats
+
+PasswordBox masks the **display**, not the storage — the bound value is still a plain `string` in memory. The threat model it addresses is shoulder surfing, screenshots, and screen recordings, not memory forensics. Persist secrets through DPAPI, Windows Credential Manager, or Azure Key Vault — never plaintext `appsettings.json` or user settings JSON.
+
+If not using MahApps, write a custom attached behavior (see [Attached Behaviors](#attached-behaviors) section) that hooks `PasswordChanged` and syncs to a DP marked `BindsTwoWayByDefault`.
 
 ## Visual Tree Navigation
 

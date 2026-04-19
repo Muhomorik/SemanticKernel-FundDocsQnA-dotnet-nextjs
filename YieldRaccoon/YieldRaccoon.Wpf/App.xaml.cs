@@ -11,6 +11,7 @@ using NLog;
 using YieldRaccoon.Infrastructure.Data.Context;
 using YieldRaccoon.Wpf.Configuration;
 using YieldRaccoon.Wpf.Modules;
+using YieldRaccoon.Wpf.Views;
 
 namespace YieldRaccoon.Wpf;
 
@@ -21,6 +22,7 @@ public partial class App
 {
     private IContainer? _container;
     private ILifetimeScope? _appScope;
+    private MainWindow? _mainWindow;
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
@@ -41,8 +43,9 @@ public partial class App
             .ParseArguments<AutoStartOptions>(e.Args)
             .MapResult(opts => opts, _ => AutoStartOptions.None);
 
-        Logger.Info("CLI args: AutoList={0}, AutoOverview={1}, OverviewFundCount={2}",
-            autoStartOptions.AutoList, autoStartOptions.AutoOverview, autoStartOptions.OverviewFundCount);
+        Logger.Info("CLI args: AutoList={0}, AutoOverview={1}, OverviewFundCount={2}, ElevatedSettings={3}",
+            autoStartOptions.AutoList, autoStartOptions.AutoOverview,
+            autoStartOptions.OverviewFundCount, autoStartOptions.OpenSettingsOnStartup);
 
         // Apply YieldRaccoon theme (system accent color via RuntimeThemeGenerator)
         ApplyYieldRaccoonTheme();
@@ -91,10 +94,109 @@ public partial class App
         Logger.Info("DI container configured");
 
         // Resolve and show main window (DataContext is set by MainWindow constructor)
-        var mainWindow = _appScope.Resolve<MainWindow>();
-        mainWindow.Show();
+        _mainWindow = _appScope.Resolve<MainWindow>();
+        _mainWindow.Show();
+
+        // If the app was restarted as admin to retry a blocked scheduled-task operation,
+        // immediately reopen the Settings window so the user can click Save again without
+        // hunting for it in the menu.
+        if (autoStartOptions.OpenSettingsOnStartup)
+        {
+            try
+            {
+                Logger.Info("Reopening Settings window after elevated restart");
+                var settingsWindow = _appScope.Resolve<SettingsWindow>();
+                settingsWindow.Owner = _mainWindow;
+                settingsWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to reopen Settings window after elevated restart");
+            }
+        }
+
+        // Scheduled weekly stats run: open the Statistics Export window and auto-fire export.
+        // The VM itself triggers the export on Loaded (via LoadedCommand) when AutoWeeklyStats is set.
+        if (autoStartOptions.AutoWeeklyStats)
+            TriggerWeeklyStatsExportWindow();
 
         Logger.Info("Application started successfully");
+    }
+
+    /// <summary>
+    /// Opens the Statistics Export window in scheduled-run mode. Called on cold start when
+    /// <c>--auto-weekly-stats</c> is set, and also by <see cref="HandleAutoWeeklyStatsTrigger"/>
+    /// when a second process forwards the flag to the running instance.
+    /// </summary>
+    public void TriggerWeeklyStatsExportWindow()
+    {
+        if (_appScope is null || _mainWindow is null)
+        {
+            Logger.Warn("TriggerWeeklyStatsExportWindow called before DI container ready — ignoring");
+            return;
+        }
+
+        try
+        {
+            Logger.Info("Opening Statistics Export window for scheduled weekly run");
+
+            // Ensure the shared AutoStartOptions singleton reports AutoWeeklyStats=true so the
+            // freshly constructed VM auto-fires Export on Loaded, even when the flag arrived via
+            // a forwarded command line from a second instance rather than this process's args.
+            var autoStartOptions = _appScope.Resolve<AutoStartOptions>();
+            autoStartOptions.AutoWeeklyStats = true;
+
+            var window = _appScope.Resolve<FundStatisticsExportWindow>();
+            window.Owner = _mainWindow;
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open Statistics Export window for scheduled weekly run");
+        }
+    }
+
+    /// <summary>
+    /// Called by the single-instance wrapper when a second process is launched with
+    /// <c>--auto-weekly-stats</c>. Brings the main window to the foreground and opens the
+    /// Statistics Export window, unless one is already open and exporting.
+    /// </summary>
+    public void HandleAutoWeeklyStatsTrigger()
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (_mainWindow is null)
+            {
+                Logger.Warn("HandleAutoWeeklyStatsTrigger called before main window ready — ignoring");
+                return;
+            }
+
+            if (_mainWindow.WindowState == WindowState.Minimized)
+                _mainWindow.WindowState = WindowState.Normal;
+            _mainWindow.Activate();
+
+            foreach (Window window in Windows)
+            {
+                if (window is FundStatisticsExportWindow existing
+                    && existing.DataContext is ViewModels.FundStatisticsExportWindowViewModel vm)
+                {
+                    if (vm.IsExporting)
+                    {
+                        Logger.Info("Weekly export already running, ignoring scheduled trigger");
+                        existing.Activate();
+                        return;
+                    }
+
+                    Logger.Info("Triggering Export on existing idle Statistics Export window");
+                    existing.Activate();
+                    if (vm.ExportCommand.CanExecute(null))
+                        vm.ExportCommand.Execute(null);
+                    return;
+                }
+            }
+
+            TriggerWeeklyStatsExportWindow();
+        });
     }
 
     /// <summary>
@@ -281,6 +383,10 @@ public partial class App
 
             // Ensure database is created (applies pending migrations or creates from model)
             await dbContext.Database.EnsureCreatedAsync();
+
+            // Enable WAL so readers (e.g., scheduled statistics export) don't block on writers
+            // (the active crawl session). WAL setting is persistent per database file.
+            await dbContext.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
 
             Logger.Info("Database initialized successfully");
         }

@@ -63,21 +63,29 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
     public async Task<IReadOnlyList<AboutFundScheduleItem>> GetFundsOrderedByLastVisitAsync(
         int limit = 60, CancellationToken cancellationToken = default)
     {
-        // Project and filter in SQL, then sort client-side because
-        // SQLite cannot ORDER BY DateTimeOffset expressions.
+        // Exclude funds the list crawler hasn't seen in over a month — they are almost
+        // certainly delisted, and visiting them wastes the about-fund daily budget.
+        // Null CrawlerLastUpdatedAt is treated as stale for the same reason.
+        var staleCutoff = DateTimeOffset.UtcNow.AddMonths(-1);
+
+        // Project in SQL with the cheap null filter, then filter and sort client-side:
+        // SQLite cannot translate DateTimeOffset comparison/ORDER BY expressions, so the
+        // staleCutoff comparison must run in memory after materialization.
         var rows = await _context.FundProfiles
-            .Where(fp => fp.OrderbookId != null)
+            .Where(fp => fp.OrderbookId != null && fp.CrawlerLastUpdatedAt != null)
             .Select(fp => new
             {
                 Isin = fp.Id.Isin,
                 OrderbookId = fp.OrderbookId!,
                 fp.Name,
                 HistoryRecordCount = fp.HistoryRecords.Count,
-                fp.AboutFundLastVisitedAt
+                fp.AboutFundLastVisitedAt,
+                fp.CrawlerLastUpdatedAt
             })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return rows
+            .Where(f => f.CrawlerLastUpdatedAt >= staleCutoff)
             .OrderBy(f => f.AboutFundLastVisitedAt ?? DateTimeOffset.MinValue)
             .Take(limit)
             .Select(f => new AboutFundScheduleItem

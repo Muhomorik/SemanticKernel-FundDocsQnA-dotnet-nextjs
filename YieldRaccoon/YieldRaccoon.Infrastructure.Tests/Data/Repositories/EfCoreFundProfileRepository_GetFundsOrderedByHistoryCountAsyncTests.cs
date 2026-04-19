@@ -38,7 +38,8 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByLastVisitAsyncTests
     private async Task<FundProfile> CreateProfileAsync(
         string? orderbookId = "OB-DEFAULT",
         DateTimeOffset? lastVisitedAt = null,
-        int historyRecordCount = 0)
+        int historyRecordCount = 0,
+        DateTimeOffset? crawlerLastUpdatedAt = null)
     {
         var fundId = _fixture.Create<IsinId>();
         var profile = new FundProfile
@@ -47,7 +48,8 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByLastVisitAsyncTests
             Name = $"Fund {fundId.Isin}",
             FirstSeenAt = DateTimeOffset.UtcNow,
             OrderbookId = orderbookId,
-            AboutFundLastVisitedAt = lastVisitedAt
+            AboutFundLastVisitedAt = lastVisitedAt,
+            CrawlerLastUpdatedAt = crawlerLastUpdatedAt ?? DateTimeOffset.UtcNow
         };
 
         await _context.FundProfiles.AddAsync(profile);
@@ -258,6 +260,89 @@ public class EfCoreFundProfileRepository_GetFundsOrderedByLastVisitAsyncTests
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
+    }
+
+    #endregion
+
+    #region Stale crawler filter
+
+    [Test]
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_CrawlerLastUpdatedAtOlderThanOneMonth_ExcludedFromResults()
+    {
+        // Arrange — one fund the list crawler hasn't seen in over a month (likely delisted),
+        // one fund crawled yesterday.
+        var stale = DateTimeOffset.UtcNow.AddMonths(-1).AddDays(-1);
+        await CreateProfileAsync(orderbookId: "OB-STALE", crawlerLastUpdatedAt: stale);
+        await CreateProfileAsync(orderbookId: "OB-FRESH",
+            crawlerLastUpdatedAt: DateTimeOffset.UtcNow.AddDays(-1));
+
+        // Act
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-FRESH")));
+    }
+
+    [Test]
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_CrawlerLastUpdatedAtExactlyOneMonthAgo_Included()
+    {
+        // Arrange — boundary: a fund crawled exactly one month ago should still be eligible.
+        // We subtract a small buffer so the repository's own UtcNow doesn't push the row past the cutoff
+        // during test execution.
+        var boundary = DateTimeOffset.UtcNow.AddMonths(-1).AddSeconds(30);
+        await CreateProfileAsync(orderbookId: "OB-BOUNDARY", crawlerLastUpdatedAt: boundary);
+
+        // Act
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-BOUNDARY")));
+    }
+
+    [Test]
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_CrawlerLastUpdatedAtNull_ExcludedFromResults()
+    {
+        // Arrange — null means the list crawler has never recorded this fund; treat as stale.
+        // Insert directly to bypass the helper's non-null default.
+        var fundId = _fixture.Create<IsinId>();
+        await _context.FundProfiles.AddAsync(new FundProfile
+        {
+            Id = fundId,
+            Name = $"Fund {fundId.Isin}",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            OrderbookId = "OB-NULL-CRAWLER",
+            CrawlerLastUpdatedAt = null
+        });
+        await _context.SaveChangesAsync();
+        await CreateProfileAsync(orderbookId: "OB-FRESH");
+
+        // Act
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-FRESH")));
+    }
+
+    [Test]
+    [TestOf(nameof(EfCoreFundProfileRepository.GetFundsOrderedByLastVisitAsync))]
+    public async Task GetFundsOrderedByLastVisitAsync_RecentCrawl_Included()
+    {
+        // Arrange — positive control: a fund crawled yesterday is clearly fresh.
+        await CreateProfileAsync(orderbookId: "OB-YESTERDAY",
+            crawlerLastUpdatedAt: DateTimeOffset.UtcNow.AddDays(-1));
+
+        // Act
+        var result = await _sut.GetFundsOrderedByLastVisitAsync();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].OrderBookId, Is.EqualTo(OrderBookId.Create("OB-YESTERDAY")));
     }
 
     #endregion

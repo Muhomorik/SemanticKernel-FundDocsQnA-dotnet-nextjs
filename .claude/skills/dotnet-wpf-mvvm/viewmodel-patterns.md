@@ -7,6 +7,7 @@ Complete reference for ViewModel implementation patterns in WPF applications usi
 - ViewModel Lifecycle
 - Constructor Patterns (Runtime vs Design-Time)
 - Property Change Notification
+- Sensitive Data Properties
 - Command Patterns
 - Subscription Management with Rx.NET
 - IDisposable Implementation
@@ -280,6 +281,35 @@ public ObservableCollection<FundItemViewModel> Items { get; }
 ```
 
 `ObservableCollection<T>` only notifies when items are added/removed, NOT when item properties change.
+
+## Sensitive Data Properties
+
+Properties backing a `PasswordBox` (API keys, tokens, passwords, sensitive URLs) are regular `string` properties — UI masking is handled in XAML via `mahShared:PasswordBoxBindingBehavior.Password` (see [ui-patterns.md — Sensitive Data Input](ui-patterns.md#sensitive-data-input-passwordbox)).
+
+```csharp
+private string _apiKey = string.Empty;
+
+public string ApiKey
+{
+    get => _apiKey;
+    set
+    {
+        if (SetProperty(ref _apiKey, value, nameof(ApiKey)))
+        {
+            _logger.Debug("ApiKey changed");  // ← log the fact, NEVER the value
+            RaisePropertyChanged(nameof(HasChanges));
+        }
+    }
+}
+```
+
+Rules:
+
+- **TwoWay binding** so the ViewModel can preload persisted values
+- **Never log the value** — not in logs, exceptions, `ToString()`, or diagnostic dumps
+- **Exclude from serialization** (`[JsonIgnore]`) on any DTO that gets persisted or transmitted in logs
+- **Persist to a secure store** (DPAPI, Windows Credential Manager, Azure Key Vault) — not plaintext `appsettings.json` or user settings JSON
+- **Clear on logout/reset** by setting back to `string.Empty`
 
 ## Command Patterns
 

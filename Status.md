@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-03-14 (Added SSE streaming for chat responses)
+Last Updated: 2026-04-18 (Weekly statistics export scheduling implemented)
 
 **Tech Stack:**
 
@@ -564,6 +564,9 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | Fund Ingestion Integration | ✅ | **NEW 2026-01-29**: ICrawlSessionOrchestrator now coordinates database persistence via IFundIngestionService. NotifyBatchLoaded accepts FundDataDto collection, maps to domain entities (FundProfile + FundHistoryRecord), and persists to configured repository (InMemory or SQLite). Added FundDataDtoMapper (InterceptedFund → FundDataDto). |
 | Streaming Mode Privacy | ✅ | **Completed 2026-01-29**: ToggleSwitch in browser toolbar, WebView2 screenshot capture via `CapturePreviewAsync`, Magick.NET OilPaint effect (radius: 6, sigma: 1), "🔴 STREAMING" overlay indicator, auto-update on navigation complete |
 | Build Verification | ✅ | **Completed 2026-01-29**: Clean build with 0 errors, 0 warnings, all nullability warnings resolved |
+| Daily Auto-Start | ✅ | **NEW 2026-04-14**: Settings window now has "Daily auto-start" section (toggle + HH:mm picker + `--auto-list` checkbox). Creates a per-user Windows scheduled task under `\YieldRaccoon\YieldRaccoon-AutoStart` via `TaskScheduler` NuGet with `InteractiveToken` + `LUA` run level (no UAC needed on normal installs). Reconciles persisted setting with actual task state on window open. UAC fallback: on access-denied, prompts user to restart as admin with `--elevated-settings` flag, elevated instance auto-reopens Settings for retry. Files: `AutoStartSchedulerService`, `UserSettings` (new `AutoStart*` fields), `AutoStartOptions.OpenSettingsOnStartup`, `SettingsWindowViewModel` (new properties + `TryApplyAutoStartSchedule` + `TryRestartElevated`). |
+| Auto-Start DB Cold-Start Buffer | ✅ | **NEW 2026-04-14**: When launched with `--auto-list` or `--auto-overview`, the first crawler call is deferred by `AutoStartOptions.ColdStartDelay` (60s) measured from app launch. Prevents the first EF Core / SQLite call from colliding with model-building on a cold DB. `AutoStartOptions` gained `LaunchedAtUtc` and `GetColdStartRemaining(TimeSpan)`. `MainWindowViewModel` schedules `ExecuteStartSession` via `Observable.Timer(delay, _uiScheduler)` (disposed with the VM). `AboutFundWindowViewModel` awaits `Task.Delay(delay)` in `ExecuteLoaded` before `LoadScheduleAsync` when `AutoOverview` is active. Subsequent session steps run at normal cadence; manual launches are unaffected. |
+| Weekly Statistics Export Scheduling | ✅ | **NEW 2026-04-18**: Weekly-recurring auto-export of fund statistics via Windows Task Scheduler (default Thursday 22:00). Settings window has a new "Weekly statistics export" section with `ToggleSwitch` + day-of-week `ComboBox` + `mah:TimePicker` + last-run caption. Export parameters live entirely in the Statistics Export window and persist via `UserSettings.StatsExport*` (window days, lookback days, min owners, company filter, both output paths) — the scheduled run always picks up the user's latest manual configuration. Default lookback raised from 6 months to 1 year; `FundStatisticsExportWindowViewModel` pre-populates from settings on open and writes back on successful export. Date-stamped filenames for scheduled runs (e.g., `YieldRaccoon_summary_2weeks_1year_2026-04-23.csv`). New `--auto-weekly-stats` CLI flag triggers the export-and-close flow via the VM's `LoadedCommand` (no code-behind). Single-instance enforced via `WindowsFormsApplicationBase` in `Program.cs`; second-instance command line is forwarded to running process via `OnStartupNextInstance` and routed to `App.HandleAutoWeeklyStatsTrigger()` which cooperates with crawl sessions, already-open export windows, and in-flight exports. SQLite WAL mode applied on startup via `PRAGMA journal_mode=WAL` so concurrent crawl-writers and export-readers don't block each other. New main-window status-bar chip shows "Weekly export: next Thu 22:00" / last-run summary. Files: `AutoStartSchedulerService` (EnableWeeklyStatsExport/DisableWeeklyStatsExport/IsWeeklyStatsExportEnabled/GetNextWeeklyStatsExportRun with WeeklyTrigger), `UserSettings` (new `WeeklyExport*` + `StatsExport*` fields), `AutoStartOptions.AutoWeeklyStats`, `SettingsWindow` (new section), `SettingsWindowViewModel.TryApplyWeeklyExportSchedule`, `FundStatisticsExportWindowViewModel` (LoadedCommand + persist-on-save + date-stamp helper), `Program.cs` (new — WindowsFormsApplicationBase wrapper), `App.xaml.cs` (TriggerWeeklyStatsExportWindow/HandleAutoWeeklyStatsTrigger + WAL pragma), `MainWindow.xaml` (status chip), `MainWindowViewModel.UpdateWeeklyExportStatus`. csproj adds `<UseWindowsForms>true</UseWindowsForms>` + `<StartupObject>YieldRaccoon.Wpf.Program</StartupObject>` + removes WinForms implicit usings to avoid collisions with WPF types. All 315 unit tests (WPF + Infrastructure) passing. |
 
 ### NuGet Dependencies
 
@@ -576,6 +579,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | **NLog** | 6.0.7 | Logging framework (infrastructure ready) |
 | **NLog.Extensions.Logging** | 6.1.0 | NLog integration with Microsoft.Extensions.Logging |
 | **Magick.NET-Q8-AnyCPU** | 14.10.2 | ImageMagick for streaming mode OilPaint effect |
+| **TaskScheduler** | 2.11.0 | Windows Task Scheduler wrapper for daily auto-start feature |
 
 ### Architecture
 
@@ -737,6 +741,7 @@ Refactored the AboutFund window from a 2-column layout (WebView2 + Network Inspe
 - Session cancellation on window close or Stop button
 - Event log panel showing real-time browsing events with icons
 - URL template uses OrderbookId externally (`{0}` placeholder), ISIN internally
+- **Delisting filter (2026-04-14) ✅** — `GetFundsOrderedByLastVisitAsync` excludes funds whose `CrawlerLastUpdatedAt` is null or older than one month. The list crawler has effectively stopped seeing these funds, so the about-fund orchestrator no longer wastes its 80/day budget on dead pages. 4 new filter tests in the repository test suite (`Stale crawler filter` region).
 
 ### Chart Data Ingestion Pipeline ✅ COMPLETED (2026-02-19)
 

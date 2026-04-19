@@ -186,9 +186,20 @@ public sealed class FundProfile
     public required DateTimeOffset FirstSeenAt { get; init; }
 
     /// <summary>
-    /// Timestamp when fund data was last updated by the crawler.
-    /// Used to skip re-crawling within a time window (e.g., same day).
+    /// Timestamp when fund data was last updated by the list crawler.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Used to skip re-crawling within a short time window (e.g., same day).
+    /// </para>
+    /// <para>
+    /// Also used by the about-fund scheduler as a delisting heuristic:
+    /// <see cref="Application.Repositories.IFundProfileRepository.GetFundsOrderedByLastVisitAsync"/>
+    /// excludes funds whose <see cref="CrawlerLastUpdatedAt"/> is null or older than one
+    /// month, because the list crawler has effectively stopped seeing them and the
+    /// about-fund orchestrator should not waste its daily budget visiting dead pages.
+    /// </para>
+    /// </remarks>
     public DateTimeOffset? CrawlerLastUpdatedAt { get; set; }
 
     /// <summary>
