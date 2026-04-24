@@ -404,6 +404,11 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _logger.Info("Auto-triggering Export command for scheduled weekly stats run");
         if (ExportCommand.CanExecute(null))
             ExportCommand.Execute(null);
+
+        
+        // Singleton is shared across window lifetimes — clear after consuming so that
+        // a later manual open doesn't see stale scheduled-run intent and auto-close.
+        _autoStartOptions.AutoWeeklyStats = false;
     }
 
     private void PersistSuccessfulRun(int rowCount, bool isScheduledRun)
