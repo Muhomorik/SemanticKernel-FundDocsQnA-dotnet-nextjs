@@ -2,19 +2,27 @@
 
 Compute summary statistics from daily NAV data and export as CSV for exploratory data analysis with Claude.
 
+> **For AI agents reading these CSVs:** see [FUND-STATISTICS-EXPORT-AGENT-GUIDE.md](FUND-STATISTICS-EXPORT-AGENT-GUIDE.md) — concise schema reference designed for inclusion in agent context.
+
 ![Statistics export window](IMG-STATISTICS-EXPORT.png)
 
 ## What it does
 
-The Statistics Export feature reads your fund database (read-only), slices each fund's NAV history (limited by lookback period) into non-overlapping time windows, computes 13 summary statistics for each window, and writes the results to a CSV file.
+A single Export click writes **three CSVs** into the same folder, all sharing one ISO-week filename tag (`YieldRaccoon_*_{family}_{iso_week}.csv`):
+
+| File | What it holds | Granularity |
+| ------ | ------ | ------ |
+| `YieldRaccoon_summary_{family}_{iso_week}.csv` | Per-bucket bi-weekly history (return, volatility, Sharpe, drawdown, skew, etc.) | ~26 rows per fund per year |
+| `YieldRaccoon_snapshot_{family}_{iso_week}.csv` | Per-fund rolling 12-week + 1-year metrics anchored at the latest NAV date | 1 row per fund |
+| `YieldRaccoon_metadata_{family}_{iso_week}.csv` | Static fund identity (name, fee, category, owners, …) | 1 row per fund |
+
+The source database is **read-only** — nothing is modified. Output is UTF-8, RFC 4180 compliant.
 
 **Key points:**
 
-- Each fund produces **multiple rows** -- one per time window
-- Only funds with `Buyable = 1` are included
-- The source database is **never modified** (read-only access)
-- Output is a standard CSV file (UTF-8, RFC 4180 compliant)
-- A **metadata companion file** is also generated (see below)
+- `{family}` is `all` when no company filter is set, or the lower-cased company name otherwise
+- `{iso_week}` is the ISO 8601 week designation (e.g., `2026-W18`) — re-running the same week overwrites the same files (immutability invariant)
+- Only funds with `Buyable = 1` are included; min-owners filter and optional company filter apply identically across all three files
 
 ## How to use
 
@@ -30,8 +38,9 @@ In the main application window, click **Statistics export** from the toolbar/men
 | **Lookback** | How far back in time to include NAV data. Only data from this many days ago to today is processed. | 1 year (365 days) |
 | **Min owners** | Minimum number of fund owners required. Funds with fewer owners are excluded. | 100 |
 | **Company filter** | Optional. If set, only exports funds from this company (case-insensitive match on `CompanyName`). Leave blank for all companies. | Empty (all) |
-| **Output path** | Where to save the CSV file. Click **Browse** to pick a location. | `YieldRaccoon_stats_2weeks_6months.csv` |
-| **Metadata output path** | Where to save the metadata companion CSV. Click **Browse** to pick a location. | `YieldRaccoon_metadata.csv` |
+| **Summary output path** | Where to save the per-bucket history CSV. Click **Browse** to pick a location. | `YieldRaccoon_summary_all_{iso_week}.csv` |
+| **Snapshot output path** | Where to save the per-fund rolling-horizon CSV. | `YieldRaccoon_snapshot_all_{iso_week}.csv` |
+| **Metadata output path** | Where to save the metadata companion CSV. | `YieldRaccoon_metadata_all_{iso_week}.csv` |
 
 ### Available window sizes
 
@@ -62,9 +71,9 @@ In the main application window, click **Statistics export** from the toolbar/men
 5. Wait for the progress indicator to complete
 6. The status bar shows how many rows were written
 
-## Statistics glossary
+## Summary CSV — column glossary
 
-Each row in the CSV represents one fund in one time window. Here's what each column means:
+Each row represents one fund in one bi-weekly bucket. The four `_2w_*` columns name their horizon explicitly to disambiguate from snapshot.csv's `_12w` / `_1y` counterparts.
 
 | Column | Description | Formula / Notes |
 | -------- | ------------- | ----------------- |
@@ -72,19 +81,33 @@ Each row in the CSV represents one fund in one time window. Here's what each col
 | `name` | Fund display name | e.g., `Avanza Zero` |
 | `period_start` | First date of the window | `YYYY-MM-DD` |
 | `period_end` | Last date of the window | `YYYY-MM-DD` |
-| `first_nav` | NAV on the first day of the window | Opening price |
-| `last_nav` | NAV on the last day of the window | Closing price |
-| `nav_high` | Highest NAV in the window | Peak price |
-| `nav_low` | Lowest NAV in the window | Trough price |
-| `total_return_pct` | Total return over the window | `(last_nav / first_nav - 1) * 100` |
-| `ann_volatility` | Annualized volatility | `std(daily_returns) * sqrt(252) * 100` |
-| `max_drawdown_pct` | Maximum peak-to-trough decline | Worst cumulative loss from any peak |
+| `first_nav`, `last_nav`, `nav_high`, `nav_low` | NAV bookends + extremes | absolute values |
+| `return_2w_pct` | Total return over the bucket | `(last_nav / first_nav - 1) * 100` |
+| `ann_volatility_2w_pct` | Annualized volatility | `std(daily_returns) * sqrt(252) * 100` |
+| `max_drawdown_2w_pct` | Maximum peak-to-trough decline within the bucket | non-positive |
 | `current_drawdown_pct` | Distance from period high at window end | `(last_nav - nav_high) / nav_high * 100` |
-| `sharpe_ratio` | Risk-adjusted return (risk-free rate = 0) | `ann_return / ann_volatility` |
-| `best_day_pct` | Best single-day return | Largest daily gain in `%` |
-| `worst_day_pct` | Worst single-day return | Largest daily loss in `%` |
+| `sharpe_2w` | Risk-adjusted return (risk-free rate = 0) | `NaN` when `ann_volatility_2w_pct < 0.01` |
+| `best_day_pct`, `worst_day_pct` | Best/worst single-day return in the bucket | `%` |
 | `pct_positive_days` | Percentage of days with positive return | `positive_days / total_days * 100` |
-| `skewness` | Return distribution asymmetry | Negative = left-skewed (tail risk), Positive = right-skewed |
+| `skewness` | Daily-return distribution asymmetry | Negative = left-skewed (tail risk) |
+
+Trailing partial buckets spanning fewer than 7 days are dropped — they contaminate downstream "X of N positive windows" counting.
+
+## Snapshot CSV — column glossary
+
+One row per fund, anchored at `as_of_date` (= the most recent NAV date in the database, identical on every row).
+
+| Column | Description |
+| -------- | ------------- |
+| `isin` | Fund ISIN identifier |
+| `as_of_date` | Evaluation date (`YYYY-MM-DD`) — same on every row in the file |
+| `return_12w_compound_pct` | Compound return over trailing 84 days |
+| `ann_volatility_12w_pct` | Annualized volatility over trailing 84 days |
+| `sharpe_12w` | Risk-adjusted return at 12-week horizon (`NaN` when vol < 0.01) |
+| `max_drawdown_12w_pct` | Worst peak-to-trough decline within trailing 84 days |
+| `return_1y_compound_pct`, `ann_volatility_1y_pct`, `sharpe_1y`, `max_drawdown_1y_pct` | Same four metrics over trailing 365 days |
+
+Funds with shorter history than the horizon get `NaN` for that horizon's four columns. `NaN` always means "insufficient data" — never zero-fill.
 
 ## How to use with Claude
 
@@ -105,9 +128,9 @@ Give me an overview:
 - Which funds have the most extreme drawdowns?
 
 Create charts:
-1. Histogram of total_return_pct across all rows
-2. Scatter plot: ann_volatility (x) vs total_return_pct (y), color by Sharpe ratio
-3. Box plot of total_return_pct grouped by period_start (to see market-wide trends)
+1. Histogram of return_2w_pct across all rows
+2. Scatter plot: ann_volatility_2w_pct (x) vs return_2w_pct (y), color by Sharpe ratio
+3. Box plot of return_2w_pct grouped by period_start (to see market-wide trends)
 ```
 
 **Clustering analysis with visualization:**
@@ -119,7 +142,7 @@ Analyze this fund statistics CSV and identify natural clusters:
 - Which funds show consistently negative skewness (tail risk)?
 
 Create charts:
-1. Scatter plot of mean ann_volatility vs mean total_return_pct per fund, colored by cluster label
+1. Scatter plot of mean ann_volatility_2w_pct vs mean return_2w_pct per fund, colored by cluster label
 2. Heatmap of cluster centroids across all 13 statistics
 3. Distribution plot (violin or box) of Sharpe ratios per cluster
 ```
@@ -136,21 +159,21 @@ For the top 10 funds by average Sharpe ratio:
 - Did any fund's risk profile shift dramatically between periods?
 - Which funds were most consistent vs most variable?
 
-Create a multi-line chart showing total_return_pct over time (period_start on x-axis)
+Create a multi-line chart showing return_2w_pct over time (period_start on x-axis)
 for these top 10 funds, one line per fund.
 ```
 
 **Drawdown investigation:**
 
 ```plaintext
-Find all fund-period combinations where max_drawdown_pct < -15%.
+Find all fund-period combinations where max_drawdown_2w_pct < -15%.
 For each:
 - What was the total return in the same period?
 - Did the fund recover (current_drawdown_pct closer to 0)?
 - How does the drawdown compare to the fund's typical volatility?
 
-Create a scatter plot: max_drawdown_pct (x) vs total_return_pct (y) for these
-severe drawdown periods, with point size proportional to ann_volatility.
+Create a scatter plot: max_drawdown_2w_pct (x) vs return_2w_pct (y) for these
+severe drawdown periods, with point size proportional to ann_volatility_2w_pct.
 ```
 
 **Company comparison:**
@@ -162,7 +185,7 @@ Compare funds from [Company A] vs [Company B]:
 - Any significant differences in skewness or drawdown patterns?
 
 Create charts:
-1. Side-by-side box plots of total_return_pct, ann_volatility, and sharpe_ratio per company
+1. Side-by-side box plots of return_2w_pct, ann_volatility_2w_pct, and sharpe_2w per company
 2. Radar/spider chart comparing mean statistics for each company
 ```
 
@@ -172,7 +195,7 @@ Create charts:
 
 ```plaintext
 Create a comprehensive risk-return map:
-1. For each fund, compute mean total_return_pct and mean ann_volatility across all windows
+1. For each fund, compute mean return_2w_pct and mean ann_volatility_2w_pct across all windows
 2. Scatter plot with volatility on x-axis, return on y-axis
 3. Color points by mean Sharpe ratio (diverging colormap: red for negative, green for positive)
 4. Size points by number of time windows (more data = bigger dot)
@@ -184,9 +207,9 @@ Create a comprehensive risk-return map:
 
 ```plaintext
 Create a timeline chart showing market regimes:
-1. For each period_start, compute the median total_return_pct across all funds
+1. For each period_start, compute the median return_2w_pct across all funds
 2. Plot as a bar chart (green for positive, red for negative periods)
-3. Add a secondary y-axis showing median ann_volatility as a line
+3. Add a secondary y-axis showing median ann_volatility_2w_pct as a line
 4. Highlight periods where median return < -5% as "stress periods"
 ```
 
@@ -194,9 +217,9 @@ Create a timeline chart showing market regimes:
 
 ```plaintext
 Create a heatmap with:
-- Y-axis: fund names (sorted by average max_drawdown_pct)
+- Y-axis: fund names (sorted by average max_drawdown_2w_pct)
 - X-axis: period_start dates
-- Color: max_drawdown_pct (darker = worse drawdown)
+- Color: max_drawdown_2w_pct (darker = worse drawdown)
 - This shows which funds suffered during which periods at a glance
 Limit to top 50 funds by number of owners if there are too many.
 ```
@@ -211,7 +234,7 @@ Looking at all funds across time windows:
 - Identify "regime changes" where volatility spiked across many funds
 - Which funds were most resilient during high-volatility periods?
 
-Create a chart showing the percentage of funds with negative total_return_pct
+Create a chart showing the percentage of funds with negative return_2w_pct
 per period, with a horizontal line at 50% to mark "majority negative" periods.
 ```
 
@@ -219,19 +242,19 @@ per period, with a horizontal line at 50% to mark "majority negative" periods.
 
 ```plaintext
 If I wanted to build a low-volatility portfolio from these funds:
-- Which 5-10 funds have the best Sharpe ratios with ann_volatility < 10%?
+- Which 5-10 funds have the best Sharpe ratios with ann_volatility_2w_pct < 10%?
 - Are there funds that tend to be up when others are down (diversification)?
 - What's the trade-off between return and drawdown protection?
 
-Create an efficient frontier scatter plot: for each fund show mean ann_volatility
-vs mean total_return_pct, and highlight the Pareto-optimal funds (best return
+Create an efficient frontier scatter plot: for each fund show mean ann_volatility_2w_pct
+vs mean return_2w_pct, and highlight the Pareto-optimal funds (best return
 for given risk level) with a connecting line.
 ```
 
 ## Example CSV output
 
 ```csv
-isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,total_return_pct,ann_volatility,max_drawdown_pct,current_drawdown_pct,sharpe_ratio,best_day_pct,worst_day_pct,pct_positive_days,skewness
+isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,return_2w_pct,ann_volatility_2w_pct,max_drawdown_2w_pct,current_drawdown_pct,sharpe_2w,best_day_pct,worst_day_pct,pct_positive_days,skewness
 SE0000000001,Avanza Zero,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
 SE0000000001,Avanza Zero,2026-01-19,2026-01-30,102.3000,103.5000,104.0000,101.8000,1.1730,8.5000,-0.5000,-0.4808,0.9200,0.8000,-0.6000,55.5556,-0.0500
 SE0000000002,Example Fund,2026-01-05,2026-01-16,50.0000,49.2000,50.5000,48.8000,-1.6000,15.3000,-3.2000,-2.5743,-0.5500,1.0000,-2.1000,44.4444,-0.3000
@@ -253,11 +276,11 @@ Rows depend on both the **lookback period** and the **window size**. The table b
 
 ## Metadata companion file
 
-When you click **Export**, a second CSV file is generated alongside the statistics CSV. This metadata file contains one row per qualifying fund with static profile attributes — useful for joining with the statistics data during analysis.
+The metadata file holds one row per qualifying fund with static profile attributes — useful for joining with summary or snapshot rows via `isin`.
 
-**Default filename:** `YieldRaccoon_metadata.csv` (or `YieldRaccoon_metadata_{company}.csv` when a company filter is set)
+**Default filename:** `YieldRaccoon_metadata_{family}_{iso_week}.csv` (family = `all` or sanitized lower-cased company name)
 
-**Filters applied:** Same as the statistics export — `Buyable = 1`, company name (if set), minimum number of owners.
+**Filters applied:** Same as the summary export — `Buyable = 1`, optional company name, minimum number of owners.
 
 ### Metadata columns (17)
 
@@ -269,21 +292,24 @@ When you click **Export**, a second CSV file is generated alongside the statisti
 | `currency_code` | ISO 4217 currency code (SEK, EUR, etc.) | Text |
 | `category` | Fund category classification | Text |
 | `fund_type` | e.g., Equity Fund, Bond Fund | Text |
-| `is_index_fund` | Whether fund is index-tracking | `true`/`false`/empty |
+| `is_index_fund` | Whether fund is index-tracking — **literal string** `"true"` / `"false"`, not a JSON bool | Text |
 | `managed_type` | ACTIVE or PASSIVE | Text |
-| `total_fee` | Total expense ratio (decimal, e.g., 0.0125) | Decimal |
-| `management_fee` | Annual management fee (decimal) | Decimal |
-| `risk` | SRRI/SRI risk indicator (1-7) | Integer |
-| `rating` | Star rating (1-5) | Integer |
-| `sharpe_ratio` | Risk-adjusted return metric | Decimal |
-| `standard_deviation` | Annualized volatility | Decimal |
-| `recommended_holding_period` | Investor holding guidance | Text |
-| `capital` | Total assets under management | Decimal |
+| `total_fee` | Total expense ratio in **percent points** (e.g. `1.25` = 1.25 %) — not a `0.0125` decimal fraction | Number |
+| `management_fee` | Annual management fee in **percent points** (e.g. `1.50` = 1.50 %) | Number |
+| `risk` | SRRI/SRI risk indicator (1–7) | Integer |
+| `rating` | Star rating (1–5) | Integer |
+| `sharpe_ratio` | Static fund-house-published Sharpe (not the computed `sharpe_2w` from summary) | Number |
+| `standard_deviation` | Annualized volatility in percent points | Number |
+| `recommended_holding_period` | Upper-case enum literal — `ONE_YEAR`, `THREE_YEAR`, `FIVE_YEAR`, `TEN_YEAR`, … | Text |
+| `capital` | Total assets under management (in fund's reporting currency) | Number |
 | `number_of_owners` | Number of unique investors | Integer |
 
 ### Example metadata CSV
 
 ```csv
 isin,name,company_name,currency_code,category,fund_type,is_index_fund,managed_type,total_fee,management_fee,risk,rating,sharpe_ratio,standard_deviation,recommended_holding_period,capital,number_of_owners
-SE0000000001,Avanza Zero,Avanza Fonder,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,5 years,1000000,50000
+SE0000000001,Avanza Zero,Avanza Fonder,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,FIVE_YEAR,1000000,50000
+SE0000000002,Active Equity,Some Asset Mgmt,SEK,Equity,Equity Fund,false,ACTIVE,2.17,1.50,5,3,0.78,15.6,THREE_YEAR,3500000,12500
 ```
+
+> Note: in the metadata file, `sharpe_ratio` is the static fund-house-published Sharpe number from the FundProfiles table (not a computed value). Don't confuse it with summary's `sharpe_2w` or snapshot's `sharpe_12w` / `sharpe_1y`.

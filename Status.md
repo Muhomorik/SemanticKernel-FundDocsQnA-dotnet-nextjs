@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-04-23 (Weekly stats export auto-close bug fix)
+Last Updated: 2026-04-30 (Statistics export v2: snapshot.csv + ISO-week filenames + 4 column renames)
 
 **Tech Stack:**
 
@@ -826,6 +826,47 @@ Export fund profile metadata (fees, risk metrics, classifications) as a companio
 **Metadata columns (17):** isin, name, company_name, currency_code, category, fund_type, is_index_fund, managed_type, total_fee, management_fee, risk, rating, sharpe_ratio, standard_deviation, recommended_holding_period, capital, number_of_owners
 
 **Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
+
+### Statistics Export v2 — snapshot.csv + ISO-week filenames + column renames ✅ COMPLETED (2026-04-30)
+
+Restructured the Statistics Export to match the new design docs ([summary-csv-plan.md](YieldRaccoon/docs/summary-csv-plan.md), [snapshot-csv-plan.md](YieldRaccoon/docs/snapshot-csv-plan.md)). One Export click now writes three CSVs (summary + snapshot + metadata) under one ISO-week-tagged family. Re-running the same week overwrites the same files (immutability invariant).
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundSnapshotCsvExportService` (new interface) | ✅ |
+| **Infrastructure** | `FundQueryHelpers` (extracted shared SQL: `ReadFundProfilesAsync`, `ReadNavSeriesAsync`, `GetLatestNavDateAsync`) | ✅ |
+| **Infrastructure** | `FundSnapshotStatistics` record + `FundSnapshotStatisticsCalculator` (pure math; 12w + 1y horizons) | ✅ |
+| **Infrastructure** | `FundSnapshotCsvExportService` (10-column CSV anchored at MAX(NavDate); NaN-on-insufficient-history; duplicate-ISIN halt) | ✅ |
+| **Infrastructure** | `FundSummaryStatistics` properties renamed: `Return2wPct`, `AnnVolatility2wPct`, `MaxDrawdown2wPct`, `Sharpe2w` | ✅ |
+| **Infrastructure** | `FundStatisticsCalculator` — added `NearZeroVolatilityThresholdPct = 0.01` constant; Sharpe → NaN when vol < 0.01 % | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` — new header (4 renames), `MinimumWindowDays = 7` drops partial trailing buckets, `(Isin, PeriodStart)` duplicate halt, NaN literal serialization | ✅ |
+| **Presentation** | `IsoWeekFilenameBuilder` — `BuildFamilyTag` + `BuildIsoWeekTag` (uses `System.Globalization.ISOWeek`) | ✅ |
+| **Presentation** | ViewModel: 3rd output path `SnapshotOutputPath`, `BrowseSnapshotCommand`, ISO-week-based default-path builder, dropped `AppendDateSuffix` and the auto-weekly date-suffix branches | ✅ |
+| **Presentation** | XAML: third "Snapshot output file" TextBox + Browse; window height bumped to 500 | ✅ |
+| **Configuration** | `UserSettings.StatsExportSnapshotOutputPath` for persistence | ✅ |
+| **DI** | `FundSnapshotCsvExportService` registered in `PresentationModule` | ✅ |
+| **Tests** | `FundSnapshotStatisticsCalculatorTests` (4 tests), `FundSnapshotCsvExportServiceTests` (5 tests), `IsoWeekFilenameBuilderTests` (7 tests) | ✅ |
+| **Tests** | `FundStatisticsCalculatorTests` updated (renamed props + 2 new tests for volatility guard) | ✅ |
+| **Tests** | `FundStatisticsCsvExportServiceTests` — 3 new tests (v2 header assertion + drop-partial-bucket + keep-7-day-bucket) | ✅ |
+| **Tests** | `FundStatisticsExportWindowViewModelTests` — 3 new tests (ISO-week defaults, family tag, no date suffix) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` updated for v2 schema + 3-file output + Claude prompt refresh | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT-AGENT-GUIDE.md` (NEW — concise schema reference for AI agent context) | ✅ |
+| **Docs** | `docs/snapshot-csv-plan.md` updated to use `_pct` suffix on volatility columns (consistency with summary) | ✅ |
+
+**Filename change (replaces all date-based naming):**
+
+| Scenario | Before | After |
+| -------- | ------ | ----- |
+| Default summary | `YieldRaccoon_summary_2weeks_1year.csv` | `YieldRaccoon_summary_all_2026-W18.csv` |
+| Default metadata | `YieldRaccoon_metadata.csv` | `YieldRaccoon_metadata_all_2026-W18.csv` |
+| Auto-weekly | `..._2weeks_1year_2026-04-30.csv` | `..._all_2026-W18.csv` (no date suffix) |
+| Snapshot | (did not exist) | `YieldRaccoon_snapshot_all_2026-W18.csv` |
+
+**Schema renames (clean cutover, no parallel emission):**
+
+`total_return_pct → return_2w_pct`, `ann_volatility → ann_volatility_2w_pct`, `sharpe_ratio → sharpe_2w`, `max_drawdown_pct → max_drawdown_2w_pct`. Snapshot mirrors with `_pct` suffix on volatility columns for symmetry.
+
+**Test results:** 287 / 287 Infrastructure + 52 / 52 WPF tests passing.
 
 ### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
 

@@ -112,6 +112,12 @@ public class PresentationModule : Module
             .As<IFundMetadataCsvExportService>()
             .InstancePerDependency();
 
+        // Fund snapshot CSV export service registration
+        // Per-fund rolling-horizon snapshot (12w + 1y metrics) anchored at the latest NAV date
+        builder.RegisterType<FundSnapshotCsvExportService>()
+            .As<IFundSnapshotCsvExportService>()
+            .InstancePerDependency();
+
         // Fund statistics export window service registration
         // Register window service for showing the statistics export window from ViewModels
         builder.RegisterType<FundStatisticsExportWindowService>()

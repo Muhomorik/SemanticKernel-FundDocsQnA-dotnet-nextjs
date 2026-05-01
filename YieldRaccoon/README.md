@@ -228,9 +228,16 @@ See [FUND-DATA-EXPORT.md](docs/FUND-DATA-EXPORT.md) for the full pipeline, filte
 
 ![Statistics export window](docs/IMG-STATISTICS-EXPORT.png)
 
-Compute summary statistics (return, volatility, Sharpe ratio, drawdown, skewness, etc.) from daily NAV data across sliding time windows and export as CSV — designed for exploratory data analysis with Claude. 
+One Export click writes three CSVs into the same folder, all sharing one ISO-week filename tag:
 
-See [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) for full details, column glossary, and example prompts.
+- **summary** — per-bucket bi-weekly history (return, vol, Sharpe, drawdown, skew, …) — many rows per fund
+- **snapshot** — per-fund rolling 12-week + 1-year metrics anchored at the latest NAV date — one row per fund
+- **metadata** — static fund identity (name, fee, category, …) — one row per fund
+
+Re-running the same week overwrites the same files (immutability invariant). Designed for exploratory data analysis with Claude / pandas.
+
+- [FUND-STATISTICS-EXPORT.md](docs/FUND-STATISTICS-EXPORT.md) — user manual + Claude prompts
+- [FUND-STATISTICS-EXPORT-AGENT-GUIDE.md](docs/FUND-STATISTICS-EXPORT-AGENT-GUIDE.md) — concise schema reference for AI agent context
 
 ### Cloud Sync
 
