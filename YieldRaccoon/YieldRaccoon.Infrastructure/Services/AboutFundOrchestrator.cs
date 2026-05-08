@@ -39,6 +39,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
     private readonly IFundProfileRepository _fundProfileRepository;
     private readonly IAboutFundPageDataCollector _collector;
     private readonly IAboutFundChartIngestionService _chartIngestionService;
+    private readonly IPortfolioDataIngestionService _portfolioDataIngestionService;
     private readonly IFundDetailsUrlBuilder _urlBuilder;
     private readonly IAboutFundPageInteractor _pageInteractor;
     private readonly IAboutFundScheduleCalculator _scheduleCalculator;
@@ -113,7 +114,6 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
 
     #endregion
 
-
     // BehaviorSubjects for state (emit current value to new subscribers)
     private readonly BehaviorSubject<AboutFundSessionState> _sessionState;
 
@@ -145,6 +145,7 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         IAboutFundPageInteractor pageInteractor,
         IAboutFundPageDataCollector collector,
         IAboutFundChartIngestionService chartIngestionService,
+        IPortfolioDataIngestionService portfolioDataIngestionService,
         IAboutFundEventStore eventStore,
         IFundProfileRepository fundProfileRepository,
         IAboutFundScheduleCalculator scheduleCalculator)
@@ -156,6 +157,8 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
         _collector = collector ?? throw new ArgumentNullException(nameof(collector));
         _chartIngestionService =
             chartIngestionService ?? throw new ArgumentNullException(nameof(chartIngestionService));
+        _portfolioDataIngestionService =
+            portfolioDataIngestionService ?? throw new ArgumentNullException(nameof(portfolioDataIngestionService));
         _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
         _pageInteractor = pageInteractor ?? throw new ArgumentNullException(nameof(pageInteractor));
         _scheduleCalculator = scheduleCalculator ?? throw new ArgumentNullException(nameof(scheduleCalculator));
@@ -430,6 +433,12 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
             await _fundProfileRepository.UpdateLastVisitedAtAsync(_manualIsinId.Value, DateTimeOffset.UtcNow);
 
             await PersistFundDescriptionAsync(pageData, _manualIsinId.Value);
+
+            var allocCount = await _portfolioDataIngestionService.IngestPortfolioDataAsync(
+                pageData, _manualIsinId.Value);
+            if (allocCount > 0)
+                _logger.Info("Manual portfolio ingestion for {0}: {1} allocation rows touched",
+                    pageData.OrderBookId, allocCount);
         }
         catch (Exception ex)
         {
@@ -699,6 +708,11 @@ public class AboutFundOrchestrator : IAboutFundOrchestrator
                 pageData.OrderBookId, isinId.Isin);
 
             await PersistFundDescriptionAsync(pageData, isinId);
+
+            var allocCount = await _portfolioDataIngestionService.IngestPortfolioDataAsync(pageData, isinId);
+            if (allocCount > 0)
+                _logger.Info("Portfolio ingestion for {0}: {1} allocation rows touched",
+                    pageData.OrderBookId, allocCount);
         }
         catch (Exception ex)
         {

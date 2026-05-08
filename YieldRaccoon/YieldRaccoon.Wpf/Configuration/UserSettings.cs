@@ -111,4 +111,10 @@ public class UserSettings
     /// Null keeps the auto-generated path based on the current DB location.
     /// </summary>
     public string? StatsExportMetadataOutputPath { get; set; }
+
+    /// <summary>
+    /// Output path for the snapshot CSV last used in the Statistics Export window.
+    /// Null keeps the auto-generated path based on the current DB location.
+    /// </summary>
+    public string? StatsExportSnapshotOutputPath { get; set; }
 }

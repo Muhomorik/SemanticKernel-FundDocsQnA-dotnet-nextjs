@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-04-18 (Weekly statistics export scheduling implemented)
+Last Updated: 2026-05-08 (Portfolio allocation ingestion completed — country/sector data from `_api/fund-reference/portfolio-data/` with full backend mirror + dual-write)
 
 **Tech Stack:**
 
@@ -13,6 +13,8 @@ Last Updated: 2026-04-18 (Weekly statistics export scheduling implemented)
 - **Repository:** GitHub (personal, public)
 - **Deployment:** Azure (private infrastructure)
 - **Services:** Azure App Service (backend), Azure Static Web Apps (frontend), Application Insights, Key Vault
+
+
 
 ---
 
@@ -566,6 +568,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 | Build Verification | ✅ | **Completed 2026-01-29**: Clean build with 0 errors, 0 warnings, all nullability warnings resolved |
 | Daily Auto-Start | ✅ | **NEW 2026-04-14**: Settings window now has "Daily auto-start" section (toggle + HH:mm picker + `--auto-list` checkbox). Creates a per-user Windows scheduled task under `\YieldRaccoon\YieldRaccoon-AutoStart` via `TaskScheduler` NuGet with `InteractiveToken` + `LUA` run level (no UAC needed on normal installs). Reconciles persisted setting with actual task state on window open. UAC fallback: on access-denied, prompts user to restart as admin with `--elevated-settings` flag, elevated instance auto-reopens Settings for retry. Files: `AutoStartSchedulerService`, `UserSettings` (new `AutoStart*` fields), `AutoStartOptions.OpenSettingsOnStartup`, `SettingsWindowViewModel` (new properties + `TryApplyAutoStartSchedule` + `TryRestartElevated`). |
 | Auto-Start DB Cold-Start Buffer | ✅ | **NEW 2026-04-14**: When launched with `--auto-list` or `--auto-overview`, the first crawler call is deferred by `AutoStartOptions.ColdStartDelay` (60s) measured from app launch. Prevents the first EF Core / SQLite call from colliding with model-building on a cold DB. `AutoStartOptions` gained `LaunchedAtUtc` and `GetColdStartRemaining(TimeSpan)`. `MainWindowViewModel` schedules `ExecuteStartSession` via `Observable.Timer(delay, _uiScheduler)` (disposed with the VM). `AboutFundWindowViewModel` awaits `Task.Delay(delay)` in `ExecuteLoaded` before `LoadScheduleAsync` when `AutoOverview` is active. Subsequent session steps run at normal cadence; manual launches are unaffected. |
+| Weekly Stats Export — Manual Open Auto-Close Fix | ✅ | **FIX 2026-04-23**: Manually opening the Statistics Export window could close instantly if the app had previously handled a scheduled run. `App.TriggerWeeklyStatsExportWindow` flipped the shared `AutoStartOptions.AutoWeeklyStats` singleton flag to `true` but never cleared it, so a later manual open spun up a fresh VM whose `ExecuteLoaded` saw the stale flag, auto-fired Export, and called `CurrentWindowService.Close()`. Fix: `FundStatisticsExportWindowViewModel.ExecuteLoaded` now resets `_autoStartOptions.AutoWeeklyStats = false` after consuming it (the scheduled run still completes — `isScheduledRun` is captured synchronously before the first await). Regression test added: `FundStatisticsExportWindowViewModelTests.ExecuteLoaded_WhenAutoWeeklyStatsIsTrue_ClearsFlagSoSubsequentManualOpensDoNotAutoFire`. |
 | Weekly Statistics Export Scheduling | ✅ | **NEW 2026-04-18**: Weekly-recurring auto-export of fund statistics via Windows Task Scheduler (default Thursday 22:00). Settings window has a new "Weekly statistics export" section with `ToggleSwitch` + day-of-week `ComboBox` + `mah:TimePicker` + last-run caption. Export parameters live entirely in the Statistics Export window and persist via `UserSettings.StatsExport*` (window days, lookback days, min owners, company filter, both output paths) — the scheduled run always picks up the user's latest manual configuration. Default lookback raised from 6 months to 1 year; `FundStatisticsExportWindowViewModel` pre-populates from settings on open and writes back on successful export. Date-stamped filenames for scheduled runs (e.g., `YieldRaccoon_summary_2weeks_1year_2026-04-23.csv`). New `--auto-weekly-stats` CLI flag triggers the export-and-close flow via the VM's `LoadedCommand` (no code-behind). Single-instance enforced via `WindowsFormsApplicationBase` in `Program.cs`; second-instance command line is forwarded to running process via `OnStartupNextInstance` and routed to `App.HandleAutoWeeklyStatsTrigger()` which cooperates with crawl sessions, already-open export windows, and in-flight exports. SQLite WAL mode applied on startup via `PRAGMA journal_mode=WAL` so concurrent crawl-writers and export-readers don't block each other. New main-window status-bar chip shows "Weekly export: next Thu 22:00" / last-run summary. Files: `AutoStartSchedulerService` (EnableWeeklyStatsExport/DisableWeeklyStatsExport/IsWeeklyStatsExportEnabled/GetNextWeeklyStatsExportRun with WeeklyTrigger), `UserSettings` (new `WeeklyExport*` + `StatsExport*` fields), `AutoStartOptions.AutoWeeklyStats`, `SettingsWindow` (new section), `SettingsWindowViewModel.TryApplyWeeklyExportSchedule`, `FundStatisticsExportWindowViewModel` (LoadedCommand + persist-on-save + date-stamp helper), `Program.cs` (new — WindowsFormsApplicationBase wrapper), `App.xaml.cs` (TriggerWeeklyStatsExportWindow/HandleAutoWeeklyStatsTrigger + WAL pragma), `MainWindow.xaml` (status chip), `MainWindowViewModel.UpdateWeeklyExportStatus`. csproj adds `<UseWindowsForms>true</UseWindowsForms>` + `<StartupObject>YieldRaccoon.Wpf.Program</StartupObject>` + removes WinForms implicit usings to avoid collisions with WPF types. All 315 unit tests (WPF + Infrastructure) passing. |
 
 ### NuGet Dependencies
@@ -754,6 +757,26 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 | **Orchestrator** | `PersistChartDataAsync` in `AboutFundOrchestrator` (async void, resolves ISIN from schedule) | ✅ |
 | **DI** | Autofac registration in `PresentationModule` with NLog logger | ✅ |
 
+### Portfolio Allocation Ingestion Pipeline ✅ COMPLETED (2026-05-08)
+
+Captures country and sector portfolio allocations from the `_api/fund-reference/portfolio-data/{orderBookId}` endpoint into a normalized 4-table schema (`Countries`, `Sectors`, `FundCountryAllocations`, `FundSectorAllocations`) with Guid PKs. Latest-only (no history); diff-based upsert with delete-missing on re-crawl. Dual-writes to backend cloud sync. Switched YieldRaccoon from `EnsureCreatedAsync` to migration-based schema management with two migrations: `InitialCreate` (baseline of existing schema) and `AddFundAllocations` (new tables). Backend mirrors the schema with the same diff/upsert logic and a `POST /api/funds/portfolio-allocations` endpoint. JSON wire field `name`/`y` renamed via `[JsonPropertyName]` to descriptive `DisplayName`/`Percentage` properties end-to-end. `holdingChartData` and `previousY`/`portfolioDate` intentionally not persisted.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `Country`, `Sector`, `FundCountryAllocation`, `FundSectorAllocation` entities + Guid value-object IDs | ✅ |
+| **Infrastructure** | `PortfolioDataResponse` anti-corruption DTO (`[JsonPropertyName]` for `name`/`y` rename) | ✅ |
+| **Infrastructure** | EF Core configurations (4) + value converters + repositories | ✅ |
+| **Application** | `IPortfolioDataIngestionService` + 4 repository interfaces | ✅ |
+| **Infrastructure** | `PortfolioDataIngestionService` (diff-based upsert) + `DualWritePortfolioDataIngestionService` decorator + `NoOpPortfolioDataIngestionService` for InMemory provider | ✅ |
+| **Migrations** | YR `InitialCreate` baseline + `AddFundAllocations`; backend `AddFundAllocations` | ✅ |
+| **Capture** | Passive metadata capture in `AboutFundPageDataCollector.TryCaptureMetadata` (no new completion slot) | ✅ |
+| **Orchestrator** | Wired into `PersistChartDataAsync` (auto mode) + `PersistChartDataForManualAsync` (manual mode) | ✅ |
+| **DI** | `PresentationModule` registers EF repos (SQLite/DualWrite), real ingestion service (SQLite), no-op (InMemory), dual-write decorator (DualWrite) | ✅ |
+| **Backend** | Mirror schema (4 entities + 4 value objects + 4 configurations + 4 repos) + `POST /api/funds/portfolio-allocations` controller + `FundSyncService.SyncPortfolioAllocationsAsync` | ✅ |
+| **WPF Cloud Client** | `IFundSyncApiClient.SyncPortfolioAllocationsAsync` + `FundSyncApiClient` impl with retry | ✅ |
+| **Schema migration** | YR `App.xaml.cs` switched from `EnsureCreatedAsync` → `MigrateAsync` with auto-stamp baseline (legacy `EnsureCreated` databases are detected on startup and have `__EFMigrationsHistory` populated with the InitialCreate row, so existing data is preserved — no manual DB rebuild required); `DesignTimeYieldRaccoonDbContextFactory` added so EF tools can resolve context (Autofac runtime DI doesn't apply at design time) | ✅ |
+| **Tests** | YR: 24 new tests across 4 files (DTO deserialization × 4, ingestion service × 10, dual-write × 4, repository × 6). Backend: 4 new tests on `FundSyncService_SyncPortfolioAllocationsAsync`. All 311 YR Infrastructure + 54 YR WPF + 226 backend tests passing. | ✅ |
+
 ### Fund Data Export ✅ COMPLETED (2026-02-24)
 
 Export window allowing users to filter the fund database by company name and time period, saving the filtered result as a standalone SQLite `.db` file. Original database is never modified — the pipeline copies first, then filters the copy.
@@ -824,6 +847,47 @@ Export fund profile metadata (fees, risk metrics, classifications) as a companio
 **Metadata columns (17):** isin, name, company_name, currency_code, category, fund_type, is_index_fund, managed_type, total_fee, management_fee, risk, rating, sharpe_ratio, standard_deviation, recommended_holding_period, capital, number_of_owners
 
 **Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
+
+### Statistics Export v2 — snapshot.csv + ISO-week filenames + column renames ✅ COMPLETED (2026-04-30)
+
+Restructured the Statistics Export to match the new design docs ([summary-csv-plan.md](YieldRaccoon/docs/summary-csv-plan.md), [snapshot-csv-plan.md](YieldRaccoon/docs/snapshot-csv-plan.md)). One Export click now writes three CSVs (summary + snapshot + metadata) under one ISO-week-tagged family. Re-running the same week overwrites the same files (immutability invariant).
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundSnapshotCsvExportService` (new interface) | ✅ |
+| **Infrastructure** | `FundQueryHelpers` (extracted shared SQL: `ReadFundProfilesAsync`, `ReadNavSeriesAsync`, `GetLatestNavDateAsync`) | ✅ |
+| **Infrastructure** | `FundSnapshotStatistics` record + `FundSnapshotStatisticsCalculator` (pure math; 12w + 1y horizons) | ✅ |
+| **Infrastructure** | `FundSnapshotCsvExportService` (10-column CSV anchored at MAX(NavDate); NaN-on-insufficient-history; duplicate-ISIN halt) | ✅ |
+| **Infrastructure** | `FundSummaryStatistics` properties renamed: `Return2wPct`, `AnnVolatility2wPct`, `MaxDrawdown2wPct`, `Sharpe2w` | ✅ |
+| **Infrastructure** | `FundStatisticsCalculator` — added `NearZeroVolatilityThresholdPct = 0.01` constant; Sharpe → NaN when vol < 0.01 % | ✅ |
+| **Infrastructure** | `FundStatisticsCsvExportService` — new header (4 renames), `MinimumWindowDays = 7` drops partial trailing buckets, `(Isin, PeriodStart)` duplicate halt, NaN literal serialization | ✅ |
+| **Presentation** | `IsoWeekFilenameBuilder` — `BuildFamilyTag` + `BuildIsoWeekTag` (uses `System.Globalization.ISOWeek`) | ✅ |
+| **Presentation** | ViewModel: 3rd output path `SnapshotOutputPath`, `BrowseSnapshotCommand`, ISO-week-based default-path builder, dropped `AppendDateSuffix` and the auto-weekly date-suffix branches | ✅ |
+| **Presentation** | XAML: third "Snapshot output file" TextBox + Browse; window height bumped to 500 | ✅ |
+| **Configuration** | `UserSettings.StatsExportSnapshotOutputPath` for persistence | ✅ |
+| **DI** | `FundSnapshotCsvExportService` registered in `PresentationModule` | ✅ |
+| **Tests** | `FundSnapshotStatisticsCalculatorTests` (4 tests), `FundSnapshotCsvExportServiceTests` (5 tests), `IsoWeekFilenameBuilderTests` (7 tests) | ✅ |
+| **Tests** | `FundStatisticsCalculatorTests` updated (renamed props + 2 new tests for volatility guard) | ✅ |
+| **Tests** | `FundStatisticsCsvExportServiceTests` — 3 new tests (v2 header assertion + drop-partial-bucket + keep-7-day-bucket) | ✅ |
+| **Tests** | `FundStatisticsExportWindowViewModelTests` — 3 new tests (ISO-week defaults, family tag, no date suffix) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` updated for v2 schema + 3-file output + Claude prompt refresh | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT-AGENT-GUIDE.md` (NEW — concise schema reference for AI agent context) | ✅ |
+| **Docs** | `docs/snapshot-csv-plan.md` updated to use `_pct` suffix on volatility columns (consistency with summary) | ✅ |
+
+**Filename change (replaces all date-based naming):**
+
+| Scenario | Before | After |
+| -------- | ------ | ----- |
+| Default summary | `YieldRaccoon_summary_2weeks_1year.csv` | `YieldRaccoon_summary_all_2026-W18.csv` |
+| Default metadata | `YieldRaccoon_metadata.csv` | `YieldRaccoon_metadata_all_2026-W18.csv` |
+| Auto-weekly | `..._2weeks_1year_2026-04-30.csv` | `..._all_2026-W18.csv` (no date suffix) |
+| Snapshot | (did not exist) | `YieldRaccoon_snapshot_all_2026-W18.csv` |
+
+**Schema renames (clean cutover, no parallel emission):**
+
+`total_return_pct → return_2w_pct`, `ann_volatility → ann_volatility_2w_pct`, `sharpe_ratio → sharpe_2w`, `max_drawdown_pct → max_drawdown_2w_pct`. Snapshot mirrors with `_pct` suffix on volatility columns for symmetry.
+
+**Test results:** 287 / 287 Infrastructure + 52 / 52 WPF tests passing.
 
 ### Manual Data Collection Mode ✅ COMPLETED (2026-02-24)
 

@@ -77,6 +77,66 @@ public class FundStatisticsCsvExportServiceTests
     }
 
     [Test]
+    public async Task ExportAsync_WritesV2HeaderWithRenamedColumns()
+    {
+        // Arrange
+        var sourcePath = await CreateSourceDatabaseAsync();
+        var destPath = Path.Combine(_tempDir, "stats.csv");
+
+        // Act
+        await _sut.ExportAsync(sourcePath, destPath, windowSizeDays: 30, minNumberOfOwners: 0);
+
+        // Assert — first line is the v2 header
+        var firstLine = (await File.ReadAllLinesAsync(destPath))[0];
+        Assert.That(firstLine, Is.EqualTo(
+            "isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low," +
+            "return_2w_pct,ann_volatility_2w_pct,max_drawdown_2w_pct,current_drawdown_pct,sharpe_2w," +
+            "best_day_pct,worst_day_pct,pct_positive_days,skewness"));
+    }
+
+    [Test]
+    public void SliceIntoWindows_DropsTrailingPartialBucketBelow7Days()
+    {
+        // Arrange — 14-day windows. Series spans ~17 days; the last 3 days form a partial bucket.
+        var series = new List<(DateOnly date, decimal nav)>
+        {
+            (new DateOnly(2026, 1, 1), 100m),
+            (new DateOnly(2026, 1, 5), 101m),
+            (new DateOnly(2026, 1, 10), 102m),
+            (new DateOnly(2026, 1, 14), 103m),
+            // New window starts here (>=14 days from 2026-01-01)
+            (new DateOnly(2026, 1, 15), 104m),
+            (new DateOnly(2026, 1, 17), 105m),  // Only 3-day span — should be dropped
+        };
+
+        // Act
+        var windows = FundStatisticsCsvExportService.SliceIntoWindows(series, windowSizeDays: 14);
+
+        // Assert — the partial trailing window must not appear
+        Assert.That(windows.Count, Is.EqualTo(1), "Partial trailing bucket (<7 days) must be dropped");
+        Assert.That(windows[0][0].date, Is.EqualTo(new DateOnly(2026, 1, 1)));
+    }
+
+    [Test]
+    public void SliceIntoWindows_KeepsTrailingBucketOf7DaysOrMore()
+    {
+        // Arrange — 14-day windows; trailing window spans exactly 7 days → keep
+        var series = new List<(DateOnly date, decimal nav)>
+        {
+            (new DateOnly(2026, 1, 1), 100m),
+            (new DateOnly(2026, 1, 14), 102m),
+            (new DateOnly(2026, 1, 15), 103m),
+            (new DateOnly(2026, 1, 22), 105m),  // 7-day trailing window
+        };
+
+        // Act
+        var windows = FundStatisticsCsvExportService.SliceIntoWindows(series, windowSizeDays: 14);
+
+        // Assert
+        Assert.That(windows.Count, Is.EqualTo(2), "Trailing window of 7+ days must be emitted");
+    }
+
+    [Test]
     public async Task ExportAsync_AllFilters_BuyableAndCompanyAndOwners()
     {
         // Arrange

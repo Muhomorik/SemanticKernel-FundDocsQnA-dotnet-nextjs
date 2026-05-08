@@ -381,8 +381,13 @@ public partial class App
 
             var dbContext = _appScope!.Resolve<YieldRaccoonDbContext>();
 
-            // Ensure database is created (applies pending migrations or creates from model)
-            await dbContext.Database.EnsureCreatedAsync();
+            // One-time baseline stamp: legacy databases were created via EnsureCreatedAsync
+            // and have no __EFMigrationsHistory table. Insert the InitialCreate row so
+            // MigrateAsync only applies the genuinely-new migrations (AddFundAllocations).
+            await StampBaselineMigrationIfNeededAsync(dbContext);
+
+            // Apply pending migrations (creates schema on first run via the baseline migration)
+            await dbContext.Database.MigrateAsync();
 
             // Enable WAL so readers (e.g., scheduled statistics export) don't block on writers
             // (the active crawl session). WAL setting is persistent per database file.
@@ -396,4 +401,54 @@ public partial class App
             throw;
         }
     }
+
+    /// <summary>
+    /// Detects pre-migration databases (created by an earlier <c>EnsureCreatedAsync</c> flow)
+    /// and stamps the InitialCreate baseline migration as already applied. Without this,
+    /// <see cref="RelationalDatabaseFacadeExtensions.MigrateAsync"/> would try to re-create
+    /// existing tables and fail. New databases are untouched and proceed through the normal
+    /// migration flow.
+    /// </summary>
+    private static async Task StampBaselineMigrationIfNeededAsync(YieldRaccoonDbContext dbContext)
+    {
+        var hasFundProfiles = await TableExistsAsync(dbContext, "FundProfiles");
+        var hasMigrationHistory = await TableExistsAsync(dbContext, "__EFMigrationsHistory");
+
+        if (!hasFundProfiles || hasMigrationHistory)
+            return;
+
+        Logger.Info("Detected pre-migration database — stamping InitialCreate baseline");
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+                "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
+                "ProductVersion" TEXT NOT NULL
+            );
+            """);
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+            VALUES ('20260508134923_InitialCreate', '9.0.0');
+            """);
+    }
+
+    private static async Task<bool> TableExistsAsync(YieldRaccoonDbContext dbContext, string tableName)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync();
+
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $name;";
+        var nameParam = cmd.CreateParameter();
+        nameParam.ParameterName = "$name";
+        nameParam.Value = tableName;
+        cmd.Parameters.Add(nameParam);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result is not null && Convert.ToInt32(result) > 0;
+    }
+    
 }

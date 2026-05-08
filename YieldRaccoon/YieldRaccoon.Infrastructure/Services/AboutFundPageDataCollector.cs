@@ -231,27 +231,33 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
 
     #region Metadata capture
 
-    /// <summary>
-    /// URL fragment that identifies the fund-reference API response.
-    /// </summary>
+    /// <summary>URL fragment that identifies the fund-reference API response.</summary>
     private const string FundReferenceUrlFragment = "_api/fund-reference/reference/";
 
+    /// <summary>URL fragment that identifies the portfolio-data API response (country/sector allocations).</summary>
+    private const string PortfolioDataUrlFragment = "_api/fund-reference/portfolio-data/";
+
     /// <summary>
-    /// Checks whether the intercepted response is a fund-reference API call
-    /// and, if so, stores the raw JSON on the current page data for later
-    /// description extraction. Does not affect slot routing or completion.
+    /// Checks whether the intercepted response is a passive metadata API call
+    /// (fund-reference or portfolio-data) and, if so, stores the raw JSON on the
+    /// current page data. Does not affect slot routing or completion.
     /// </summary>
     private void TryCaptureMetadata(AboutFundInterceptedRequest request)
     {
         var url = request.Url.AbsoluteUri;
 
-        if (!url.Contains(FundReferenceUrlFragment, StringComparison.OrdinalIgnoreCase))
+        var isFundReference = url.Contains(FundReferenceUrlFragment, StringComparison.OrdinalIgnoreCase);
+        var isPortfolioData = url.Contains(PortfolioDataUrlFragment, StringComparison.OrdinalIgnoreCase);
+
+        if (!isFundReference && !isPortfolioData)
             return;
+
+        var label = isFundReference ? "fund-reference" : "portfolio-data";
 
         if (request.StatusCode is < 200 or >= 300)
         {
-            _logger.Warn("Fund-reference response matched but status {0} — skipping capture",
-                request.StatusCode);
+            _logger.Warn("{0} response matched but status {1} — skipping capture",
+                label, request.StatusCode);
             return;
         }
 
@@ -259,14 +265,16 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
         {
             if (_current == null)
             {
-                _logger.Warn("Fund-reference response received but no collection is active");
+                _logger.Warn("{0} response received but no collection is active", label);
                 return;
             }
 
-            _current = _current with { FundReferenceJson = request.ResponseBody };
+            _current = isFundReference
+                ? _current with { FundReferenceJson = request.ResponseBody }
+                : _current with { PortfolioDataJson = request.ResponseBody };
         }
 
-        _logger.Debug("Captured fund-reference metadata ({0} chars)", request.ResponseBody.Length);
+        _logger.Debug("Captured {0} metadata ({1} chars)", label, request.ResponseBody.Length);
     }
 
     #endregion
@@ -387,6 +395,7 @@ public class AboutFundPageDataCollector : IAboutFundPageDataCollector, IDisposab
 
     #endregion
 
+    
     #region Interaction scheduling
 
     /// <summary>

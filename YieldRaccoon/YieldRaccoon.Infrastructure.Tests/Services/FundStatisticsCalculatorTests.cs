@@ -51,7 +51,7 @@ public class FundStatisticsCalculatorTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.TotalReturnPct, Is.EqualTo(5.0).Within(0.01));
+        Assert.That(result!.Return2wPct, Is.EqualTo(5.0).Within(0.01));
     }
 
     #endregion
@@ -68,7 +68,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.TotalReturnPct, Is.EqualTo(10.0).Within(0.01));
+        Assert.That(result.Return2wPct, Is.EqualTo(10.0).Within(0.01));
     }
 
     [Test]
@@ -81,7 +81,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.TotalReturnPct, Is.EqualTo(-10.0).Within(0.01));
+        Assert.That(result.Return2wPct, Is.EqualTo(-10.0).Within(0.01));
     }
 
     #endregion
@@ -109,20 +109,35 @@ public class FundStatisticsCalculatorTests
     #region Constant NAV
 
     [Test]
-    public void Compute_ConstantNav_ReturnsZeroVolatilityAndSharpe()
+    public void Compute_ConstantNav_ReturnsZeroVolatilityAndNaNSharpe()
     {
-        // Arrange — all NAVs are identical
+        // Arrange — all NAVs are identical → vol = 0, which trips the near-zero-vol guard
         var navValues = new[] { 100.0m, 100.0m, 100.0m, 100.0m, 100.0m };
 
         // Act
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.AnnVolatility, Is.EqualTo(0.0));
-        Assert.That(result.SharpeRatio, Is.EqualTo(0.0));
-        Assert.That(result.TotalReturnPct, Is.EqualTo(0.0));
+        Assert.That(result.AnnVolatility2wPct, Is.EqualTo(0.0));
+        Assert.That(double.IsNaN(result.Sharpe2w), Is.True, "Sharpe must be NaN when volatility is below the guard threshold");
+        Assert.That(result.Return2wPct, Is.EqualTo(0.0));
         Assert.That(result.BestDayPct, Is.EqualTo(0.0));
         Assert.That(result.WorstDayPct, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public void Compute_NearZeroVolatility_ReturnsNaNSharpe()
+    {
+        // Arrange — minuscule daily moves below the 0.01 % annualized-vol threshold.
+        // NAV values 100, 100.000001, 100, 100.000001 produce vol ≈ 1e-6 % — well under 0.01 %.
+        var navValues = new[] { 100.0m, 100.000001m, 100.0m, 100.000001m, 100.0m };
+
+        // Act
+        var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
+
+        // Assert
+        Assert.That(result.AnnVolatility2wPct, Is.LessThan(0.01));
+        Assert.That(double.IsNaN(result.Sharpe2w), Is.True, "Sharpe must be NaN when ann_volatility < 0.01 %");
     }
 
     #endregion
@@ -141,7 +156,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.AnnVolatility, Is.EqualTo(18.24).Within(0.5));
+        Assert.That(result.AnnVolatility2wPct, Is.EqualTo(18.24).Within(0.5));
     }
 
     #endregion
@@ -158,7 +173,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.MaxDrawdownPct, Is.EqualTo(-25.0).Within(0.01));
+        Assert.That(result.MaxDrawdown2wPct, Is.EqualTo(-25.0).Within(0.01));
     }
 
     [Test]
@@ -201,7 +216,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.SharpeRatio, Is.GreaterThan(0));
+        Assert.That(result.Sharpe2w, Is.GreaterThan(0));
     }
 
     [Test]
@@ -214,7 +229,7 @@ public class FundStatisticsCalculatorTests
         var result = FundStatisticsCalculator.Compute(TestIsin, TestName, PeriodStart, PeriodEnd, navValues)!;
 
         // Assert
-        Assert.That(result.SharpeRatio, Is.LessThan(0));
+        Assert.That(result.Sharpe2w, Is.LessThan(0));
     }
 
     #endregion

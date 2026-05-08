@@ -3,12 +3,19 @@ using MathNet.Numerics.Statistics;
 namespace YieldRaccoon.Infrastructure.Services;
 
 /// <summary>
-/// Computes summary statistics from an ordered series of daily NAV values.
+/// Computes per-bucket summary statistics from an ordered series of daily NAV values.
 /// Pure math — no I/O, no dependencies beyond MathNet.Numerics.
 /// </summary>
 internal static class FundStatisticsCalculator
 {
     private const int TradingDaysPerYear = 252;
+
+    /// <summary>
+    /// Below this annualized-volatility level (expressed on the *_pct scale), the Sharpe denominator
+    /// approaches zero and the ratio explodes. Setting Sharpe to NaN avoids spurious +40 readings on
+    /// near-constant NAV series (typically money-market / bond funds). 0.01 means 0.01 percent, not 1 percent.
+    /// </summary>
+    private const double NearZeroVolatilityThresholdPct = 0.01;
 
     /// <summary>
     /// Computes 13 summary statistics for a single time window of NAV data.
@@ -43,19 +50,20 @@ internal static class FundStatisticsCalculator
         }
 
         // Total return
-        var totalReturnPct = firstNav == 0 ? 0 : (double)(lastNav / firstNav - 1) * 100;
+        var return2wPct = firstNav == 0 ? 0 : (double)(lastNav / firstNav - 1) * 100;
 
         // Annualized volatility = std(daily_returns) × √252 × 100
         var dailyStdDev = dailyReturns.StandardDeviation();
-        var annVolatility = dailyStdDev * Math.Sqrt(TradingDaysPerYear) * 100;
+        var annVolatility2wPct = dailyStdDev * Math.Sqrt(TradingDaysPerYear) * 100;
 
         // Drawdowns
-        var (maxDrawdownPct, currentDrawdownPct) = ComputeDrawdowns(navValues);
+        var (maxDrawdown2wPct, currentDrawdownPct) = ComputeDrawdowns(navValues);
 
-        // Sharpe ratio (risk-free rate = 0): ann_return / ann_volatility
+        // Sharpe ratio (risk-free rate = 0): ann_return / ann_volatility.
+        // Guard near-zero volatility — see NearZeroVolatilityThresholdPct.
         var annReturn = dailyReturns.Mean() * TradingDaysPerYear;
-        var sharpeRatio = dailyStdDev == 0
-            ? 0
+        var sharpe2w = annVolatility2wPct < NearZeroVolatilityThresholdPct
+            ? double.NaN
             : annReturn / (dailyStdDev * Math.Sqrt(TradingDaysPerYear));
 
         // Best/worst single-day return
@@ -83,11 +91,11 @@ internal static class FundStatisticsCalculator
             LastNav: lastNav,
             NavHigh: navHigh,
             NavLow: navLow,
-            TotalReturnPct: totalReturnPct,
-            AnnVolatility: annVolatility,
-            MaxDrawdownPct: maxDrawdownPct,
+            Return2wPct: return2wPct,
+            AnnVolatility2wPct: annVolatility2wPct,
+            MaxDrawdown2wPct: maxDrawdown2wPct,
             CurrentDrawdownPct: currentDrawdownPct,
-            SharpeRatio: sharpeRatio,
+            Sharpe2w: sharpe2w,
             BestDayPct: bestDayPct,
             WorstDayPct: worstDayPct,
             PctPositiveDays: pctPositiveDays,

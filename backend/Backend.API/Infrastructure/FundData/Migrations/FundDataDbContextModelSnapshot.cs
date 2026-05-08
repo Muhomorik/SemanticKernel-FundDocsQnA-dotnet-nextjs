@@ -22,6 +22,60 @@ namespace Backend.API.Infrastructure.FundData.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.Country", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CountryId");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayName")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Countries_DisplayName");
+
+                    b.ToTable("Countries", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundCountryAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("FundCountryAllocationId");
+
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CountryId");
+
+                    b.Property<string>("IsinId")
+                        .IsRequired()
+                        .HasColumnType("NCHAR(12)")
+                        .HasColumnName("Isin")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("DECIMAL(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("IsinId", "CountryId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FundCountryAllocations_Isin_CountryId");
+
+                    b.ToTable("FundCountryAllocations", (string)null);
+                });
+
             modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundHistoryRecord", b =>
                 {
                     b.Property<long>("Id")
@@ -200,6 +254,71 @@ namespace Backend.API.Infrastructure.FundData.Migrations
                     b.ToTable("FundProfiles", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundSectorAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("FundSectorAllocationId");
+
+                    b.Property<string>("IsinId")
+                        .IsRequired()
+                        .HasColumnType("NCHAR(12)")
+                        .HasColumnName("Isin")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("DECIMAL(5,2)");
+
+                    b.Property<Guid>("SectorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("SectorId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectorId");
+
+                    b.HasIndex("IsinId", "SectorId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FundSectorAllocations_Isin_SectorId");
+
+                    b.ToTable("FundSectorAllocations", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.Sector", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("SectorId");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayName")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Sectors_DisplayName");
+
+                    b.ToTable("Sectors", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundCountryAllocation", b =>
+                {
+                    b.HasOne("Backend.API.Domain.FundData.Models.Country", null)
+                        .WithMany()
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Domain.FundData.Models.FundProfile", null)
+                        .WithMany()
+                        .HasForeignKey("IsinId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundHistoryRecord", b =>
                 {
                     b.HasOne("Backend.API.Domain.FundData.Models.FundProfile", "FundProfile")
@@ -209,6 +328,21 @@ namespace Backend.API.Infrastructure.FundData.Migrations
                         .IsRequired();
 
                     b.Navigation("FundProfile");
+                });
+
+            modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundSectorAllocation", b =>
+                {
+                    b.HasOne("Backend.API.Domain.FundData.Models.FundProfile", null)
+                        .WithMany()
+                        .HasForeignKey("IsinId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.API.Domain.FundData.Models.Sector", null)
+                        .WithMany()
+                        .HasForeignKey("SectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Backend.API.Domain.FundData.Models.FundProfile", b =>

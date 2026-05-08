@@ -5,6 +5,7 @@ using YieldRaccoon.Application.DTOs.Api;
 using YieldRaccoon.Application.Exceptions;
 using YieldRaccoon.Application.Services;
 
+
 namespace YieldRaccoon.Infrastructure.Services;
 
 /// <summary>
@@ -87,6 +88,23 @@ public class FundSyncApiClient : IFundSyncApiClient
         var response = await SendWithRetryAsync(
             ct => _httpClient.PostAsJsonAsync("api/funds/full-sync", request, ct),
             "SyncFundFullHistory",
+            cancellationToken);
+
+        var result = await response.Content.ReadFromJsonAsync<FundSyncResponse>(cancellationToken);
+        return result ?? throw new InvalidOperationException("Backend API returned null response");
+    }
+
+    /// <inheritdoc />
+    public async Task<FundSyncResponse> SyncPortfolioAllocationsAsync(
+        FundPortfolioAllocationsSyncRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.Debug("Portfolio allocations sync for {0}: {1} countries + {2} sectors to POST /api/funds/portfolio-allocations",
+            request.Isin, request.Countries.Count, request.Sectors.Count);
+
+        var response = await SendWithRetryAsync(
+            ct => _httpClient.PostAsJsonAsync("api/funds/portfolio-allocations", request, ct),
+            "SyncPortfolioAllocations",
             cancellationToken);
 
         var result = await response.Content.ReadFromJsonAsync<FundSyncResponse>(cancellationToken);

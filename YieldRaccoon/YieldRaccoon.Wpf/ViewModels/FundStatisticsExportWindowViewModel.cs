@@ -12,7 +12,8 @@ namespace YieldRaccoon.Wpf.ViewModels;
 
 /// <summary>
 /// ViewModel for the Fund Statistics Export window.
-/// Computes summary statistics per fund per time window and exports as CSV.
+/// Coordinates the per-bucket summary CSV, the rolling-horizon snapshot CSV, and the metadata CSV —
+/// all written under the same ISO-week-tagged filename family so a "week bundle" matches by glob.
 /// </summary>
 public class FundStatisticsExportWindowViewModel : ViewModelBase
 {
@@ -23,6 +24,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     private readonly ILogger _logger;
     private readonly IFundStatisticsCsvExportService _exportService;
     private readonly IFundMetadataCsvExportService _metadataExportService;
+    private readonly IFundSnapshotCsvExportService _snapshotExportService;
     private readonly DatabaseOptions _databaseOptions;
     private readonly IUserSettingsService? _userSettingsService;
     private readonly UserSettings? _userSettings;
@@ -38,17 +40,11 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     /// <summary>
     /// Initializes a new instance of the <see cref="FundStatisticsExportWindowViewModel"/> class.
     /// </summary>
-    /// <param name="logger">Logger for diagnostic output.</param>
-    /// <param name="exportService">Service for computing and exporting fund statistics.</param>
-    /// <param name="metadataExportService">Service for exporting fund profile metadata.</param>
-    /// <param name="databaseOptions">Current database configuration.</param>
-    /// <param name="userSettingsService">Persists last-used export values back to disk on successful export.</param>
-    /// <param name="userSettings">Current user settings — pre-populates fields on open.</param>
-    /// <param name="autoStartOptions">CLI options — <c>--auto-weekly-stats</c> flips this VM into scheduled-run mode.</param>
     public FundStatisticsExportWindowViewModel(
         ILogger logger,
         IFundStatisticsCsvExportService exportService,
         IFundMetadataCsvExportService metadataExportService,
+        IFundSnapshotCsvExportService snapshotExportService,
         DatabaseOptions databaseOptions,
         IUserSettingsService userSettingsService,
         UserSettings userSettings,
@@ -57,6 +53,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _metadataExportService = metadataExportService ?? throw new ArgumentNullException(nameof(metadataExportService));
+        _snapshotExportService = snapshotExportService ?? throw new ArgumentNullException(nameof(snapshotExportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
         _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
         _userSettings = userSettings ?? throw new ArgumentNullException(nameof(userSettings));
@@ -73,12 +70,14 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         SelectedLookbackPeriod = FindPeriodOrDefault(LookbackPeriods, userSettings.StatsExportLookbackDays, DefaultLookbackDays);
         MinNumberOfOwners = userSettings.StatsExportMinOwners ?? DefaultMinNumberOfOwners;
         CompanyName = userSettings.StatsExportCompanyFilter ?? string.Empty;
-        OutputPath = !string.IsNullOrWhiteSpace(userSettings.StatsExportOutputPath)
-            ? userSettings.StatsExportOutputPath
-            : BuildDefaultPath(CompanyName, SelectedPeriod, SelectedLookbackPeriod);
-        MetadataOutputPath = !string.IsNullOrWhiteSpace(userSettings.StatsExportMetadataOutputPath)
-            ? userSettings.StatsExportMetadataOutputPath
-            : BuildDefaultMetadataPath(CompanyName);
+
+        // Default paths are always rebuilt from CompanyName + current ISO week. The persisted
+        // OutputPath / SnapshotOutputPath / MetadataOutputPath properties on UserSettings are
+        // intentionally ignored — they were per-run customizations from v1 with stale ISO weeks
+        // and the legacy "_2weeks_1year" tag baked in. Browse-button overrides remain session-scoped.
+        OutputPath = BuildDefaultPath("summary", CompanyName);
+        SnapshotOutputPath = BuildDefaultPath("snapshot", CompanyName);
+        MetadataOutputPath = BuildDefaultPath("metadata", CompanyName);
 
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -88,6 +87,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
         ExportCommand = new DelegateCommand(ExecuteExport, CanExecuteExport, true);
         BrowseCommand = new DelegateCommand(ExecuteBrowse, CanExecuteBrowse, true);
+        BrowseSnapshotCommand = new DelegateCommand(ExecuteBrowseSnapshot, CanExecuteBrowse, true);
         BrowseMetadataCommand = new DelegateCommand(ExecuteBrowseMetadata, CanExecuteBrowse, true);
         CloseCommand = new DelegateCommand(ExecuteClose);
         WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
@@ -104,6 +104,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _logger = LogManager.GetCurrentClassLogger();
         _exportService = null!;
         _metadataExportService = null!;
+        _snapshotExportService = null!;
         _databaseOptions = new DatabaseOptions();
         _userSettingsService = null;
         _userSettings = null;
@@ -116,8 +117,9 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         LookbackPeriods = CreateLookbackPeriods();
         SelectedLookbackPeriod = LookbackPeriods[4]; // 1 year
         CompanyName = string.Empty;
-        OutputPath = @"YieldRaccoon_summary_2weeks_1year.csv";
-        MetadataOutputPath = @"YieldRaccoon_metadata.csv";
+        OutputPath = "YieldRaccoon_summary_all_2026-W18.csv";
+        SnapshotOutputPath = "YieldRaccoon_snapshot_all_2026-W18.csv";
+        MetadataOutputPath = "YieldRaccoon_metadata_all_2026-W18.csv";
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -127,6 +129,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
         ExportCommand = new DelegateCommand(() => { });
         BrowseCommand = new DelegateCommand(() => { });
+        BrowseSnapshotCommand = new DelegateCommand(() => { });
         BrowseMetadataCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         WindowClosingCommand = new DelegateCommand(() => { });
@@ -146,11 +149,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     public ExportPeriod SelectedPeriod
     {
         get => GetProperty(() => SelectedPeriod);
-        set
-        {
-            if (SetProperty(() => SelectedPeriod, value))
-                UpdateDefaultFilename();
-        }
+        set => SetProperty(() => SelectedPeriod, value);
     }
 
     /// <summary>
@@ -164,11 +163,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     public ExportPeriod SelectedLookbackPeriod
     {
         get => GetProperty(() => SelectedLookbackPeriod);
-        set
-        {
-            if (SetProperty(() => SelectedLookbackPeriod, value))
-                UpdateDefaultFilename();
-        }
+        set => SetProperty(() => SelectedLookbackPeriod, value);
     }
 
     /// <summary>
@@ -180,17 +175,26 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(() => CompanyName, value))
-                UpdateDefaultFilename();
+                UpdateDefaultFilenames();
         }
     }
 
     /// <summary>
-    /// Gets or sets the output CSV file path.
+    /// Gets or sets the summary CSV output file path.
     /// </summary>
     public string OutputPath
     {
         get => GetProperty(() => OutputPath);
         set => SetProperty(() => OutputPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the snapshot CSV output file path.
+    /// </summary>
+    public string SnapshotOutputPath
+    {
+        get => GetProperty(() => SnapshotOutputPath);
+        set => SetProperty(() => SnapshotOutputPath, value);
     }
 
     /// <summary>
@@ -271,9 +275,14 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     public ICommand ExportCommand { get; }
 
     /// <summary>
-    /// Gets the command to browse for an output file location.
+    /// Gets the command to browse for a summary output file location.
     /// </summary>
     public ICommand BrowseCommand { get; }
+
+    /// <summary>
+    /// Gets the command to browse for a snapshot output file location.
+    /// </summary>
+    public ICommand BrowseSnapshotCommand { get; }
 
     /// <summary>
     /// Gets the command to browse for a metadata output file location.
@@ -305,6 +314,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         return IsSqliteProvider
                && !IsExporting
                && !string.IsNullOrWhiteSpace(OutputPath)
+               && !string.IsNullOrWhiteSpace(SnapshotOutputPath)
                && !string.IsNullOrWhiteSpace(MetadataOutputPath);
     }
 
@@ -318,11 +328,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         ProgressValue = 0;
         ProgressText = "Starting...";
 
-        // Scheduled weekly runs always append a date suffix so each week's snapshot is preserved
-        // instead of overwriting the previous one. Manual runs keep the user-picked filename.
         var isScheduledRun = _autoStartOptions?.AutoWeeklyStats == true;
-        var statsOutputPath = isScheduledRun ? AppendDateSuffix(OutputPath) : OutputPath;
-        var metadataOutputPath = isScheduledRun ? AppendDateSuffix(MetadataOutputPath) : MetadataOutputPath;
 
         try
         {
@@ -336,29 +342,36 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
                 ProgressText = $"Processing fund {p.processed} of {p.total}...";
             });
 
-            var rowCount = await _exportService.ExportAsync(
+            var summaryCount = await _exportService.ExportAsync(
                 sourcePath,
-                statsOutputPath,
+                OutputPath,
                 SelectedPeriod.Days,
                 companyFilter,
                 MinNumberOfOwners,
                 cutoffDate,
                 progress);
 
-            // Metadata export
-            ProgressText = "Writing metadata...";
-            var metadataRowCount = await _metadataExportService.ExportAsync(
+            ProgressText = "Writing snapshot...";
+            var snapshotCount = await _snapshotExportService.ExportAsync(
                 sourcePath,
-                metadataOutputPath,
+                SnapshotOutputPath,
+                companyFilter,
+                MinNumberOfOwners,
+                progress);
+
+            ProgressText = "Writing metadata...";
+            var metadataCount = await _metadataExportService.ExportAsync(
+                sourcePath,
+                MetadataOutputPath,
                 companyFilter,
                 MinNumberOfOwners);
 
-            StatusMessage = $"Exported {rowCount} stat rows + {metadataRowCount} metadata rows";
+            StatusMessage = $"Exported {summaryCount} summary + {snapshotCount} snapshot + {metadataCount} metadata rows";
             IsStatusError = false;
-            _logger.Info("Export completed: stats={0} ({1} rows), metadata={2} ({3} rows)",
-                statsOutputPath, rowCount, metadataOutputPath, metadataRowCount);
+            _logger.Info("Export completed: summary={0} ({1}), snapshot={2} ({3}), metadata={4} ({5})",
+                OutputPath, summaryCount, SnapshotOutputPath, snapshotCount, MetadataOutputPath, metadataCount);
 
-            PersistSuccessfulRun(rowCount, isScheduledRun);
+            PersistSuccessfulRun(summaryCount, isScheduledRun);
 
             if (isScheduledRun)
             {
@@ -404,6 +417,10 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _logger.Info("Auto-triggering Export command for scheduled weekly stats run");
         if (ExportCommand.CanExecute(null))
             ExportCommand.Execute(null);
+
+        // Singleton is shared across window lifetimes — clear after consuming so that
+        // a later manual open doesn't see stale scheduled-run intent and auto-close.
+        _autoStartOptions.AutoWeeklyStats = false;
     }
 
     private void PersistSuccessfulRun(int rowCount, bool isScheduledRun)
@@ -417,8 +434,12 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
             _userSettings.StatsExportLookbackDays = SelectedLookbackPeriod.Days;
             _userSettings.StatsExportMinOwners = MinNumberOfOwners;
             _userSettings.StatsExportCompanyFilter = string.IsNullOrWhiteSpace(CompanyName) ? null : CompanyName.Trim();
-            _userSettings.StatsExportOutputPath = OutputPath;
-            _userSettings.StatsExportMetadataOutputPath = MetadataOutputPath;
+
+            // Output paths are deterministic from CompanyName + current ISO week; clear any
+            // stale persisted values so they don't get re-loaded on next open.
+            _userSettings.StatsExportOutputPath = null;
+            _userSettings.StatsExportSnapshotOutputPath = null;
+            _userSettings.StatsExportMetadataOutputPath = null;
 
             if (isScheduledRun)
             {
@@ -435,61 +456,35 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         }
     }
 
-    private static string AppendDateSuffix(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return path;
-
-        var directory = Path.GetDirectoryName(path) ?? string.Empty;
-        var nameWithoutExt = Path.GetFileNameWithoutExtension(path);
-        var extension = Path.GetExtension(path);
-        var dateTag = DateTime.Now.ToString("yyyy-MM-dd");
-        var stamped = $"{nameWithoutExt}_{dateTag}{extension}";
-        return string.IsNullOrEmpty(directory) ? stamped : Path.Combine(directory, stamped);
-    }
-
     private bool CanExecuteBrowse() => !IsExporting;
 
-    private void ExecuteBrowse()
+    private void ExecuteBrowse() => OutputPath = BrowseForCsv("Select summary export location", OutputPath) ?? OutputPath;
+
+    private void ExecuteBrowseSnapshot() => SnapshotOutputPath = BrowseForCsv("Select snapshot export location", SnapshotOutputPath) ?? SnapshotOutputPath;
+
+    private void ExecuteBrowseMetadata() => MetadataOutputPath = BrowseForCsv("Select metadata export location", MetadataOutputPath) ?? MetadataOutputPath;
+
+    private string? BrowseForCsv(string title, string currentPath)
     {
-        _logger.Debug("Browse for statistics export output path");
+        _logger.Debug("Browse: {0}", title);
 
         var dialog = new SaveFileDialog
         {
-            Title = "Select export location",
+            Title = title,
             Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
             DefaultExt = ".csv",
-            FileName = Path.GetFileName(OutputPath),
-            InitialDirectory = GetInitialDirectory(),
+            FileName = Path.GetFileName(currentPath),
+            InitialDirectory = GetInitialDirectory(currentPath),
             OverwritePrompt = true
         };
 
         if (dialog.ShowDialog() == true)
         {
-            OutputPath = dialog.FileName;
-            _logger.Info("Selected statistics export path: {0}", OutputPath);
+            _logger.Info("Selected export path: {0}", dialog.FileName);
+            return dialog.FileName;
         }
-    }
 
-    private void ExecuteBrowseMetadata()
-    {
-        _logger.Debug("Browse for metadata export output path");
-
-        var dialog = new SaveFileDialog
-        {
-            Title = "Select metadata export location",
-            Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
-            DefaultExt = ".csv",
-            FileName = Path.GetFileName(MetadataOutputPath),
-            InitialDirectory = GetInitialDirectory(),
-            OverwritePrompt = true
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            MetadataOutputPath = dialog.FileName;
-            _logger.Info("Selected metadata export path: {0}", MetadataOutputPath);
-        }
+        return null;
     }
 
     private void ExecuteClose()
@@ -534,54 +529,32 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
                ?? periods[0];
     }
 
-    private void UpdateDefaultFilename()
+    private void UpdateDefaultFilenames()
     {
-        if (SelectedPeriod == null || SelectedLookbackPeriod == null)
-            return;
-
-        OutputPath = BuildDefaultPath(CompanyName, SelectedPeriod, SelectedLookbackPeriod);
-        MetadataOutputPath = BuildDefaultMetadataPath(CompanyName);
+        OutputPath = BuildDefaultPath("summary", CompanyName);
+        SnapshotOutputPath = BuildDefaultPath("snapshot", CompanyName);
+        MetadataOutputPath = BuildDefaultPath("metadata", CompanyName);
     }
 
-    private string BuildDefaultPath(string companyName, ExportPeriod period, ExportPeriod lookback)
+    private string BuildDefaultPath(string kind, string companyName)
     {
-        var periodTag = period.DisplayName.Replace(" ", "");
-        var lookbackTag = lookback.DisplayName.Replace(" ", "");
-        var filename = string.IsNullOrWhiteSpace(companyName)
-            ? $"YieldRaccoon_summary_{periodTag}_{lookbackTag}.csv"
-            : $"YieldRaccoon_summary_{SanitizeFilename(companyName.Trim())}_{periodTag}_{lookbackTag}.csv";
+        var family = IsoWeekFilenameBuilder.BuildFamilyTag(companyName);
+        var isoWeek = IsoWeekFilenameBuilder.BuildIsoWeekTag(DateTime.Now);
+        var filename = $"YieldRaccoon_{kind}_{family}_{isoWeek}.csv";
 
         return string.IsNullOrEmpty(_sourceDirectory)
             ? filename
             : Path.Combine(_sourceDirectory, filename);
     }
 
-    private string BuildDefaultMetadataPath(string companyName)
-    {
-        var filename = string.IsNullOrWhiteSpace(companyName)
-            ? "YieldRaccoon_metadata.csv"
-            : $"YieldRaccoon_metadata_{SanitizeFilename(companyName.Trim())}.csv";
-
-        return string.IsNullOrEmpty(_sourceDirectory)
-            ? filename
-            : Path.Combine(_sourceDirectory, filename);
-    }
-
-    private static string SanitizeFilename(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var sanitized = new string(name.Select(c => Array.IndexOf(invalid, c) >= 0 ? '_' : c).ToArray());
-        return sanitized.Replace(' ', '_');
-    }
-
-    private string GetInitialDirectory()
+    private string GetInitialDirectory(string currentPath)
     {
         if (!string.IsNullOrEmpty(_sourceDirectory) && Directory.Exists(_sourceDirectory))
             return _sourceDirectory;
 
         try
         {
-            var directory = Path.GetDirectoryName(OutputPath);
+            var directory = Path.GetDirectoryName(currentPath);
             if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
                 return directory;
         }

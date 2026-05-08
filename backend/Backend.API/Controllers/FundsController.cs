@@ -4,6 +4,7 @@ using Backend.API.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+
 namespace Backend.API.Controllers;
 
 /// <summary>
@@ -150,6 +151,51 @@ public class FundsController : ControllerBase
             _logger.LogError(ex, "Error during full history sync");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "An error occurred during full history sync" });
+        }
+    }
+
+    /// <summary>
+    /// Syncs the latest country and sector portfolio allocations for a single fund.
+    /// Diff-based upsert: insert new pairs, update existing percentages, delete pairs missing
+    /// from the latest payload. Lookup tables grow organically.
+    /// </summary>
+    [HttpPost("portfolio-allocations")]
+    [ProducesResponseType(typeof(FundSyncResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FundSyncResponse>> SyncPortfolioAllocations(
+        [FromBody] FundPortfolioAllocationsSyncRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsAzureSqlConfigured())
+        {
+            return AzureSqlNotConfiguredResponse();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            _logger.LogInformation("Portfolio-allocations sync for {Isin}: {Countries} countries + {Sectors} sectors",
+                request.Isin, request.Countries.Count, request.Sectors.Count);
+            var result = await _fundSyncService.SyncPortfolioAllocationsAsync(request, cancellationToken);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing portfolio allocations");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "An error occurred while syncing portfolio allocations" });
         }
     }
 

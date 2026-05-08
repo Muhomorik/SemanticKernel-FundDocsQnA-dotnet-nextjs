@@ -1,7 +1,9 @@
 namespace YieldRaccoon.Infrastructure.Services;
 
 /// <summary>
-/// Summary statistics computed from daily NAV data for a single fund over a single time window.
+/// Per-bucket summary statistics computed from daily NAV data for a single fund over a single
+/// bi-weekly time window. Field names use the <c>_2w</c> horizon suffix to disambiguate from
+/// snapshot.csv's <c>_12w</c> / <c>_1y</c> rolling-horizon counterparts.
 /// </summary>
 internal sealed record FundSummaryStatistics(
     string Isin,
@@ -12,11 +14,11 @@ internal sealed record FundSummaryStatistics(
     decimal LastNav,
     decimal NavHigh,
     decimal NavLow,
-    double TotalReturnPct,
-    double AnnVolatility,
-    double MaxDrawdownPct,
+    double Return2wPct,
+    double AnnVolatility2wPct,
+    double MaxDrawdown2wPct,
     double CurrentDrawdownPct,
-    double SharpeRatio,
+    double Sharpe2w,
     double BestDayPct,
     double WorstDayPct,
     double PctPositiveDays,

@@ -12,15 +12,27 @@ public class FundSyncService : IFundSyncService
 {
     private readonly IFundProfileRepository _profileRepository;
     private readonly IFundHistoryRepository _historyRepository;
+    private readonly ICountryRepository _countryRepository;
+    private readonly ISectorRepository _sectorRepository;
+    private readonly IFundCountryAllocationRepository _countryAllocRepository;
+    private readonly IFundSectorAllocationRepository _sectorAllocRepository;
     private readonly ILogger<FundSyncService> _logger;
 
     public FundSyncService(
         IFundProfileRepository profileRepository,
         IFundHistoryRepository historyRepository,
+        ICountryRepository countryRepository,
+        ISectorRepository sectorRepository,
+        IFundCountryAllocationRepository countryAllocRepository,
+        IFundSectorAllocationRepository sectorAllocRepository,
         ILogger<FundSyncService> logger)
     {
         _profileRepository = profileRepository;
         _historyRepository = historyRepository;
+        _countryRepository = countryRepository;
+        _sectorRepository = sectorRepository;
+        _countryAllocRepository = countryAllocRepository;
+        _sectorAllocRepository = sectorAllocRepository;
         _logger = logger;
     }
 
@@ -343,5 +355,139 @@ public class FundSyncService : IFundSyncService
     {
         if (string.IsNullOrWhiteSpace(dateString)) return null;
         return DateTimeOffset.TryParse(dateString, out var dto) ? dto : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<FundSyncResponse> SyncPortfolioAllocationsAsync(
+        FundPortfolioAllocationsSyncRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        IsinId isinId;
+        try
+        {
+            isinId = IsinId.Create(request.Isin);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid ISIN in portfolio-allocations sync: {Isin}", request.Isin);
+            return new FundSyncResponse
+            {
+                Success = false,
+                Message = $"Invalid ISIN: {request.Isin}"
+            };
+        }
+
+        var countryRows = await SyncCountryAllocationsAsync(isinId, request.Countries, cancellationToken);
+        var sectorRows = await SyncSectorAllocationsAsync(isinId, request.Sectors, cancellationToken);
+
+        await _countryAllocRepository.SaveChangesAsync(cancellationToken);
+
+        var total = countryRows + sectorRows;
+        _logger.LogInformation("Portfolio-allocations sync for {Isin}: {Countries} country rows + {Sectors} sector rows touched",
+            request.Isin, countryRows, sectorRows);
+
+        return new FundSyncResponse
+        {
+            Success = true,
+            Message = $"Synced allocations for {request.Isin}: {countryRows} country rows + {sectorRows} sector rows touched.",
+            ProfilesProcessed = 0,
+            HistoryRecordsInserted = total
+        };
+    }
+
+    private async Task<int> SyncCountryAllocationsAsync(
+        IsinId isinId,
+        IReadOnlyList<ApiCountryAllocationDto> items,
+        CancellationToken ct)
+    {
+        var desired = new Dictionary<CountryId, decimal>();
+        foreach (var item in items)
+        {
+            var country = await _countryRepository.GetOrCreateAsync(item.DisplayName, item.CountryCode, ct);
+            desired[country.Id] = (decimal)item.Percentage;
+        }
+
+        var existing = (await _countryAllocRepository.GetByFundAsync(isinId, ct))
+            .ToDictionary(a => a.CountryId);
+
+        var toDelete = existing.Where(kv => !desired.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var inserted = 0;
+        var updated = 0;
+
+        foreach (var (countryId, pct) in desired)
+        {
+            if (existing.TryGetValue(countryId, out var row))
+            {
+                if (row.Percentage != pct)
+                {
+                    row.Percentage = pct;
+                    updated++;
+                }
+            }
+            else
+            {
+                await _countryAllocRepository.AddAsync(new FundCountryAllocation
+                {
+                    Id = FundCountryAllocationId.New(),
+                    IsinId = isinId,
+                    CountryId = countryId,
+                    Percentage = pct
+                }, ct);
+                inserted++;
+            }
+        }
+
+        if (toDelete.Count > 0)
+            await _countryAllocRepository.RemoveRangeAsync(toDelete, ct);
+
+        return inserted + updated + toDelete.Count;
+    }
+
+    private async Task<int> SyncSectorAllocationsAsync(
+        IsinId isinId,
+        IReadOnlyList<ApiSectorAllocationDto> items,
+        CancellationToken ct)
+    {
+        var desired = new Dictionary<SectorId, decimal>();
+        foreach (var item in items)
+        {
+            var sector = await _sectorRepository.GetOrCreateAsync(item.DisplayName, ct);
+            desired[sector.Id] = (decimal)item.Percentage;
+        }
+
+        var existing = (await _sectorAllocRepository.GetByFundAsync(isinId, ct))
+            .ToDictionary(a => a.SectorId);
+
+        var toDelete = existing.Where(kv => !desired.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var inserted = 0;
+        var updated = 0;
+
+        foreach (var (sectorId, pct) in desired)
+        {
+            if (existing.TryGetValue(sectorId, out var row))
+            {
+                if (row.Percentage != pct)
+                {
+                    row.Percentage = pct;
+                    updated++;
+                }
+            }
+            else
+            {
+                await _sectorAllocRepository.AddAsync(new FundSectorAllocation
+                {
+                    Id = FundSectorAllocationId.New(),
+                    IsinId = isinId,
+                    SectorId = sectorId,
+                    Percentage = pct
+                }, ct);
+                inserted++;
+            }
+        }
+
+        if (toDelete.Count > 0)
+            await _sectorAllocRepository.RemoveRangeAsync(toDelete, ct);
+
+        return inserted + updated + toDelete.Count;
     }
 }
