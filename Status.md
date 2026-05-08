@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-05-08 (Portfolio allocation ingestion completed — country/sector data from `_api/fund-reference/portfolio-data/` with full backend mirror + dual-write)
+Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAsync` now preserves existing `Description` when incoming value is null — list crawl no longer wipes about-fund descriptions on Azure)
 
 **Tech Stack:**
 
@@ -127,7 +127,7 @@ Backend API endpoints for syncing YieldRaccoon fund data to Azure SQL Database. 
 | **ApplicationCore** | `IFundSyncService` / `FundSyncService` (DTO→entity mapping, validation) | ✅ |
 | **Infrastructure** | `FundDataDbContext` (EF Core, SQL Server types) | ✅ |
 | **Infrastructure** | EF Core configurations (NCHAR(12), DECIMAL(18,6), DATE, single unique descending index) | ✅ |
-| **Infrastructure** | `EfCoreFundProfileRepository` (upsert + insert-if-not-exists, preserves FirstSeenAt) | ✅ |
+| **Infrastructure** | `EfCoreFundProfileRepository` (upsert + insert-if-not-exists, preserves FirstSeenAt, CrawlerLastUpdatedAt/AboutFundLastVisitedAt/Description on null) | ✅ |
 | **Infrastructure** | `EfCoreFundHistoryRepository` (batch-load upsert + insert-if-not-exists + sparse upsert) | ✅ |
 | **Controller** | `POST /api/funds/list` (batch crawl session sync) | ✅ |
 | **Controller** | `POST /api/funds/about` (single fund + chart history) | ✅ |
