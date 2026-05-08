@@ -42,4 +42,16 @@ public interface IFundSyncApiClient
     Task<FundSyncResponse> SyncFundFullHistoryAsync(
         FundFullHistorySyncRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends the latest country and sector portfolio allocations for a single fund to
+    /// <c>POST /api/funds/portfolio-allocations</c>.
+    /// </summary>
+    /// <remarks>
+    /// Used by the dual-write decorator after local SQLite persistence succeeds. The backend
+    /// performs the same diff/upsert/delete-missing logic on its own mirror schema.
+    /// </remarks>
+    Task<FundSyncResponse> SyncPortfolioAllocationsAsync(
+        FundPortfolioAllocationsSyncRequest request,
+        CancellationToken cancellationToken = default);
 }

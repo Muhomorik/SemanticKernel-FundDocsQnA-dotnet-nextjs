@@ -538,6 +538,19 @@ curl -X POST http://localhost:5000/api/funds/full-sync \
 
 Profile upsert semantics: insert-if-not-exists (existing profiles are never modified). History record upsert semantics: new `(ISIN, NavDate)` pairs are inserted with all fields; existing pairs have `Capital`, `NumberOfOwners`, `Risk`, `SharpeRatio`, `StandardDeviation` updated only when the incoming value is non-null — `Nav` and `NavDate` are never modified.
 
+### POST /api/funds/portfolio-allocations
+
+Syncs the latest country and sector portfolio allocations for a single fund. Latest-only (no history); diff-based upsert: insert new pairs, update existing percentages, delete pairs missing from the payload. Lookup tables (`Countries`, `Sectors`) grow organically by `DisplayName`. Requires API key.
+
+```bash
+curl -X POST http://localhost:5000/api/funds/portfolio-allocations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: ApiKey your-api-key" \
+  -d '{"isin":"SE0008613939","countries":[{"displayName":"USA","countryCode":"US","percentage":36.93}],"sectors":[{"displayName":"Teknik","percentage":46.93}]}'
+```
+
+Schema: four tables — `Countries` (Guid PK, unique `DisplayName`, optional `CountryCode`), `Sectors` (Guid PK, unique `DisplayName`), `FundCountryAllocations` and `FundSectorAllocations` (Guid PKs, unique `(Isin, CountryId/SectorId)`, `Percentage DECIMAL(5,2)`, cascade-deleted with FundProfile, restricted from lookup deletion). Designed to feed an ML feature matrix where every fund × every country/sector exists (zero-padded via `LEFT JOIN`).
+
 All fund endpoints return `503 Service Unavailable` if Azure SQL is not configured.
 
 ## DDD Architecture
@@ -604,7 +617,7 @@ flowchart TB
 
 **Dependency flow:** `Presentation → ApplicationCore → Domain ← Infrastructure`
 
-**Domain Layer** (`Domain/`) — Zero external dependencies. Pure business logic: interfaces (ILlmProvider, IDocumentRepository, ISemanticSearch), models (DocumentChunk, SearchResult, QuestionAnswer), value objects (EmbeddingVector, DocumentMetadata, IsinId), domain services (UserQuestionSanitizer), and fund data entities (FundProfile, FundHistoryRecord) with repository interfaces.
+**Domain Layer** (`Domain/`) — Zero external dependencies. Pure business logic: interfaces (ILlmProvider, IDocumentRepository, ISemanticSearch), models (DocumentChunk, SearchResult, QuestionAnswer), value objects (EmbeddingVector, DocumentMetadata, IsinId, CountryId, SectorId, FundCountryAllocationId, FundSectorAllocationId), domain services (UserQuestionSanitizer), and fund data entities (FundProfile, FundHistoryRecord, Country, Sector, FundCountryAllocation, FundSectorAllocation) with repository interfaces.
 
 **ApplicationCore Layer** (`ApplicationCore/`) — Use cases: QuestionAnsweringService (RAG pipeline), FundSyncService (fund data sync). DTOs for API communication. Depends only on Domain.
 

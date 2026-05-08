@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using YieldRaccoon.Domain.Entities;
 using YieldRaccoon.Infrastructure.Data.Configuration;
 
@@ -32,6 +33,18 @@ public class YieldRaccoonDbContext : DbContext
     {
     }
 
+    /// <inheritdoc />
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        // Suppress the PendingModelChangesWarning. EF Core 9 runtime + EF tools 10 disagree
+        // on whether SQLite INTEGER PRIMARY KEY auto-increments require an explicit
+        // Sqlite:Autoincrement annotation, producing a phantom "model has changed" diff
+        // for FundHistoryRecord.Id that never affects schema. We deliberately do not chase
+        // this drift with new migrations — see comments on the AddFundAllocations migration.
+        optionsBuilder.ConfigureWarnings(warnings =>
+            warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
+
     /// <summary>
     /// Gets or sets the fund profiles (aggregate roots).
     /// </summary>
@@ -42,6 +55,18 @@ public class YieldRaccoonDbContext : DbContext
     /// </summary>
     public DbSet<FundHistoryRecord> FundHistoryRecords => Set<FundHistoryRecord>();
 
+    /// <summary>Country lookup table for portfolio allocations.</summary>
+    public DbSet<Country> Countries => Set<Country>();
+
+    /// <summary>Sector lookup table for portfolio allocations.</summary>
+    public DbSet<Sector> Sectors => Set<Sector>();
+
+    /// <summary>Per-fund country allocation rows (latest snapshot, no history).</summary>
+    public DbSet<FundCountryAllocation> FundCountryAllocations => Set<FundCountryAllocation>();
+
+    /// <summary>Per-fund sector allocation rows (latest snapshot, no history).</summary>
+    public DbSet<FundSectorAllocation> FundSectorAllocations => Set<FundSectorAllocation>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,5 +75,9 @@ public class YieldRaccoonDbContext : DbContext
         // Apply entity configurations
         modelBuilder.ApplyConfiguration(new FundProfileConfiguration());
         modelBuilder.ApplyConfiguration(new FundHistoryRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new CountryConfiguration());
+        modelBuilder.ApplyConfiguration(new SectorConfiguration());
+        modelBuilder.ApplyConfiguration(new FundCountryAllocationConfiguration());
+        modelBuilder.ApplyConfiguration(new FundSectorAllocationConfiguration());
     }
 }

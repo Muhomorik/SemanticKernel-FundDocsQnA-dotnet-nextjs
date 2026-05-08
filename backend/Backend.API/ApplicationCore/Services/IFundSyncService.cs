@@ -26,4 +26,12 @@ public interface IFundSyncService
     /// on existing records; Nav and NavDate are never modified.
     /// </summary>
     Task<FundSyncResponse> SyncFullHistoryAsync(FundFullHistorySyncRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Syncs the latest country and sector portfolio allocations for a single fund.
+    /// Diff-based upsert: insert new (fund, country/sector) pairs, update existing percentages,
+    /// delete pairs that disappeared from the payload. Lookup tables grow organically.
+    /// </summary>
+    Task<FundSyncResponse> SyncPortfolioAllocationsAsync(FundPortfolioAllocationsSyncRequest request,
+        CancellationToken cancellationToken = default);
 }

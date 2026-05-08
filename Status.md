@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-04-30 (Statistics export v2: snapshot.csv + ISO-week filenames + 4 column renames)
+Last Updated: 2026-05-08 (Portfolio allocation ingestion completed — country/sector data from `_api/fund-reference/portfolio-data/` with full backend mirror + dual-write)
 
 **Tech Stack:**
 
@@ -13,6 +13,7 @@ Last Updated: 2026-04-30 (Statistics export v2: snapshot.csv + ISO-week filename
 - **Repository:** GitHub (personal, public)
 - **Deployment:** Azure (private infrastructure)
 - **Services:** Azure App Service (backend), Azure Static Web Apps (frontend), Application Insights, Key Vault
+
 
 
 ---
@@ -755,6 +756,26 @@ Added `IAboutFundChartIngestionService` / `AboutFundChartIngestionService` — a
 | **Infrastructure** | `AboutFundChartIngestionService` (JSON deserialization, merge, dedup, persist) | ✅ |
 | **Orchestrator** | `PersistChartDataAsync` in `AboutFundOrchestrator` (async void, resolves ISIN from schedule) | ✅ |
 | **DI** | Autofac registration in `PresentationModule` with NLog logger | ✅ |
+
+### Portfolio Allocation Ingestion Pipeline ✅ COMPLETED (2026-05-08)
+
+Captures country and sector portfolio allocations from the `_api/fund-reference/portfolio-data/{orderBookId}` endpoint into a normalized 4-table schema (`Countries`, `Sectors`, `FundCountryAllocations`, `FundSectorAllocations`) with Guid PKs. Latest-only (no history); diff-based upsert with delete-missing on re-crawl. Dual-writes to backend cloud sync. Switched YieldRaccoon from `EnsureCreatedAsync` to migration-based schema management with two migrations: `InitialCreate` (baseline of existing schema) and `AddFundAllocations` (new tables). Backend mirrors the schema with the same diff/upsert logic and a `POST /api/funds/portfolio-allocations` endpoint. JSON wire field `name`/`y` renamed via `[JsonPropertyName]` to descriptive `DisplayName`/`Percentage` properties end-to-end. `holdingChartData` and `previousY`/`portfolioDate` intentionally not persisted.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Domain** | `Country`, `Sector`, `FundCountryAllocation`, `FundSectorAllocation` entities + Guid value-object IDs | ✅ |
+| **Infrastructure** | `PortfolioDataResponse` anti-corruption DTO (`[JsonPropertyName]` for `name`/`y` rename) | ✅ |
+| **Infrastructure** | EF Core configurations (4) + value converters + repositories | ✅ |
+| **Application** | `IPortfolioDataIngestionService` + 4 repository interfaces | ✅ |
+| **Infrastructure** | `PortfolioDataIngestionService` (diff-based upsert) + `DualWritePortfolioDataIngestionService` decorator + `NoOpPortfolioDataIngestionService` for InMemory provider | ✅ |
+| **Migrations** | YR `InitialCreate` baseline + `AddFundAllocations`; backend `AddFundAllocations` | ✅ |
+| **Capture** | Passive metadata capture in `AboutFundPageDataCollector.TryCaptureMetadata` (no new completion slot) | ✅ |
+| **Orchestrator** | Wired into `PersistChartDataAsync` (auto mode) + `PersistChartDataForManualAsync` (manual mode) | ✅ |
+| **DI** | `PresentationModule` registers EF repos (SQLite/DualWrite), real ingestion service (SQLite), no-op (InMemory), dual-write decorator (DualWrite) | ✅ |
+| **Backend** | Mirror schema (4 entities + 4 value objects + 4 configurations + 4 repos) + `POST /api/funds/portfolio-allocations` controller + `FundSyncService.SyncPortfolioAllocationsAsync` | ✅ |
+| **WPF Cloud Client** | `IFundSyncApiClient.SyncPortfolioAllocationsAsync` + `FundSyncApiClient` impl with retry | ✅ |
+| **Schema migration** | YR `App.xaml.cs` switched from `EnsureCreatedAsync` → `MigrateAsync` with auto-stamp baseline (legacy `EnsureCreated` databases are detected on startup and have `__EFMigrationsHistory` populated with the InitialCreate row, so existing data is preserved — no manual DB rebuild required); `DesignTimeYieldRaccoonDbContextFactory` added so EF tools can resolve context (Autofac runtime DI doesn't apply at design time) | ✅ |
+| **Tests** | YR: 24 new tests across 4 files (DTO deserialization × 4, ingestion service × 10, dual-write × 4, repository × 6). Backend: 4 new tests on `FundSyncService_SyncPortfolioAllocationsAsync`. All 311 YR Infrastructure + 54 YR WPF + 226 backend tests passing. | ✅ |
 
 ### Fund Data Export ✅ COMPLETED (2026-02-24)
 

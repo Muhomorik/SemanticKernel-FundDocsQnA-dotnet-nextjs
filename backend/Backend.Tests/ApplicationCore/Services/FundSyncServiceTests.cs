@@ -18,6 +18,10 @@ public class FundSyncServiceTests
     private IFixture _fixture;
     private Mock<IFundProfileRepository> _profileRepoMock;
     private Mock<IFundHistoryRepository> _historyRepoMock;
+    private Mock<ICountryRepository> _countryRepoMock;
+    private Mock<ISectorRepository> _sectorRepoMock;
+    private Mock<IFundCountryAllocationRepository> _countryAllocRepoMock;
+    private Mock<IFundSectorAllocationRepository> _sectorAllocRepoMock;
     private FundSyncService _sut;
 
     [SetUp]
@@ -27,10 +31,18 @@ public class FundSyncServiceTests
 
         _profileRepoMock = _fixture.Freeze<Mock<IFundProfileRepository>>();
         _historyRepoMock = _fixture.Freeze<Mock<IFundHistoryRepository>>();
+        _countryRepoMock = _fixture.Freeze<Mock<ICountryRepository>>();
+        _sectorRepoMock = _fixture.Freeze<Mock<ISectorRepository>>();
+        _countryAllocRepoMock = _fixture.Freeze<Mock<IFundCountryAllocationRepository>>();
+        _sectorAllocRepoMock = _fixture.Freeze<Mock<IFundSectorAllocationRepository>>();
 
         _sut = new FundSyncService(
             _profileRepoMock.Object,
             _historyRepoMock.Object,
+            _countryRepoMock.Object,
+            _sectorRepoMock.Object,
+            _countryAllocRepoMock.Object,
+            _sectorAllocRepoMock.Object,
             Mock.Of<ILogger<FundSyncService>>());
     }
 

@@ -85,7 +85,7 @@ flowchart LR
 
     subgraph YieldRaccoon ["YieldRaccoon (data collection)"]
         YR[YieldRaccoon] -->|WebView2| FP[Fund Provider]
-        YR --> DB[(SQLite)]
+        YR --> DB[(SQLite\nFundProfile, FundHistoryRecord,\nCountry, Sector,\nFundCountryAllocation, FundSectorAllocation)]
         YR -.->|DualWrite| API
     end
 

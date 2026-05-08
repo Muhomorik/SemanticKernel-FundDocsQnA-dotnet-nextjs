@@ -295,6 +295,22 @@ public class PresentationModule : Module
             builder.RegisterType<EfCoreFundHistoryRepository>()
                 .As<IFundHistoryRepository>()
                 .InstancePerDependency();
+
+            builder.RegisterType<EfCoreCountryRepository>()
+                .As<ICountryRepository>()
+                .InstancePerDependency();
+
+            builder.RegisterType<EfCoreSectorRepository>()
+                .As<ISectorRepository>()
+                .InstancePerDependency();
+
+            builder.RegisterType<EfCoreFundCountryAllocationRepository>()
+                .As<IFundCountryAllocationRepository>()
+                .InstancePerDependency();
+
+            builder.RegisterType<EfCoreFundSectorAllocationRepository>()
+                .As<IFundSectorAllocationRepository>()
+                .InstancePerDependency();
         }
         else // InMemory provider
         {
@@ -306,6 +322,10 @@ public class PresentationModule : Module
             builder.RegisterType<InMemoryFundHistoryRepository>()
                 .As<IFundHistoryRepository>()
                 .SingleInstance();
+
+            // Allocation repositories are not implemented for InMemory — the orchestrator
+            // resolves IPortfolioDataIngestionService → NoOpPortfolioDataIngestionService below,
+            // which never touches them.
         }
 
         if (_databaseOptions.Provider is DatabaseProvider.DualWrite)
@@ -322,6 +342,21 @@ public class PresentationModule : Module
             builder.RegisterType<AboutFundChartIngestionService>()
                 .As<IAboutFundChartIngestionService>()
                 .InstancePerDependency();
+
+            // Portfolio allocation ingestion: real impl on SQLite, no-op on InMemory.
+            // (DualWrite branch above registers a separate decorator pipeline.)
+            if (_databaseOptions.Provider is DatabaseProvider.SQLite)
+            {
+                builder.RegisterType<PortfolioDataIngestionService>()
+                    .As<IPortfolioDataIngestionService>()
+                    .InstancePerDependency();
+            }
+            else
+            {
+                builder.RegisterType<NoOpPortfolioDataIngestionService>()
+                    .As<IPortfolioDataIngestionService>()
+                    .InstancePerDependency();
+            }
 
             builder.RegisterType<NullBackendSyncStatusProvider>()
                 .As<IBackendSyncStatusProvider>()
@@ -393,6 +428,10 @@ public class PresentationModule : Module
             .Named<IAboutFundChartIngestionService>("sqlite")
             .InstancePerDependency();
 
+        builder.RegisterType<PortfolioDataIngestionService>()
+            .Named<IPortfolioDataIngestionService>("sqlite")
+            .InstancePerDependency();
+
         // DualWrite decorators — resolve inner services by named key
         // NLogModule injects ILogger via pipeline middleware, which doesn't apply to lambda
         // registrations — use LogManager.GetLogger() directly instead of ctx.Resolve<ILogger>()
@@ -412,6 +451,14 @@ public class PresentationModule : Module
                 ctx.Resolve<IFundProfileRepository>(),
                 ctx.Resolve<Subject<BackendSyncStatus>>()))
             .As<IAboutFundChartIngestionService>()
+            .InstancePerDependency();
+
+        builder.Register(ctx => new DualWritePortfolioDataIngestionService(
+                LogManager.GetLogger(typeof(DualWritePortfolioDataIngestionService).FullName!),
+                ctx.ResolveNamed<IPortfolioDataIngestionService>("sqlite"),
+                ctx.Resolve<IFundSyncApiClient>(),
+                ctx.Resolve<Subject<BackendSyncStatus>>()))
+            .As<IPortfolioDataIngestionService>()
             .InstancePerDependency();
     }
 }

@@ -105,18 +105,23 @@ dotnet user-secrets set "YieldRaccoon:FastMode" "true"
 ```plaintext
 YieldRaccoon.sln
 ├── YieldRaccoon.Domain/              # Core business logic (no dependencies)
-│   ├── Entities/                     # FundProfile, FundHistoryRecord
+│   ├── Entities/                     # FundProfile, FundHistoryRecord, Country, Sector,
+│   │                                 # FundCountryAllocation, FundSectorAllocation
 │   ├── Events/FundList/              # IFundListEvent, session & batch events
 │   ├── Events/AboutFund/             # IAboutFundEvent, session & navigation events
-│   └── ValueObjects/                 # IsinId, OrderBookId, AboutFundSessionId, AboutFundFetchSlot
+│   └── ValueObjects/                 # IsinId, OrderBookId, AboutFundSessionId, AboutFundFetchSlot,
+│                                     # CountryId, SectorId, FundCountryAllocationId, FundSectorAllocationId
 │
 ├── YieldRaccoon.Application/         # Use-case orchestration
 │   ├── Configuration/                # Options records (ResponseParser, PageInteractor, RandomDelayProvider, FundDetailsUrlBuilder)
-│   ├── DTOs/                         # FundListDataDto
-│   ├── Models/                       # AboutFundPageData (7 slots + FundReferenceJson metadata), CollectionSchedule/Step, session phases,
-│   │                                 # FundListBatchSchedule, FundListSessionPhase
-│   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository
+│   ├── DTOs/                         # FundListDataDto, FundPortfolioAllocationsSyncRequest (cloud-sync)
+│   ├── Models/                       # AboutFundPageData (7 slots + FundReferenceJson + PortfolioDataJson metadata),
+│   │                                 # CollectionSchedule/Step, session phases, FundListBatchSchedule, FundListSessionPhase
+│   ├── Repositories/                 # IFundProfileRepository, IFundHistoryRepository,
+│   │                                 # ICountryRepository, ISectorRepository,
+│   │                                 # IFundCountryAllocationRepository, IFundSectorAllocationRepository
 │   └── Services/                     # IFundListOrchestrator, IFundListScheduleCalculator,
+│                                     # IPortfolioDataIngestionService (country/sector latest-snapshot ingestion),
 │                                     # IAboutFundOrchestrator, IAboutFundPageDataCollector,
 │                                     # IAboutFundChartIngestionService, IFundDataExportService,
 │                                     # IRandomDelayProvider
@@ -514,7 +519,10 @@ stateDiagram-v2
 
 **Completion:** `IsComplete` is true when every slot is resolved (succeeded **or** failed). Failed slots do not block the session. `IsFullySuccessful` is available separately for reporting. A safety-net timer forces completion if the final HTTP response never arrives.
 
-**Metadata capture:** The fund-reference API response (`_api/fund-reference/reference/{orderBookId}`) is captured passively on page load into `AboutFundPageData.FundReferenceJson`. This is not a data slot — it does not participate in completion checks, slot counts, or progress reporting. After collection completes, the orchestrator extracts the `description` field and persists it to `FundProfile.Description`.
+**Metadata capture:** Two passive API responses are captured on page load — neither participates in slot completion / counts / progress:
+
+- `_api/fund-reference/reference/{orderBookId}` → `AboutFundPageData.FundReferenceJson`. After collection completes, the orchestrator extracts `description` and persists it to `FundProfile.Description`.
+- `_api/fund-reference/portfolio-data/{orderBookId}` → `AboutFundPageData.PortfolioDataJson`. Carries `countryChartData` and `sectorChartData`. Ingested via `IPortfolioDataIngestionService` into the four allocation tables (`Countries`, `Sectors`, `FundCountryAllocations`, `FundSectorAllocations`) using a diff-based upsert (insert new pairs, update changed percentages, delete pairs missing from the latest payload). Latest-only — no history.
 
 ### Three-Tier Scheduling (AboutFund)
 

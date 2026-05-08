@@ -381,8 +381,13 @@ else
             "Set via: dotnet user-secrets set 'BackendOptions:AzureSqlConnectionString' '<connection-string>'"));
 }
 
+
 builder.Services.AddScoped<IFundProfileRepository, EfCoreFundProfileRepository>();
 builder.Services.AddScoped<IFundHistoryRepository, EfCoreFundHistoryRepository>();
+builder.Services.AddScoped<ICountryRepository, EfCoreCountryRepository>();
+builder.Services.AddScoped<ISectorRepository, EfCoreSectorRepository>();
+builder.Services.AddScoped<IFundCountryAllocationRepository, EfCoreFundCountryAllocationRepository>();
+builder.Services.AddScoped<IFundSectorAllocationRepository, EfCoreFundSectorAllocationRepository>();
 builder.Services.AddScoped<IFundSyncService, FundSyncService>();
 builder.Services.AddScoped<IOwnershipFlowService, OwnershipFlowService>();
 builder.Services.AddMemoryCache();

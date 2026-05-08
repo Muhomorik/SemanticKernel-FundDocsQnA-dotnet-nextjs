@@ -100,6 +100,13 @@ public sealed record AboutFundPageData
     /// </summary>
     public string? FundReferenceJson { get; init; }
 
+    /// <summary>
+    /// Raw JSON from the <c>_api/fund-reference/portfolio-data/{orderBookId}</c> response,
+    /// captured passively on page load. Carries country and sector portfolio allocations.
+    /// Not a data slot — does not participate in completion checks, slot counts, or progress reporting.
+    /// </summary>
+    public string? PortfolioDataJson { get; init; }
+
     #endregion
 
     #region Completion checks
@@ -169,5 +176,6 @@ public sealed record AboutFundPageData
         yield return (AboutFundDataSlot.ChartMax, ChartMax);
     }
 
+    
     #endregion
 }

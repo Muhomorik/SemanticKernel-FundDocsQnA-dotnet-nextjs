@@ -68,6 +68,12 @@
 
     <!-- ImageMagick for streaming mode effects -->
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
+
+    <!-- EF Core Design (required by `dotnet ef` tools on the startup project) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
