@@ -62,7 +62,11 @@ public class EfCoreFundProfileRepository : IFundProfileRepository
             existing.GovernanceScore = profile.GovernanceScore;
             existing.LowCarbon = profile.LowCarbon;
             existing.EuArticleType = profile.EuArticleType;
-            existing.Description = profile.Description;
+
+            // Description is owned by the about-fund flow; the list crawl never carries it.
+            // Same null-guard semantics as the timestamps below.
+            if (profile.Description != null)
+                existing.Description = profile.Description;
 
             // Only update timestamps if explicitly set (non-null) on the incoming profile.
             // The /api/funds/list endpoint sends timestamps from YieldRaccoon — they get applied.

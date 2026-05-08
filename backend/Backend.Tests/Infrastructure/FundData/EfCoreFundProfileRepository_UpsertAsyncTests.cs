@@ -345,6 +345,82 @@ public class EfCoreFundProfileRepository_UpsertAsyncTests
 
     #endregion
 
+    #region Description Preservation
+
+    [Test]
+    public async Task UpsertAsync_ListUpdateWithNullDescription_PreservesExistingDescription()
+    {
+        // Arrange — original profile has Description set (from a prior about-fund sync)
+        var isinId = IsinId.Create("SE0008613939");
+        const string originalDescription = "A diversified equity fund focusing on Nordic markets.";
+
+        var original = new FundProfile
+        {
+            Id = isinId,
+            Name = "Original",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            Description = originalDescription
+        };
+        await _sut.UpsertAsync(original);
+        await _sut.SaveChangesAsync();
+
+        // Daily list crawl arrives with null Description (list page never carries it)
+        var listUpdate = new FundProfile
+        {
+            Id = isinId,
+            Name = "List Update",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            CrawlerLastUpdatedAt = DateTimeOffset.UtcNow,
+            Description = null
+        };
+
+        // Act
+        await _sut.UpsertAsync(listUpdate);
+        await _sut.SaveChangesAsync();
+
+        // Assert — the existing Description must survive the list sync
+        var stored = await _context.FundProfiles.FindAsync(isinId);
+        Assert.That(stored!.Description, Is.EqualTo(originalDescription),
+            "List crawl with null Description must not wipe the existing value");
+    }
+
+    [Test]
+    public async Task UpsertAsync_AboutUpdateWithExplicitDescription_UpdatesDescription()
+    {
+        // Arrange — original profile has no Description
+        var isinId = IsinId.Create("SE0008613939");
+
+        var original = new FundProfile
+        {
+            Id = isinId,
+            Name = "Original",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            Description = null
+        };
+        await _sut.UpsertAsync(original);
+        await _sut.SaveChangesAsync();
+
+        // About-fund sync provides a description
+        const string newDescription = "Newly extracted description from about page.";
+        var aboutUpdate = new FundProfile
+        {
+            Id = isinId,
+            Name = "About Update",
+            FirstSeenAt = DateTimeOffset.UtcNow,
+            Description = newDescription
+        };
+
+        // Act
+        await _sut.UpsertAsync(aboutUpdate);
+        await _sut.SaveChangesAsync();
+
+        // Assert — the new description is applied
+        var stored = await _context.FundProfiles.FindAsync(isinId);
+        Assert.That(stored!.Description, Is.EqualTo(newDescription));
+    }
+
+    #endregion
+
     #region Multiple Profiles
 
     [Test]
