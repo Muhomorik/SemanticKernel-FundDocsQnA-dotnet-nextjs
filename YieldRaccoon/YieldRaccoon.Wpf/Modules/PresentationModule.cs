@@ -118,6 +118,12 @@ public class PresentationModule : Module
             .As<IFundSnapshotCsvExportService>()
             .InstancePerDependency();
 
+        // Fund allocations CSV export service registration
+        // Wide-format country + sector portfolio allocations (one row per fund, dynamic column set)
+        builder.RegisterType<FundAllocationsCsvExportService>()
+            .As<IFundAllocationsCsvExportService>()
+            .InstancePerDependency();
+
         // Fund statistics export window service registration
         // Register window service for showing the statistics export window from ViewModels
         builder.RegisterType<FundStatisticsExportWindowService>()

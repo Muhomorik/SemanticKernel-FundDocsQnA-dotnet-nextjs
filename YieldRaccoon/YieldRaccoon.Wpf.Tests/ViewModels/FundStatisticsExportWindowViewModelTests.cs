@@ -17,6 +17,7 @@ public class FundStatisticsExportWindowViewModelTests
     private Mock<IFundStatisticsCsvExportService> _exportServiceMock;
     private Mock<IFundMetadataCsvExportService> _metadataServiceMock;
     private Mock<IFundSnapshotCsvExportService> _snapshotServiceMock;
+    private Mock<IFundAllocationsCsvExportService> _allocationsServiceMock;
     private Mock<IUserSettingsService> _userSettingsServiceMock;
     private ILogger _logger;
     private DatabaseOptions _databaseOptions;
@@ -66,6 +67,15 @@ public class FundStatisticsExportWindowViewModelTests
                 It.IsAny<IProgress<(int processed, int total)>?>()))
             .ReturnsAsync(0);
 
+        _allocationsServiceMock = new Mock<IFundAllocationsCsvExportService>();
+        _allocationsServiceMock
+            .Setup(x => x.ExportAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>()))
+            .ReturnsAsync(0);
+
         _userSettingsServiceMock = new Mock<IUserSettingsService>();
     }
 
@@ -76,6 +86,7 @@ public class FundStatisticsExportWindowViewModelTests
             _exportServiceMock.Object,
             _metadataServiceMock.Object,
             _snapshotServiceMock.Object,
+            _allocationsServiceMock.Object,
             _databaseOptions,
             _userSettingsServiceMock.Object,
             _userSettings,
@@ -93,6 +104,7 @@ public class FundStatisticsExportWindowViewModelTests
         Assert.That(Path.GetFileName(sut.OutputPath), Is.EqualTo($"YieldRaccoon_summary_all_{expectedIsoWeek}.csv"));
         Assert.That(Path.GetFileName(sut.SnapshotOutputPath), Is.EqualTo($"YieldRaccoon_snapshot_all_{expectedIsoWeek}.csv"));
         Assert.That(Path.GetFileName(sut.MetadataOutputPath), Is.EqualTo($"YieldRaccoon_metadata_all_{expectedIsoWeek}.csv"));
+        Assert.That(Path.GetFileName(sut.AllocationsOutputPath), Is.EqualTo($"YieldRaccoon_allocations_all_{expectedIsoWeek}.csv"));
     }
 
     [Test]
@@ -108,8 +120,41 @@ public class FundStatisticsExportWindowViewModelTests
         Assert.That(Path.GetFileName(sut.OutputPath), Does.Contain("_schroder_"));
         Assert.That(Path.GetFileName(sut.SnapshotOutputPath), Does.Contain("_schroder_"));
         Assert.That(Path.GetFileName(sut.MetadataOutputPath), Does.Contain("_schroder_"));
+        Assert.That(Path.GetFileName(sut.AllocationsOutputPath), Does.Contain("_schroder_"));
         Assert.That(Path.GetFileName(sut.OutputPath), Does.Not.Contain("_yyyy-"),
             "Filename must not carry a yyyy-MM-dd date suffix — ISO week is the only version tag");
+    }
+
+    [Test]
+    public void EditingCompanyName_RefreshesAllocationsPathToo()
+    {
+        // Regression guard: typing a company name into the filter must update the allocations
+        // filename alongside summary/snapshot/metadata.
+        var sut = CreateSut(new AutoStartOptions());
+        Assert.That(Path.GetFileName(sut.AllocationsOutputPath), Does.Contain("_all_"));
+
+        sut.CompanyName = "Schroder";
+
+        Assert.That(Path.GetFileName(sut.AllocationsOutputPath), Does.Contain("_schroder_"));
+        Assert.That(Path.GetFileName(sut.AllocationsOutputPath), Does.Not.Contain("_all_"));
+    }
+
+    [Test]
+    public void ExportCommand_InvokesAllocationsExportServiceExactlyOnce()
+    {
+        // Arrange — auto-fire mode lets us trigger Export without driving WPF dispatcher.
+        // The mock returns 0 so the export pipeline completes synchronously through the await.
+        var sut = CreateSut(new AutoStartOptions { AutoWeeklyStats = true });
+
+        // Act
+        sut.LoadedCommand.Execute(null);
+
+        // Assert — allocations export is called once with the default-built path
+        _allocationsServiceMock.Verify(x => x.ExportAsync(
+            It.IsAny<string>(),
+            It.Is<string>(p => Path.GetFileName(p).StartsWith("YieldRaccoon_allocations_")),
+            It.IsAny<string?>(),
+            It.IsAny<int>()), Times.Once);
     }
 
     [Test]

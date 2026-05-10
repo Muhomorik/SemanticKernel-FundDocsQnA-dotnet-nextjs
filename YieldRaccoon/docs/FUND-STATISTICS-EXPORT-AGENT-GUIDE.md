@@ -4,15 +4,16 @@ Concise schema reference for AI agents reading the three weekly CSV exports. Opt
 
 ## Overview
 
-YieldRaccoon emits three CSVs per ISO week, all sharing one `{family}_{iso_week}` filename suffix:
+YieldRaccoon emits four CSVs per ISO week, all sharing one `{family}_{iso_week}` filename suffix:
 
 | Kind | Granularity | Holds |
 |---|---|---|
 | `summary` | many rows per fund (~26/year) | per-bucket bi-weekly history |
 | `snapshot` | one row per fund | rolling 12-week + 1-year metrics, anchored at the latest NAV date |
 | `metadata` | one row per fund | static identity (name, fee, category, owners, …) |
+| `allocations` | one row per fund, variable columns | latest country + sector portfolio allocations, wide format with `country_*` / `sector_*` columns |
 
-Join all three on `isin`. Same week's bundle joins by simple filename glob `YieldRaccoon_*_{family}_{iso_week}.csv`.
+Join all four on `isin`. Same week's bundle joins by simple filename glob `YieldRaccoon_*_{family}_{iso_week}.csv`.
 
 ## Filename grammar
 
@@ -20,13 +21,13 @@ Join all three on `isin`. Same week's bundle joins by simple filename glob `Yiel
 
 | Segment | Values |
 |---|---|
-| `kind` | `summary`, `snapshot`, `metadata` |
+| `kind` | `summary`, `snapshot`, `metadata`, `allocations` |
 | `family` | `all` (no company filter) or sanitized lower-cased company name |
 | `iso_week` | ISO 8601 week — `YYYY-Www`, e.g. `2026-W18`. Uses ISO week-year, so 2027-01-01 may belong to `2026-W53`. |
 
 Example: `YieldRaccoon_snapshot_all_2026-W18.csv`.
 
-> **Casing note:** the filename `family` segment is **lower-cased** (e.g. `schroder`), but the metadata `company_name` column **preserves original case** (`Schroder`). To match a fund by company, lowercase one side or compare case-insensitively — never assume direct equality.
+> **Casing note:** the filename `family` segment is **lower-cased** (e.g. `acmeco`), but the metadata `company_name` column **preserves original case** (`AcmeCo`). To match a fund by company, lowercase one side or compare case-insensitively — never assume direct equality.
 
 ## Per-file schemas
 
@@ -86,13 +87,48 @@ Equivalent to `(mean × 252) / (std × √252)`. Both `mean` and `std` use the s
 
 > **Nullability:** every column except `isin`, `name`, and `number_of_owners` (the last two are filter-guarded at export time) can be empty. Don't assume non-null on `rating`, `sharpe_ratio`, `standard_deviation`, fees, or category strings — handle empty cells defensively.
 
+### allocations.csv (variable columns)
+
+Wide format: one row per fund, with portfolio composition spread across one column per country/sector. Designed for direct ingest into pandas/sklearn for clustering — no reshape needed.
+
+| Block | Columns | Type | Notes |
+|---|---|---|---|
+| Identity | `isin`, `name` | string | Always present (join keys) |
+| Country | `country_<sanitized>` × N | number (percent, 0–100) | One column per row in the `Countries` lookup table; alphabetically sorted by sanitized suffix |
+| Sector | `sector_<sanitized>` × M | number (percent, 0–100) | One column per row in the `Sectors` lookup table; alphabetically sorted by sanitized suffix |
+
+**Column ordering:** `isin`, `name`, then country block, then sector block.
+
+**Sanitization** (deterministic, applied to source `DisplayName`):
+
+1. Unicode FormD + strip combining marks: `Hälsovård` → `Halsovard`, `Råvaror` → `Ravaror`.
+2. Lowercase.
+3. Whitespace + non-alphanumeric runs → single `_`: `North America` → `north_america`.
+4. Trim trailing `_`.
+
+Example column names: `country_usa`, `country_storbritannien`, `country_sverige`, `sector_teknik`, `sector_halsovard`.
+
+**Cell convention:**
+
+- A numeric cell is the percentage (0–100) of the fund's portfolio held in that category.
+- The literal `0` means "fund holds none of this category" — the source page only lists non-zero entries, so absence is unambiguous.
+- Funds with zero rows in **both** the country and sector allocation tables are absent from the file (un-crawled portfolio page).
+
+**Example header + 2 data rows:**
+
+```csv
+isin,name,country_storbritannien,country_sverige,country_usa,sector_industri,sector_teknik
+SE0000000001,Example Index Fund,5.20,12.30,45.20,18.40,30.10
+SE0000000002,Tech Focus,0,0,82.00,0,95.50
+```
+
 ## Example data rows
 
 `summary.csv`:
 
 ```
 isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,return_2w_pct,ann_volatility_2w_pct,max_drawdown_2w_pct,current_drawdown_pct,sharpe_2w,best_day_pct,worst_day_pct,pct_positive_days,skewness
-SE0000000001,Avanza Zero,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
+SE0000000001,Example Index Fund,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
 SE0000000002,Bond Money Market,2026-01-05,2026-01-16,50.0000,50.0010,50.0011,49.9999,0.0020,0.0050,-0.0024,-0.0020,NaN,0.0008,-0.0007,55.0000,0.0100
 ```
 
@@ -108,7 +144,7 @@ SE0000000002,2026-04-30,0.0500,0.0080,NaN,-0.0010,NaN,NaN,NaN,NaN
 
 ```
 isin,name,company_name,currency_code,category,fund_type,is_index_fund,managed_type,total_fee,management_fee,risk,rating,sharpe_ratio,standard_deviation,recommended_holding_period,capital,number_of_owners
-SE0000000001,Avanza Zero,Avanza Fonder,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,FIVE_YEAR,1000000,50000
+SE0000000001,Example Index Fund,Example Asset Mgmt,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,FIVE_YEAR,1000000,50000
 SE0000000002,Active Equity,Some Asset Mgmt,SEK,Equity,Equity Fund,false,ACTIVE,2.17,1.50,5,3,0.78,15.6,THREE_YEAR,3500000,12500
 ```
 
@@ -128,6 +164,10 @@ Note the fee columns: `total_fee=2.17` means 2.17 % expense ratio (percent point
 - **metadata `is_index_fund` is the literal string `"true"` / `"false"`** (or empty). Pandas reads it as object dtype; cast explicitly if you need a Python bool.
 - **metadata `recommended_holding_period` is an upper-case enum string** (`ONE_YEAR`, `THREE_YEAR`, `FIVE_YEAR`, `TEN_YEAR`, …) — not a human-formatted "5 years". Map / parse it before display.
 - **All CSVs are UTF-8, RFC 4180.** Pandas `read_csv(..., parse_dates=['period_start','period_end'])` (or `['as_of_date']`) handles them out of the box.
+- **allocations column set is not stable across exports** — a new country or sector in the next crawl shows up as a new column in the next export. Always read the header row and select columns by prefix: `df.filter(regex='^country_')` / `df.filter(regex='^sector_')` (or `[c for c in df.columns if c.startswith('country_')]`).
+- **allocations `0` means "fund holds none of this category"**, not "unknown". The source page lists only non-zero allocations, so absence is unambiguous and `0` is the correct numeric.
+- **Funds with no allocation rows in either table are absent from the allocations file.** Join with `metadata.csv` on `isin` to detect un-crawled portfolio pages.
+- **allocations column suffixes are ASCII-folded and lowercased.** `Hälsovård` → `sector_halsovard`, `Storbritannien` → `country_storbritannien`. The original Swedish display names are not preserved in column headers — query the SQLite `Countries` / `Sectors` tables directly if you need them.
 
 ## Deeper docs
 

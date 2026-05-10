@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAsync` now preserves existing `Description` when incoming value is null — list crawl no longer wipes about-fund descriptions on Azure)
+Last Updated: 2026-05-09 (Statistics export now emits a fourth CSV — wide-format allocations — for clustering by country/sector composition)
 
 **Tech Stack:**
 
@@ -847,6 +847,26 @@ Export fund profile metadata (fees, risk metrics, classifications) as a companio
 **Metadata columns (17):** isin, name, company_name, currency_code, category, fund_type, is_index_fund, managed_type, total_fee, management_fee, risk, rating, sharpe_ratio, standard_deviation, recommended_holding_period, capital, number_of_owners
 
 **Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
+
+### Statistics Export v3 — allocations.csv (wide format) ✅ COMPLETED (2026-05-09)
+
+Added a fourth CSV alongside summary/snapshot/metadata: per-fund country + sector portfolio allocations in wide format (one row per fund, one column per country/sector). Designed for direct ingest into pandas/sklearn for clustering. Columns are discovered at export time from the `Countries` / `Sectors` lookup tables (no hardcoded enums); newly-encountered categories show up as new columns automatically. Funds with zero allocation rows in either table are excluded (un-crawled portfolio page). Auto-weekly export picks it up automatically — same `ExecuteExport` path as the manual button.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundAllocationsCsvExportService` (new interface) | ✅ |
+| **Infrastructure** | `AllocationColumnSanitizer` (Unicode FormD diacritic-strip + lowercase + non-alphanumeric-collapse → ASCII-only column suffixes) | ✅ |
+| **Infrastructure** | `FundAllocationsCsvExportService` — discovers columns from `Countries`/`Sectors`, reads allocations via 2 SQL queries, writes wide-format CSV with `0`-fill for missing cells, throws on sanitization collision | ✅ |
+| **Presentation** | ViewModel: 4th output path `AllocationsOutputPath`, `BrowseAllocationsCommand`, allocations call wired into `ExecuteExport` after metadata; status message updated to count 4 file totals | ✅ |
+| **Presentation** | XAML: fourth "Allocations output file" TextBox + Browse; window height bumped 500 → 580 | ✅ |
+| **DI** | `FundAllocationsCsvExportService` registered in `PresentationModule` | ✅ |
+| **Tests** | `AllocationColumnSanitizerTests` — 27 tests across 9 `[TestCase]` groups (ASCII pass-through, diacritic folding, whitespace/special-char collapse, trim, null/blank/non-representable throw) | ✅ |
+| **Tests** | `FundAllocationsCsvExportServiceTests` — 13 tests (header order, both-kinds row, sectors-only row not-skipped, no-allocations-skipped, Buyable filter, MinOwners + Company filter, sanitization in headers, RFC 4180 escaping, collision throw, source-not-found, output-dir creation) | ✅ |
+| **Tests** | `FundStatisticsExportWindowViewModelTests` — 3 new tests/updates (allocations default-path assertion, company-filter refresh, allocations service called once on auto-weekly run) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` — "What it does" table updated to four files, options table includes allocations path, new "Allocations companion file" section with schema, sanitization rules, pandas snippet | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT-AGENT-GUIDE.md` — overview/grammar/schema sections updated for `allocations` kind; pitfalls section adds 4 bullets covering dynamic columns, `0` semantics, missing funds, ASCII folding | ✅ |
+
+**Auto-weekly coverage:** the `WeeklyExportEnabled` toggle in Settings registers a Windows scheduled task that launches with `--auto-weekly-stats`, which auto-fires the same `ExportCommand` as the manual button. Allocations are added inside `ExecuteExport`, so the scheduled run picks them up automatically — no Settings/scheduler changes required.
 
 ### Statistics Export v2 — snapshot.csv + ISO-week filenames + column renames ✅ COMPLETED (2026-04-30)
 

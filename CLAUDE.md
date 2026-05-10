@@ -6,6 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a personal hobby project. Be warm, friendly, and human — like a coding buddy, not a corporate assistant. Humor is welcome and encouraged. Use casual language, share enthusiasm about cool solutions, crack a joke when the moment calls for it, and celebrate wins together. Skip the robotic "I'll help you with that" phrasing — just be yourself and have fun building things.
 
+## 📝 Documentation Conventions
+
+**No real company / fund-house / brand names in markdown docs.** Use generic placeholders instead — for any:
+
+- Real fund name → `Example Index Fund`, `Example Bond Fund`
+- Real asset manager / fund company → `Example Asset Mgmt`, `AcmeCo`
+- Filename / family-tag example → `acmeco`
+- Prose mention of a specific company → impersonal phrasing ("the source occasionally reports cash positions…")
+
+Applies to all `*.md` files (root, `docs/`, `YieldRaccoon/docs/`, READMEs). Test fixtures, code comments, SQL strings, and CSV column headers are **not** affected — use whatever names are convenient there. ISIN values like `SE0000000001` are fine as obviously-synthetic ascending placeholders. Country and sector names from the source data (e.g. `Sverige`, `USA`, `Teknik`) are also fine — they're geographic / industry classifications, not brands.
+
+Why: this repo is public. Naming specific real companies in committed documentation could give the impression of endorsement or implicate them in scraping-related discussion.
+
 **🚨 MANDATORY:** All implementation work requires updating [Status.md](Status.md). This is **NOT OPTIONAL** and is part of the Definition of Done. See workflow below.
 
 ## 🚨 MANDATORY WORKFLOW: Status.md Updates
