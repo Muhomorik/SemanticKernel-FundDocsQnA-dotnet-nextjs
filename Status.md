@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-05-10 (Added `FUND-DATABASE-AGENT-GUIDE.md` — agent-context schema reference for the SQLite database, covering all 6 tables + Mermaid ER diagram + pitfalls)
+Last Updated: 2026-10-25 (Added `.claude/claude-security-guidance.md` security review rules after a clean Claude Security scan)
 
 **Tech Stack:**
 
@@ -111,6 +111,8 @@ Last Updated: 2026-05-10 (Added `FUND-DATABASE-AGENT-GUIDE.md` — agent-context
 | System Prompt | ✅ | Hardened with anti-jailbreak instructions |
 | Rate Limiting | ✅ | 60 req/min, queue of 5, `Retry-After: 5` header on 429 |
 | Request Size Limits | ✅ | 10KB max body size |
+| Security Review Rules | ✅ | `.claude/claude-security-guidance.md` — repo threat model + rules for the security-guidance plugin (2026-10-25). Whole-repo Claude Security scan (medium) found 0 verified findings |
+| Sanitized Question in Prompt | ❌ | `QuestionAnsweringService` passes raw `request.Question` (not `sanitizedQuestion`) to `BuildUserPrompt` (lines 80, 149) |
 
 ### Fund Data Sync (Azure SQL) ✅ COMPLETED (2026-03-02)
 
