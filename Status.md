@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-05-09 (Statistics export now emits a fourth CSV — wide-format allocations — for clustering by country/sector composition)
+Last Updated: 2026-05-10 (Added `FUND-DATABASE-AGENT-GUIDE.md` — agent-context schema reference for the SQLite database, covering all 6 tables + Mermaid ER diagram + pitfalls)
 
 **Tech Stack:**
 
