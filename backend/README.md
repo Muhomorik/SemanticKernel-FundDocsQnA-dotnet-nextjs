@@ -259,7 +259,7 @@ See **[Configuration & Secrets Guide](../docs/SECRETS-MANAGEMENT.md)** for all c
 **Important:** Embeddings must be generated using OpenAI (not Ollama) for vector space compatibility.
 
 ```bash
-cp ../Preprocessor/Preprocessor/bin/Debug/net9.0/output.json Backend.API/Data/embeddings.json
+cp ../Preprocessor/Preprocessor/bin/Debug/net10.0/output.json Backend.API/Data/embeddings.json
 ```
 
 ### 4. Run the Backend

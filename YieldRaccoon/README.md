@@ -33,16 +33,16 @@ About fund window
 
 | Technology | Version | Purpose |
 | ------------ | --------- | --------- |
-| .NET | 9.0 | Framework |
+| .NET | 10.0 | Framework |
 | WPF | - | Desktop UI |
-| Entity Framework Core | 9.0 | SQLite persistence |
+| Entity Framework Core | 10.0 | SQLite persistence |
 | DevExpressMvvm | 24.1.6 | MVVM framework |
-| Autofac | 9.0.0 | Dependency injection |
-| Rx.NET | 6.1.0 | Reactive programming |
+| Autofac | 9.3.4 | Dependency injection |
+| Rx.NET | 7.0.0 | Reactive programming (+ `System.Reactive.Wpf` for `DispatcherScheduler`) |
 | MahApps.Metro | 2.4.11 | Modern UI toolkit |
-| WebView2 | 1.0.2903 | Embedded Chromium browser |
-| Magick.NET | 14.10.2 | Privacy filter image processing |
-| NLog | 6.0.7 | Logging |
+| WebView2 | 1.0.4314 | Embedded Chromium browser |
+| Magick.NET | 15.0.0 | Privacy filter image processing |
+| NLog | 6.2.2 | Logging |
 
 ## Build and Run
 
@@ -574,7 +574,7 @@ Fund data persists to SQLite via EF Core. Configure in `appsettings.json`:
 
 - File name: `YieldRaccoon.db`
 - Location: Same folder as the executable
-  - Development: `YieldRaccoon.Wpf/bin/Debug/net9.0-windows/YieldRaccoon.db`
+  - Development: `YieldRaccoon.Wpf/bin/Debug/net10.0-windows10.0.26100.0/YieldRaccoon.db`
   - Published: Application installation folder
 
 **Database Tables:**

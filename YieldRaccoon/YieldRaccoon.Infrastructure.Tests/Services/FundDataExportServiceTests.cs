@@ -310,14 +310,14 @@ public class FundDataExportServiceTests
     #region Edge Cases
 
     [Test]
-    public void ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
+    public async Task ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
     {
         // Arrange
         var fakePath = Path.Combine(_tempDir, "nonexistent.db");
         var destPath = Path.Combine(_tempDir, "export.db");
 
         // Act & Assert
-        Assert.ThrowsAsync<FileNotFoundException>(() =>
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
             _sut.ExportAsync(fakePath, destPath, "Test",
                 DateOnly.FromDateTime(DateTime.Today)));
     }

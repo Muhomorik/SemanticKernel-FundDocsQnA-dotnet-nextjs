@@ -44,6 +44,8 @@ public class OpenAIVisionClientTests
     [TearDown]
     public void TearDown()
     {
+        _httpClient.Dispose();
+
         // Clean up all temp files created during the test
         foreach (var tempFile in _tempFilesToCleanup)
         {
@@ -323,7 +325,7 @@ public class OpenAIVisionClientTests
             });
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
             imagePath,
             DefaultApiKey,
             DefaultVisionModel,
@@ -350,7 +352,7 @@ public class OpenAIVisionClientTests
             });
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
             imagePath,
             DefaultApiKey,
             DefaultVisionModel,
@@ -359,13 +361,13 @@ public class OpenAIVisionClientTests
     }
 
     [Test]
-    public void ExtractTextFromImageAsync_MissingImageFile_ThrowsFileNotFoundException()
+    public async Task ExtractTextFromImageAsync_MissingImageFile_ThrowsFileNotFoundException()
     {
         // Arrange
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
 
         // Act & Assert
-        Assert.ThrowsAsync<FileNotFoundException>(async () => await _sut.ExtractTextFromImageAsync(
+        await Assert.ThrowsAsync<FileNotFoundException>(async () => await _sut.ExtractTextFromImageAsync(
             nonExistentPath,
             DefaultApiKey,
             DefaultVisionModel,

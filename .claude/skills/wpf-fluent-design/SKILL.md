@@ -12,7 +12,7 @@ Implementation rules and token reference for MahApps.Metro desktop apps with Flu
 > This skill covers the WPF-specific *how* — tokens, rules, and the agent verification checklist.
 
 > **Theme file:** `YieldRaccoon/YieldRaccoon.Wpf/Themes/YieldRaccoonTheme.xaml`
-> **Framework:** MahApps.Metro 2.4.11 on .NET 9.0
+> **Framework:** MahApps.Metro 2.4.11 on .NET 10.0
 
 ---
 

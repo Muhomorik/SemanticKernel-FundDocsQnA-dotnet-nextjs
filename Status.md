@@ -1,10 +1,10 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-10-25 (Added `.claude/claude-security-guidance.md` security review rules after a clean Claude Security scan)
+Last Updated: 2026-10-27 (Upgraded non-Azure projects — PdfTextExtractor, Preprocessor, YieldRaccoon — to .NET 10 with package updates; backend stays on .NET 9)
 
 **Tech Stack:**
 
-- Preprocessor: .NET 9 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
+- Preprocessor: .NET 10 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
 - Backend: ASP.NET Core 9 + Semantic Kernel + OpenAI (default) / Groq API (optional)
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
@@ -43,13 +43,21 @@ Last Updated: 2026-10-25 (Added `.claude/claude-security-guidance.md` security r
 
 ---
 
+## Maintenance
+
+| Task | Status | Notes |
+| ------ | -------- | ------- |
+| .NET 10 upgrade (non-Azure projects) | ✅ | **Completed 2026-10-27**: PdfTextExtractor, Preprocessor, YieldRaccoon (12 projects) → `net10.0` / `net10.0-windows10.0.26100.0`; all NuGet packages to latest stable (MS.Extensions/EF Core 10.0.14, SK 1.81.0, NUnit 5, Test SDK 18, Rx 7, NLog 6.2, Magick 15, ImageSharp 4). Rx 7 moved `DispatcherScheduler` → added `System.Reactive.Wpf` to both WPF apps. NUnit 5 `Assert.ThrowsAsync`/`DoesNotThrowAsync` now awaited (un-awaited calls silently pass); added `NUnit.Analyzers` to all test projects + fixed surfaced NUnit1032 disposal leaks. Dropped inbox `System.Text.Json` ref. 566 tests green. CLAUDE.md, root/component READMEs, and wpf-fluent-design skill updated to .NET 10 (backend/Azure docs intentionally left on .NET 9). Backend + CI held on .NET 9 until Azure App Service is upgraded |
+
+---
+
 ## Part 1: Preprocessor ✅ COMPLETED
 
 ### Implementation Status
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Console Application | ✅ | .NET 9 with CommandLineParser |
+| Console Application | ✅ | .NET 10 with CommandLineParser |
 | Text File Reading | ✅ | **UPDATED 2026-01-28**: TextFileExtractor reads pre-extracted text files from PdfTextExtractor (pattern: {basename}_page_{N}.txt), validates sequential pages, comprehensive tests (14 tests) |
 | Text Chunking | ✅ | **UPDATED 2026-01-28**: SemanticChunker only - paragraph-based splitting with 15% overlap (800 chars default), follows 2025 RAG best practices, preserves semantic boundaries, DI-based, AutoFixture + AutoMoq tests (23 tests) |
 | Embedding Generation | ✅ | Supports Ollama, LM Studio, OpenAI |
@@ -424,7 +432,7 @@ Reusable .NET library for PDF text extraction using Domain-Driven Design archite
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Project Setup | ✅ | .NET 9.0 class library with 7 NuGet packages |
+| Project Setup | ✅ | .NET 10.0 class library with 7 NuGet packages |
 | DDD Architecture | ✅ | Domain/ApplicationCore/Infrastructure layers, pure domain logic |
 | Autofac DI | ✅ | PdfTextExtractorModule with automatic service registration |
 | Rx.NET Events | ✅ | ReactiveEventPublisher exposing IObservable<PdfExtractionEventBase> |
@@ -478,13 +486,12 @@ Infrastructure (Extractors, File System, Event Bus)
 
 | Package | Version | Purpose |
 | --------- | --------- | --------- |
-| Autofac | 8.0.0 | Dependency injection container |
-| System.Reactive | 6.0.0 | Rx.NET for IObservable event streams |
-| PdfPig | 0.1.12 | PDF text extraction |
-| SixLabors.ImageSharp | 3.1.12 | Image processing for OCR (future) |
-| Microsoft.Extensions.Http | 9.0.0 | HTTP client for LM Studio/Ollama APIs (future) |
-| System.Text.Json | 9.0.0 | JSON serialization |
-| Microsoft.Extensions.Logging.Abstractions | 9.0.0 | Logging infrastructure |
+| Autofac | 9.3.4 | Dependency injection container |
+| System.Reactive | 7.0.0 | Rx.NET for IObservable event streams |
+| PdfPig | 0.1.16 | PDF text extraction |
+| SixLabors.ImageSharp | 4.1.3 | Image processing for OCR (future) |
+| Microsoft.Extensions.Http | 10.0.14 | HTTP client for LM Studio/Ollama APIs (future) |
+| Microsoft.Extensions.Logging.Abstractions | 10.0.14 | Logging infrastructure |
 
 ### Public API Methods
 
@@ -508,7 +515,7 @@ Infrastructure (Extractors, File System, Event Bus)
 | Event Catalog | ✅ Complete | All 23 events documented with code examples |
 | Project Structure | ✅ Complete | ASCII tree view of DDD layers |
 | Usage Examples | ✅ Complete | CLI and WPF integration examples |
-| Tech Stack Badges | ✅ Complete | .NET 9.0, C# 12.0 badges with tables |
+| Tech Stack Badges | ✅ Complete | .NET 10.0, C# 14.0 badges with tables |
 | Mermaid Diagrams | ✅ Complete | DDD layers, project structure, domain layer, sequence diagram, event flow |
 
 ### Mermaid Diagrams (5 Total)
@@ -554,7 +561,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Project Setup | ✅ | .NET 9.0 WPF with Windows 10.0.26100.0 target framework |
+| Project Setup | ✅ | .NET 10.0 WPF with Windows 10.0.26100.0 target framework |
 | MVVM Architecture | ✅ | **Completed 2026-01-28**: DevExpress ViewModelBase, property change notification, ICommand implementation |
 | MainWindowViewModel | ✅ | **Completed 2026-01-28**: Title and StatusMessage properties, RefreshCommand, IDisposable implementation |
 | Autofac DI Container | ✅ | **Completed 2026-01-28**: Configured in App.xaml.cs OnStartup, ViewModel and View registration, constructor injection |
@@ -577,14 +584,15 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 
 | Package | Version | Purpose |
 | --------- | --------- | --------- |
-| **Autofac** | 9.0.0 | Dependency injection container |
+| **Autofac** | 9.3.4 | Dependency injection container |
 | **DevExpressMvvm** | 24.1.6 | MVVM framework (ViewModelBase, DelegateCommand) |
 | **MahApps.Metro** | 2.4.11 | Modern WPF UI controls and themes |
-| **System.Reactive** | 6.1.0 | Reactive Extensions for IObservable patterns |
-| **NLog** | 6.0.7 | Logging framework (infrastructure ready) |
-| **NLog.Extensions.Logging** | 6.1.0 | NLog integration with Microsoft.Extensions.Logging |
-| **Magick.NET-Q8-AnyCPU** | 14.10.2 | ImageMagick for streaming mode OilPaint effect |
-| **TaskScheduler** | 2.11.0 | Windows Task Scheduler wrapper for daily auto-start feature |
+| **System.Reactive** | 7.0.0 | Reactive Extensions for IObservable patterns |
+| **System.Reactive.Wpf** | 7.0.0 | `DispatcherScheduler` (split out of System.Reactive in Rx 7) |
+| **NLog** | 6.2.2 | Logging framework (infrastructure ready) |
+| **NLog.Extensions.Logging** | 6.2.2 | NLog integration with Microsoft.Extensions.Logging |
+| **Magick.NET-Q8-AnyCPU** | 15.0.0 | ImageMagick for streaming mode OilPaint effect |
+| **TaskScheduler** | 2.12.2 | Windows Task Scheduler wrapper for daily auto-start feature |
 
 ### Architecture
 

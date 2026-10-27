@@ -219,7 +219,7 @@ public class FundAllocationsCsvExportServiceTests
         var destPath = Path.Combine(_tempDir, "allocations.csv");
 
         // Act + Assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _sut.ExportAsync(sourcePath, destPath));
         Assert.That(ex!.Message, Does.Contain("country_curacao"));
         Assert.That(ex.Message, Does.Contain("Curaçao"));
@@ -231,12 +231,12 @@ public class FundAllocationsCsvExportServiceTests
     #region Error handling
 
     [Test]
-    public void ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
+    public async Task ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
     {
         var fakePath = Path.Combine(_tempDir, "nonexistent.db");
         var destPath = Path.Combine(_tempDir, "allocations.csv");
 
-        Assert.ThrowsAsync<FileNotFoundException>(() => _sut.ExportAsync(fakePath, destPath));
+        await Assert.ThrowsAsync<FileNotFoundException>(() => _sut.ExportAsync(fakePath, destPath));
     }
 
     [Test]

@@ -132,10 +132,10 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
 cd Preprocessor/Preprocessor
 
 # Update to use OpenAI embeddings, then run:
-dotnet run -- -m pdfpig -i ./pdfs -o ./bin/Debug/net9.0/output.json
+dotnet run -- -m pdfpig -i ./pdfs -o ./bin/Debug/net10.0/output.json
 
 # Copy to backend
-cp ./bin/Debug/net9.0/output.json ../backend/Backend.API/Data/embeddings.json
+cp ./bin/Debug/net10.0/output.json ../backend/Backend.API/Data/embeddings.json
 ```
 
 ### Step 5: Deploy

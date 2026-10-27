@@ -50,6 +50,8 @@ public class LMStudioVisionClientTests
     [TearDown]
     public void TearDown()
     {
+        _httpClient.Dispose();
+
         // Clean up all temp files created during the test
         foreach (var tempFile in _tempFilesToCleanup)
         {
@@ -314,7 +316,7 @@ public class LMStudioVisionClientTests
             });
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await _sut.ExtractTextFromImageAsync(
             imagePath,
             DefaultVisionModel,
             DefaultLMStudioUrl));

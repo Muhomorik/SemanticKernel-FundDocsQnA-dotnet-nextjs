@@ -45,6 +45,9 @@ public class DualWriteFundListIngestionService_IngestBatchAsyncTests
         _sut = _fixture.Create<DualWriteFundListIngestionService>();
     }
 
+    [TearDown]
+    public void TearDown() => _syncSubject.Dispose();
+
     [Test]
     public async Task IngestBatchAsync_InnerSucceeds_BackendSucceeds_ReturnsInnerCount()
     {
