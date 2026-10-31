@@ -39,15 +39,19 @@ def test_load_week_name_from_allocations_and_only_selected_metadata(
 
 
 def test_load_week_missing_week_raises(data_dir: Path) -> None:
+    missing_week = "2026-W02"
+
     with pytest.raises(FileNotFoundError):
-        load_week(data_dir, "2026-W02")
+        load_week(data_dir, missing_week)
 
 
 def test_latest_week_several_weeks_returns_newest(data_dir: Path) -> None:
     write_week(data_dir, "2026-W10", [{"isin": "X"}], [{"isin": "X"}])
     write_week(data_dir, "2025-W52", [{"isin": "X"}], [{"isin": "X"}])
 
-    assert latest_week(data_dir) == "2026-W10"
+    week = latest_week(data_dir)
+
+    assert week == "2026-W10"
 
 
 def test_latest_week_empty_folder_raises(tmp_path: Path) -> None:

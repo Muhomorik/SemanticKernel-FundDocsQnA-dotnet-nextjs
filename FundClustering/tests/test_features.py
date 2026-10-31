@@ -14,10 +14,12 @@ def data(data_dir: Path) -> FundData:
 
 
 def test_allocation_matrix_countries_then_sectors_as_fractions(data: FundData) -> None:
+    # SE0000000001: sverige 110, usa -10, finans 50, teknik 50
+    expected = [1.1, -0.1, 0.5, 0.5]
+
     matrix = allocation_matrix(data)
 
-    # SE0000000001: sverige 110, usa -10, finans 50, teknik 50
-    np.testing.assert_allclose(matrix[0], [1.1, -0.1, 0.5, 0.5])
+    np.testing.assert_allclose(matrix[0], expected)
 
 
 def test_cosine_features_rows_have_unit_length(data: FundData) -> None:
@@ -27,11 +29,12 @@ def test_cosine_features_rows_have_unit_length(data: FundData) -> None:
 
 
 def test_cosine_features_direction_preserved(data: FundData) -> None:
-    features = cosine_features(data)
     matrix = allocation_matrix(data)
+    lengths = np.linalg.norm(matrix, axis=1, keepdims=True)
+
+    features = cosine_features(data)
 
     # Scaling back by the original length restores the original vector.
-    lengths = np.linalg.norm(matrix, axis=1, keepdims=True)
     np.testing.assert_allclose(features * lengths, matrix)
 
 
