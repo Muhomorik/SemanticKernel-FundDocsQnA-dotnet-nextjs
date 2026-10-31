@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fund cluster map</title>
+<!--
+  Local preview of the files main.py writes to ../output.
+  Open this file in a browser and pick (or drop) the JSON files from ../output.
+  When served over http, it loads them from ../output by itself.
+  The chart only draws; every number comes from the JSON files.
+
+  Why a picker: a page opened from file:// may not fetch() other files, even
+  from its own folder (Edge, Chrome and Firefox all block it). Files the user
+  picks or drops are allowed. No server needed.
+
+  Needs internet: ECharts and the font load from a CDN. For offline use, save
+  echarts.min.js next to this file and change the <script src> to it
+  (<script src> with a relative path works from file://).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,700;1,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #e9edf1;
+    --panel: #ffffff;
+    --ink: #1d2733;
+    --muted: #5d6b7a;
+    --line: #cfd7df;
+    --accent: #0f6e7a;
+    --accent-soft: #d7ebee;
+    --amber: #c58300;
+    --red: #d0353a;
+    --map: #f6f8fa;
+    --halo: #f6f8fa;
+    --territory-alpha: 0.2;
+    --dot-edge: rgba(255, 255, 255, 0.85);
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171d;
+    --panel: #1a2129;
+    --ink: #e2e8ee;
+    --muted: #93a1b0;
+    --line: #2d3843;
+    --accent: #4fb3bf;
+    --accent-soft: #1d3a40;
+    --amber: #e0a12a;
+    --red: #ec5b5f;
+    --map: #161c23;
+    --halo: #161c23;
+    --territory-alpha: 0.24;
+    --dot-edge: rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 14px/1.45 "Public Sans", system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    flex-direction: column;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 32px;
+    padding: 16px 20px 12px;
+  }
+  h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .subtitle { color: var(--muted); font-size: 13px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-left: auto; }
+  .stat { display: flex; flex-direction: column; }
+  .stat b { font-size: 18px; font-weight: 600; line-height: 1.2; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .stat.agree b { color: var(--accent); }
+  .stat.neighbouring b { color: var(--amber); }
+  .stat.different b { color: var(--red); }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 0 20px 12px;
+  }
+  .field { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  select, .search input {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .search { position: relative; flex: 1 1 260px; max-width: 380px; }
+  .search input { width: 100%; }
+  .results {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+  .results li { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+  .results li[aria-selected="true"], .results li:hover { background: var(--accent-soft); }
+  .results small { display: block; color: var(--muted); }
+  .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .segmented button { border: 0; background: var(--panel); padding: 6px 10px; cursor: pointer; }
+  .segmented button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .toggle { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
+  .toggle input { accent-color: var(--accent); }
+  .plain {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 12px;
+    padding: 0 20px 16px;
+  }
+  .map-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+    background: var(--map);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #chart { flex: 1; min-height: 0; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+  .swatch.diamond { border-radius: 1px; transform: rotate(45deg) scale(0.85); }
+  .swatch.square { border-radius: 1px; }
+  .swatch.ring { background: transparent; border: 2px solid; }
+  .message {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .message code { color: var(--ink); }
+  /* display: grid above would otherwise beat the hidden attribute and leave an
+     invisible layer over the chart that swallows wheel and mouse events. */
+  .message[hidden] { display: none; }
+
+  aside {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .pinned { padding: 14px 16px; border-bottom: 1px solid var(--line); max-height: 50%; overflow: auto; }
+  .pinned h2 { margin: 0 0 2px; font-size: 15px; }
+  .pinned .meta { color: var(--muted); font-size: 12px; }
+  .pinned h3 { margin: 12px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .pinned .close { float: right; border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs button {
+    flex: 1;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    padding: 10px 6px 8px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  .list { flex: 1; overflow: auto; margin: 0; padding: 4px 0; list-style: none; }
+  .row {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: 2px 8px;
+    align-items: center;
+    padding: 6px 16px;
+    cursor: pointer;
+  }
+  .row:hover { background: var(--accent-soft); }
+  .row.active { background: var(--accent-soft); box-shadow: inset 3px 0 var(--accent); }
+  .row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .num { color: var(--muted); font-size: 12px; text-align: right; }
+  .row .detail { grid-column: 2 / 4; color: var(--muted); font-size: 12px; }
+  .bar { grid-column: 2 / 4; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .hint { padding: 8px 16px; color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .map-wrap { min-height: 70vh; }
+    aside { max-height: 80vh; }
+    .stats { margin-left: 0; }
+    header, .toolbar, main { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Fund cluster map</h1>
+    <div class="subtitle" id="subtitle">Loading…</div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="toolbar">
+  <label class="field">Method <select id="method"></select></label>
+  <div class="search">
+    <input id="search" type="search" placeholder="Search by name or ISIN" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="results">
+    <ul class="results" id="results" role="listbox" hidden></ul>
+  </div>
+  <div class="segmented" role="group" aria-label="Funds shown">
+    <button type="button" data-view="all" aria-pressed="true">All funds</button>
+    <button type="button" data-view="disagree" aria-pressed="false">Disagreements</button>
+  </div>
+  <label class="toggle"><input type="checkbox" id="showTerritory" checked> Territory</label>
+  <label class="toggle"><input type="checkbox" id="showNames" checked> Cluster names</label>
+  <label class="toggle"><input type="checkbox" id="showRings" checked> Rings</label>
+  <button type="button" class="plain" id="reset">Reset zoom</button>
+  <button type="button" class="plain" id="theme">Dark theme</button>
+</div>
+
+<main>
+  <div class="map-wrap">
+    <div id="chart"></div>
+    <div class="legend" id="legend"></div>
+    <div class="message" id="message" hidden></div>
+  </div>
+  <aside>
+    <section class="pinned" id="pinned" hidden></section>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="categories" aria-selected="true">Categories</button>
+      <button type="button" role="tab" data-tab="clusters" aria-selected="false">Clusters</button>
+      <button type="button" role="tab" data-tab="disagreements" aria-selected="false">Disagreements</button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <ul class="list" id="list"></ul>
+  </aside>
+</main>
+
+<script>
+"use strict";
+
+const OUTPUT = "../output/";
+const NOT_IN_CLUSTER = -1;
+const SIMILAR_SHOWN = 10;
+const MARGIN = 0.03;
+
+const FAMILIES = {
+  nordic: { name: "Nordics", hue: 205 },
+  europe: { name: "Europe", hue: 140 },
+  usa: { name: "USA", hue: 268 },
+  global: { name: "Global", hue: 24 },
+  em: { name: "Emerging markets", hue: 178 },
+  asia: { name: "Asia & Japan", hue: 328 },
+  sector: { name: "Sector funds", hue: 48 },
+  other: { name: "Other", hue: 0, grey: true },
+};
+const VERDICTS = {
+  agree: "Agrees with its category",
+  neighbouring: "Neighbouring category (same region family)",
+  different: "Different family",
+  none: "Not in a cluster",
+};
+
+const state = {
+  manifest: null,
+  funds: new Map(),
+  fundList: [],
+  doc: null,
+  pointIndex: new Map(),
+  clusters: new Map(),
+  view: "all",
+  showTerritory: true,
+  showNames: true,
+  showRings: true,
+  isolate: null,
+  pinned: null,
+  tab: "categories",
+};
+
+const $ = (id) => document.getElementById(id);
+const chart = echarts.init($("chart"), null, { renderer: "canvas" });
+
+// ---------- helpers ----------
+
+function esc(text) {
+  return String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+function css(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function pct(share) {
+  return share == null ? "–" : `${Math.round(share * 100)}%`;
+}
+
+function label(name) {
+  const text = name.replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function isDark() {
+  return document.documentElement.dataset.theme === "dark";
+}
+
+function familyColour(familyId, shade = 0, alpha = 1) {
+  const family = FAMILIES[familyId] ?? FAMILIES.other;
+  const step = shade % 5;
+  const hue = family.hue + ((shade % 3) - 1) * 8;
+  const saturation = family.grey ? 0 : 62;
+  const lightness = (isDark() ? 52 : 38) + step * 7;
+  return `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+}
+
+function categoryColour(category, alpha = 1) {
+  const fund = state.fundList.find((f) => f.category === category);
+  return fund ? familyColour(fund.family, fund.shade, alpha) : familyColour("other", 0, alpha);
+}
+
+function symbolFor(fund) {
+  if (fund.family === "sector") return "diamond";
+  if (fund.family === "other") return "rect";
+  return "circle";
+}
+
+function shapeClass(fund) {
+  return { diamond: "diamond", rect: "square" }[symbolFor(fund)] ?? "";
+}
+
+function ratio() {
+  const xs = state.doc.points.map((p) => p.x);
+  const ys = state.doc.points.map((p) => p.y);
+  return {
+    xMax: Math.max(...xs),
+    yMax: Math.max(...ys),
+  };
+}
+
+function matchesIsolate(point, fund) {
+  const isolate = state.isolate;
+  if (!isolate) return true;
+  if (isolate.type === "category") return fund.category === isolate.value;
+  return point.cluster === isolate.value;
+}
+
+function isDisagreement(point) {
+  return point.verdict === "neighbouring" || point.verdict === "different";
+}
+
+// ---------- loading ----------
+
+// Files the user picked or dropped, by name. A page opened from file:// may
+// not fetch() other files, so the picker is the way in without a server.
+const picked = new Map();
+
+async function loadJson(file) {
+  if (picked.has(file)) return picked.get(file);
+  const response = await fetch(OUTPUT + file);
+  if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+  return response.json();
+}
+
+async function pickFiles(files) {
+  for (const file of files) {
+    if (file.name.endsWith(".json")) picked.set(file.name, JSON.parse(await file.text()));
+  }
+  start();
+}
+
+async function start() {
+  $("message").hidden = true;
+  try {
+    const [manifest, funds] = await Promise.all([loadJson("methods.json"), loadJson("funds.json")]);
+    state.manifest = manifest;
+    state.fundList = funds.funds;
+    state.funds = new Map(funds.funds.map((f) => [f.isin, f]));
+    $("method").innerHTML = manifest.methods
+      .map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`)
+      .join("");
+    $("method").value = manifest.default;
+    await loadMethod(manifest.default);
+  } catch (error) {
+    showMessage(error);
+  }
+}
+
+async function loadMethod(methodId) {
+  const entry = state.manifest.methods.find((m) => m.id === methodId);
+  const doc = await loadJson(entry.file);
+  state.doc = doc;
+  state.pointIndex = new Map(doc.points.map((p, i) => [p.isin, i]));
+  state.clusters = new Map(doc.clusters.map((c) => [c.id, c]));
+  state.isolate = null;
+  setupChart();
+  renderAll();
+}
+
+function showMessage(error) {
+  const message = $("message");
+  message.hidden = false;
+  const missing = picked.size ? ` (${esc(error.message)})` : "";
+  message.innerHTML = `
+    <p><strong>Choose the map data</strong>${missing}</p>
+    <p>Select <code>methods.json</code>, <code>funds.json</code> and the method files
+    from <code>FundClustering/output</code>, or drop them here.</p>
+    <p><label class="plain">Choose files
+      <input type="file" id="picker" accept=".json" multiple hidden></label></p>`;
+  $("picker").addEventListener("change", (e) => pickFiles(e.target.files));
+  $("subtitle").textContent = "No data";
+}
+
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  pickFiles(e.dataTransfer.files);
+});
+
+// ---------- chart ----------
+
+function fitGrid() {
+  if (!state.doc) return;
+  const { xMax, yMax } = ratio();
+  const aspect = (xMax + 2 * MARGIN) / (yMax + 2 * MARGIN);
+  const element = $("chart");
+  const pad = 12;
+  let width = element.clientWidth - 2 * pad;
+  let height = width / aspect;
+  if (height > element.clientHeight - 2 * pad) {
+    height = element.clientHeight - 2 * pad;
+    width = height * aspect;
+  }
+  chart.setOption({
+    grid: {
+      left: (element.clientWidth - width) / 2,
+      top: (element.clientHeight - height) / 2,
+      width,
+      height,
+    },
+  });
+}
+
+function setupChart() {
+  const { xMax, yMax } = ratio();
+  chart.clear();
+  chart.setOption({
+    animation: false,
+    xAxis: { type: "value", min: -MARGIN, max: xMax + MARGIN, show: false },
+    yAxis: { type: "value", min: -MARGIN, max: yMax + MARGIN, show: false },
+    dataZoom: [
+      { type: "inside", xAxisIndex: 0, filterMode: "none" },
+      { type: "inside", yAxisIndex: 0, filterMode: "none" },
+    ],
+    tooltip: { trigger: "item", confine: true, formatter: tooltip },
+  });
+  fitGrid();
+}
+
+function ringPath(ring, api) {
+  const pixels = ring.map(([x, y]) => api.coord([x, y]));
+  return "M" + pixels.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join("L") + "Z";
+}
+
+function signedArea(ring) {
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  return area / 2;
+}
+
+// Exterior counter-clockwise, holes clockwise, so the default non-zero fill
+// leaves the holes empty.
+function orientedRings(part) {
+  return part.rings.map((ring, i) => {
+    const wantPositive = i === 0;
+    return signedArea(ring) > 0 === wantPositive ? ring : [...ring].reverse();
+  });
+}
+
+function territorySeries() {
+  const parts = state.showTerritory ? state.doc.territory : [];
+  const alpha = Number(css("--territory-alpha"));
+  const line = css("--map");
+  const prepared = parts.map((part) => ({
+    cluster: part.cluster,
+    rings: orientedRings(part),
+  }));
+  return {
+    id: "territory",
+    type: "custom",
+    silent: true,
+    clip: true,
+    z: 1,
+    data: prepared.map((part) => part.rings[0][0]),
+    renderItem(params, api) {
+      const part = prepared[params.dataIndex];
+      const cluster = state.clusters.get(part.cluster);
+      const dimmed = state.isolate?.type === "cluster" && state.isolate.value !== part.cluster;
+      return {
+        type: "path",
+        shape: { pathData: part.rings.map((ring) => ringPath(ring, api)).join(" ") },
+        style: {
+          fill: categoryColour(cluster.leadingCategory, dimmed ? alpha / 3 : alpha),
+          stroke: line,
+          lineWidth: 1.2,
+        },
+      };
+    },
+  };
+}
+
+function pointSeries() {
+  const amber = css("--amber");
+  const red = css("--red");
+  const edge = css("--dot-edge");
+  const data = state.doc.points.map((point) => {
+    const fund = state.funds.get(point.isin);
+    const visible = state.view === "all" || isDisagreement(point);
+    const focused = matchesIsolate(point, fund);
+    const ring = state.showRings && focused
+      ? { neighbouring: amber, different: red }[point.verdict]
+      : null;
+    const symbol = symbolFor(fund);
+    return {
+      value: [point.x, point.y],
+      symbol,
+      symbolSize: visible ? (symbol === "diamond" ? 10 : 8) : 0,
+      itemStyle: {
+        color: familyColour(fund.family, fund.shade),
+        opacity: focused ? 1 : 0.12,
+        borderColor: ring ?? edge,
+        borderWidth: ring ? 2 : 0.8,
+      },
+    };
+  });
+  return {
+    id: "points",
+    type: "scatter",
+    z: 3,
+    data,
+    emphasis: { scale: 1.6 },
+  };
+}
+
+function labelSeries() {
+  const clusters = state.showNames
+    ? [...state.doc.clusters].sort((a, b) => b.size - a.size)
+    : [];
+  return {
+    id: "labels",
+    type: "scatter",
+    silent: true,
+    z: 4,
+    symbolSize: 0,
+    data: clusters.map((c) => ({ value: [c.labelX, c.labelY], name: c.name })),
+    // Bigger clusters first, so their names win when labels collide.
+    labelLayout: { hideOverlap: true },
+    label: {
+      show: true,
+      formatter: (p) => p.name,
+      fontFamily: "Public Sans",
+      fontStyle: "italic",
+      fontWeight: 600,
+      fontSize: 11,
+      color: css("--ink"),
+      textBorderColor: css("--halo"),
+      textBorderWidth: 3,
+    },
+  };
+}
+
+function pinSeries() {
+  const pinned = state.pinned;
+  const ink = css("--ink");
+  const accent = css("--accent");
+  const similar = pinned ? state.doc.neighbours[pinned].slice(0, SIMILAR_SHOWN) : [];
+  const at = (isin) => {
+    const point = state.doc.points[state.pointIndex.get(isin)];
+    return [point.x, point.y];
+  };
+  return [
+    {
+      id: "similar",
+      type: "scatter",
+      silent: true,
+      z: 5,
+      symbolSize: 15,
+      itemStyle: { color: "transparent", borderColor: ink, borderWidth: 1.5 },
+      label: {
+        show: true,
+        position: "right",
+        fontSize: 10,
+        color: ink,
+        textBorderColor: css("--halo"),
+        textBorderWidth: 2,
+        formatter: (p) => p.dataIndex + 1,
+      },
+      data: similar.map((n) => at(n.isin)),
+    },
+    {
+      id: "pin",
+      type: "scatter",
+      silent: true,
+      z: 6,
+      symbolSize: 22,
+      itemStyle: { color: "transparent", borderColor: accent, borderWidth: 3 },
+      data: pinned ? [at(pinned)] : [],
+    },
+  ];
+}
+
+function renderChart() {
+  chart.setOption({
+    tooltip: {
+      backgroundColor: css("--panel"),
+      borderColor: css("--line"),
+      textStyle: { color: css("--ink"), fontFamily: "Public Sans", fontSize: 12 },
+    },
+    series: [territorySeries(), pointSeries(), labelSeries(), ...pinSeries()],
+  });
+}
+
+function tooltip(params) {
+  if (params.seriesId !== "points") return "";
+  const point = state.doc.points[params.dataIndex];
+  return fundCard(point, true);
+}
+
+function fundCard(point, compact) {
+  const fund = state.funds.get(point.isin);
+  const cluster = state.clusters.get(point.cluster);
+  const allocations = (items) =>
+    items.map(([name, value]) => `${esc(label(name))} ${value.toFixed(1)}%`).join(", ") || "–";
+  const clusterText = cluster
+    ? `${esc(cluster.name)} (${cluster.size} funds, ${pct(cluster.purity)} pure)`
+    : "Not in a cluster";
+  const verdictColour = { neighbouring: css("--amber"), different: css("--red") }[point.verdict];
+  const lines = [
+    compact ? `<strong>${esc(fund.name)}</strong>` : "",
+    `${esc(fund.company)}, ${esc(fund.isin)}${fund.isIndex ? ", index fund" : ""}`,
+    `Category: ${esc(fund.category)}`,
+    `Cluster: ${clusterText}`,
+    `<span style="color:${verdictColour ?? "inherit"}">${VERDICTS[point.verdict]}</span>`,
+    point.isolated ? "Few close neighbours" : "",
+    `Countries: ${allocations(fund.topCountries)}`,
+    `Sectors: ${allocations(fund.topSectors)}`,
+  ];
+  const html = lines.filter(Boolean).join("<br>");
+  return compact ? `<div style="max-width:320px;white-space:normal">${html}</div>` : html;
+}
+
+// ---------- zoom ----------
+
+function zoomTo(isin) {
+  const point = state.doc.points[state.pointIndex.get(isin)];
+  const { xMax, yMax } = ratio();
+  const aspect = (xMax + 2 * MARGIN) / (yMax + 2 * MARGIN);
+  const halfY = 0.09;
+  const halfX = halfY * aspect;
+  chart.dispatchAction({
+    type: "dataZoom",
+    batch: [
+      { dataZoomIndex: 0, startValue: point.x - halfX, endValue: point.x + halfX },
+      { dataZoomIndex: 1, startValue: point.y - halfY, endValue: point.y + halfY },
+    ],
+  });
+}
+
+function resetZoom() {
+  chart.dispatchAction({
+    type: "dataZoom",
+    batch: [
+      { dataZoomIndex: 0, start: 0, end: 100 },
+      { dataZoomIndex: 1, start: 0, end: 100 },
+    ],
+  });
+}
+
+function pin(isin, zoom = true) {
+  state.pinned = isin;
+  renderChart();
+  renderPinned();
+  if (zoom) zoomTo(isin);
+}
+
+// ---------- header, legend and panel ----------
+
+function renderHeader() {
+  const { doc } = state;
+  const s = doc.summary;
+  $("subtitle").textContent = `Week ${doc.week}, ${s.funds} equity funds, ${s.clusters} clusters`;
+  const stats = [
+    ["agree", pct(s.agree), "agree"],
+    ["neighbouring", pct(s.neighbouring), "neighbouring"],
+    ["different", pct(s.different), "other family"],
+    ["", s.notInCluster, "no cluster"],
+    ["", s.ari?.toFixed(2) ?? "–", "ARI"],
+    ["", s.nmi?.toFixed(2) ?? "–", "NMI"],
+  ];
+  $("stats").innerHTML = stats
+    .map(([cls, value, name]) => `<div class="stat ${cls}"><b>${esc(value)}</b><span>${name}</span></div>`)
+    .join("");
+  $("stats").title = doc.description;
+}
+
+function renderLegend() {
+  const families = Object.entries(FAMILIES).map(([id, family]) => {
+    const shape = { sector: "diamond", other: "square" }[id] ?? "";
+    return `<span><i class="swatch ${shape}" style="background:${familyColour(id, 1)}"></i>${family.name}</span>`;
+  });
+  const rings = [
+    `<span><i class="swatch ring" style="border-color:${css("--amber")}"></i>Neighbouring category</span>`,
+    `<span><i class="swatch ring" style="border-color:${css("--red")}"></i>Different family</span>`,
+  ];
+  $("legend").innerHTML = [...families, ...rings].join("");
+}
+
+function renderPinned() {
+  const section = $("pinned");
+  if (!state.pinned) {
+    section.hidden = true;
+    return;
+  }
+  const point = state.doc.points[state.pointIndex.get(state.pinned)];
+  const fund = state.funds.get(point.isin);
+  const similar = state.doc.neighbours[point.isin].slice(0, SIMILAR_SHOWN);
+  section.hidden = false;
+  section.innerHTML = `
+    <button type="button" class="close" id="unpin" aria-label="Clear selection">×</button>
+    <h2>${esc(fund.name)}</h2>
+    <div class="meta">${fundCard(point, false)}</div>
+    <h3>Most similar funds (numbered on the map)</h3>
+    <ol class="list" id="similar" style="padding:0 0 0 20px"></ol>`;
+  const list = section.querySelector("#similar");
+  for (const neighbour of similar) {
+    const other = state.funds.get(neighbour.isin);
+    const item = document.createElement("li");
+    item.className = "row";
+    item.style.padding = "3px 4px";
+    item.innerHTML = `
+      <i class="swatch ${shapeClass(other)}" style="background:${familyColour(other.family, other.shade)}"></i>
+      <span class="name"></span><span class="num">${neighbour.distance.toFixed(3)}</span>
+      <span class="detail"></span>`;
+    item.querySelector(".name").textContent = other.name;
+    item.querySelector(".detail").textContent = other.category;
+    item.addEventListener("click", () => pin(other.isin));
+    list.append(item);
+  }
+  section.querySelector("#unpin").addEventListener("click", () => {
+    state.pinned = null;
+    renderChart();
+    renderPinned();
+  });
+}
+
+function row({ swatch, name, num, detail, share, active, onClick }) {
+  const item = document.createElement("li");
+  item.className = "row" + (active ? " active" : "");
+  item.tabIndex = 0;
+  item.innerHTML = `${swatch}<span class="name"></span><span class="num"></span>`;
+  item.querySelector(".name").textContent = name;
+  item.querySelector(".num").textContent = num;
+  if (detail) {
+    const span = document.createElement("span");
+    span.className = "detail";
+    span.textContent = detail;
+    item.append(span);
+  }
+  if (share !== undefined) {
+    item.insertAdjacentHTML("beforeend", `<span class="bar"><i style="width:${(share ?? 0) * 100}%"></i></span>`);
+  }
+  item.addEventListener("click", onClick);
+  item.addEventListener("keydown", (e) => e.key === "Enter" && onClick());
+  return item;
+}
+
+function toggleIsolate(type, value) {
+  const same = state.isolate?.type === type && state.isolate.value === value;
+  state.isolate = same ? null : { type, value };
+  renderChart();
+  renderList();
+}
+
+function renderList() {
+  const list = $("list");
+  list.replaceChildren();
+  const { doc, isolate } = state;
+
+  if (state.tab === "categories") {
+    $("hint").textContent = "Share of each category's clustered funds that agree. Click to isolate.";
+    const categories = [...doc.categories].sort((a, b) => b.funds - a.funds);
+    for (const c of categories) {
+      const fund = state.fundList.find((f) => f.category === c.category);
+      list.append(row({
+        swatch: `<i class="swatch ${shapeClass(fund)}" style="background:${categoryColour(c.category)}"></i>`,
+        name: c.category,
+        num: `${c.funds} funds, ${pct(c.agreeShare)}`,
+        share: c.agreeShare,
+        active: isolate?.type === "category" && isolate.value === c.category,
+        onClick: () => toggleIsolate("category", c.category),
+      }));
+    }
+  } else if (state.tab === "clusters") {
+    $("hint").textContent = "Clusters by size, with their largest categories. Click to isolate.";
+    const clusters = [...doc.clusters].sort((a, b) => b.size - a.size);
+    for (const c of clusters) {
+      const composition = Object.entries(c.categories)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name, count]) => `${name} ${count}`)
+        .join(", ");
+      list.append(row({
+        swatch: `<i class="swatch" style="background:${categoryColour(c.leadingCategory)}"></i>`,
+        name: c.name,
+        num: `${c.size}, ${pct(c.purity)} pure`,
+        detail: composition,
+        active: isolate?.type === "cluster" && isolate.value === c.id,
+        onClick: () => toggleIsolate("cluster", c.id),
+      }));
+    }
+  } else {
+    $("hint").textContent = "Funds whose cluster is named after another category. Click to zoom.";
+    const order = { different: 0, neighbouring: 1 };
+    const points = doc.points
+      .filter(isDisagreement)
+      .sort((a, b) => order[a.verdict] - order[b.verdict]);
+    for (const point of points) {
+      const fund = state.funds.get(point.isin);
+      const colour = point.verdict === "different" ? css("--red") : css("--amber");
+      list.append(row({
+        swatch: `<i class="swatch ring" style="border-color:${colour}"></i>`,
+        name: fund.name,
+        num: "",
+        detail: `${fund.category} in ${state.clusters.get(point.cluster).name}`,
+        active: state.pinned === point.isin,
+        onClick: () => {
+          pin(point.isin);
+          renderList();
+        },
+      }));
+    }
+  }
+}
+
+function renderAll() {
+  renderHeader();
+  renderLegend();
+  renderChart();
+  renderPinned();
+  renderList();
+}
+
+// ---------- search ----------
+
+let matches = [];
+let selected = 0;
+
+function search(text) {
+  const query = text.trim().toLowerCase();
+  if (query.length < 2) return [];
+  return state.fundList
+    .filter((f) => f.name.toLowerCase().includes(query) || f.isin.toLowerCase().includes(query))
+    .slice(0, 8);
+}
+
+function renderResults() {
+  const results = $("results");
+  results.hidden = matches.length === 0;
+  $("search").setAttribute("aria-expanded", String(!results.hidden));
+  results.replaceChildren(
+    ...matches.map((fund, i) => {
+      const item = document.createElement("li");
+      item.role = "option";
+      item.setAttribute("aria-selected", String(i === selected));
+      item.textContent = fund.name;
+      const small = document.createElement("small");
+      small.textContent = `${fund.isin}, ${fund.category}`;
+      item.append(small);
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        choose(fund);
+      });
+      return item;
+    }),
+  );
+}
+
+function choose(fund) {
+  matches = [];
+  renderResults();
+  $("search").value = fund.name;
+  pin(fund.isin);
+}
+
+$("search").addEventListener("input", (e) => {
+  matches = search(e.target.value);
+  selected = 0;
+  renderResults();
+});
+$("search").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    selected = (selected + step + matches.length) % Math.max(matches.length, 1);
+    renderResults();
+  } else if (e.key === "Enter" && matches[selected]) {
+    choose(matches[selected]);
+  } else if (e.key === "Escape") {
+    matches = [];
+    renderResults();
+  }
+});
+$("search").addEventListener("blur", () => {
+  matches = [];
+  renderResults();
+});
+
+// ---------- controls ----------
+
+$("method").addEventListener("change", (e) => loadMethod(e.target.value).catch(showMessage));
+
+for (const button of document.querySelectorAll("[data-view]")) {
+  button.addEventListener("click", () => {
+    state.view = button.dataset.view;
+    for (const b of document.querySelectorAll("[data-view]")) {
+      b.setAttribute("aria-pressed", String(b === button));
+    }
+    renderChart();
+  });
+}
+
+for (const [id, key] of [["showTerritory", "showTerritory"], ["showNames", "showNames"], ["showRings", "showRings"]]) {
+  $(id).addEventListener("change", (e) => {
+    state[key] = e.target.checked;
+    renderChart();
+  });
+}
+
+for (const tab of document.querySelectorAll("[data-tab]")) {
+  tab.addEventListener("click", () => {
+    state.tab = tab.dataset.tab;
+    for (const t of document.querySelectorAll("[data-tab]")) {
+      t.setAttribute("aria-selected", String(t === tab));
+    }
+    renderList();
+  });
+}
+
+$("reset").addEventListener("click", resetZoom);
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  $("theme").textContent = theme === "dark" ? "Light theme" : "Dark theme";
+  if (state.doc) renderAll();
+}
+
+$("theme").addEventListener("click", () => applyTheme(isDark() ? "light" : "dark"));
+applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+chart.on("click", (params) => {
+  if (params.seriesId === "points") pin(state.doc.points[params.dataIndex].isin, false);
+});
+
+new ResizeObserver(() => {
+  chart.resize();
+  fitGrid();
+}).observe($("chart"));
+
+start();
+</script>
+</body>
+</html>
