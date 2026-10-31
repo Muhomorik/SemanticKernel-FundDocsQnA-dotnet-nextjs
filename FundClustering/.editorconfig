@@ -1,0 +1,33 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python files (PEP 8: 4 spaces; 88 = black/ruff default line length)
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 88
+
+# pyproject.toml
+[*.toml]
+indent_style = space
+indent_size = 4
+
+# JSON / YAML
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2

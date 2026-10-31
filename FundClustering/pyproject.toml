@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fund-clustering"
+version = "0.1.0"
+description = "Clusters funds by country and sector allocations for the fund cluster map."
+requires-python = ">=3.15"
+dependencies = [
+    "pandas>=3.1",
+    "numpy>=2.5",
+    "scikit-learn>=1.9",
+    "umap-learn>=0.5.12",
+    "shapely>=2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel",
+    "plotly",
+    "pytest",
+    "nbstripout",
+]
+
+[tool.setuptools]
+packages = ["fund_clustering"]
