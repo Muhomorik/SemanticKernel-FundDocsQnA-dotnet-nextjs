@@ -30,3 +30,4 @@ packages = ["fund_clustering"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: runs UMAP (numba compiles on first use); skip with -m 'not slow'"]

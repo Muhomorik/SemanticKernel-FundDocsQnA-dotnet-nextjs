@@ -57,7 +57,8 @@ def load_week(data_dir: Path | str, week: str) -> FundData:
         metadata[METADATA_COLUMNS], on="isin", how="inner", validate="one_to_one"
     )
     funds = funds[funds["fund_type"] == EQUITY_FUND]
-    funds = funds.sort_values("isin").reset_index(drop=True)
+    # copy() consolidates the merged frame so adding columns later stays cheap.
+    funds = funds.sort_values("isin").reset_index(drop=True).copy()
 
     return FundData(
         week=week,
