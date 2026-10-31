@@ -18,6 +18,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ipykernel",
+    "notebook",
+    "pandas-stubs",
     "plotly",
     "pytest",
     "nbstripout",
