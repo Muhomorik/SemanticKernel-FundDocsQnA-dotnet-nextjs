@@ -27,3 +27,6 @@ dev = [
 
 [tool.setuptools]
 packages = ["fund_clustering"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
