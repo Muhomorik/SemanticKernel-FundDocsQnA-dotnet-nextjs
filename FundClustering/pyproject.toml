@@ -18,6 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ipykernel",
+    "ipywidgets",
     "notebook",
     "pandas-stubs",
     "plotly",
@@ -26,7 +27,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["fund_clustering"]
+packages = ["fund_clustering", "fund_clustering.methods"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

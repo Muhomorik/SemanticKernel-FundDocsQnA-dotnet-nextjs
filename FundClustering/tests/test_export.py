@@ -13,11 +13,12 @@ from fund_clustering.export import (
     top_allocations,
     write_documents,
 )
-from fund_clustering.features import cosine_features
 from fund_clustering.load import FundData
+from fund_clustering.methods import Method
+from fund_clustering.methods.cosine import cosine_features
 from fund_clustering.naming import describe_clusters, fund_verdicts
 from fund_clustering.neighbours import Neighbours
-from fund_clustering.pipeline import Method, MethodRun
+from fund_clustering.pipeline import MethodRun
 
 COUNTRIES = ["country_sverige", "country_usa"]
 SECTORS = ["sector_finans", "sector_teknik"]

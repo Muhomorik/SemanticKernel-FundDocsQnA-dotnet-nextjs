@@ -274,7 +274,9 @@ A method is a way of turning a fund's allocations into a feature vector. All met
 |------|----------|
 | `cosine` | All country + sector percentages as one vector (no weighting between the two blocks), scaled to length 1. Compares the *mix* of holdings. Negative values (short positions) used as reported |
 
-To add a method, add an entry to `METHODS` in [fund_clustering/pipeline.py](fund_clustering/pipeline.py). It gets its own `{id}.json` and a manifest entry; the first entry in `METHODS` is the default.
+Each method lives in its own module under [fund_clustering/methods/](fund_clustering/methods/) as a `Method` (id, name, description and a `features` function). The pipeline only calls `method.features(data)`, so methods are interchangeable.
+
+To add a method, write `fund_clustering/methods/{id}.py` with its feature function and a `METHOD`, then list it in `METHODS` in [fund_clustering/methods/\_\_init\_\_.py](fund_clustering/methods/__init__.py). It gets its own `{id}.json` and a manifest entry; the first entry in `METHODS` is the default. Euclidean distance between feature rows must be the method's distance, because UMAP and the neighbour search use Euclidean distance.
 
 ---
 
@@ -295,12 +297,12 @@ pytest -m "not slow"            # skip the UMAP tests
 | Module | Step |
 |--------|------|
 | `fund_clustering/load.py` | Read and join the weekly CSVs, keep equity funds |
-| `fund_clustering/features.py` | Allocations → feature vectors per method |
+| `fund_clustering/methods/` | One module per method: allocations → feature vectors; `METHODS` registry |
 | `fund_clustering/cluster.py` | UMAP + HDBSCAN clusters, 2D map coordinates |
 | `fund_clustering/naming.py` | Families, cluster names, verdicts |
 | `fund_clustering/neighbours.py` | Nearest neighbours, isolated flag |
 | `fund_clustering/territory.py` | Territory grid and polygons |
-| `fund_clustering/pipeline.py` | One method end to end; the `METHODS` list |
+| `fund_clustering/pipeline.py` | One method end to end |
 | `fund_clustering/export.py` | Writes the JSON files described above |
 
 ## 📚 Related docs

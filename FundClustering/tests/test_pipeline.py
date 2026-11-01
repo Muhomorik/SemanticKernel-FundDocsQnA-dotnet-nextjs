@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fund_clustering.features import cosine_features
 from fund_clustering.load import FundData
-from fund_clustering.pipeline import METHODS, run_method
+from fund_clustering.methods import METHODS
+from fund_clustering.pipeline import run_method
 
 
 def grouped_funds(group_count: int = 3, size: int = 20) -> FundData:
@@ -37,13 +37,6 @@ def grouped_funds(group_count: int = 3, size: int = 20) -> FundData:
         country_columns=countries,
         sector_columns=sectors,
     )
-
-
-def test_methods_include_cosine_as_first() -> None:
-    first = next(iter(METHODS.values()))
-
-    assert first.id == "cosine"
-    assert first.features is cosine_features
 
 
 @pytest.mark.slow

@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from fund_clustering.load import FundData, load_week
+
 WEEK = "2026-W01"
 
 
@@ -46,3 +48,8 @@ def data_dir(tmp_path: Path) -> Path:
     ]
     write_week(tmp_path, WEEK, allocations, metadata)
     return tmp_path
+
+
+@pytest.fixture
+def data(data_dir: Path) -> FundData:
+    return load_week(data_dir, WEEK)

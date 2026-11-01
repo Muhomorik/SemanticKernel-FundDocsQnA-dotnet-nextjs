@@ -3,7 +3,7 @@
 Usage:
     python main.py [--input DIR] [--output DIR] [--week 2026-W44]
 
-Runs every method in ``fund_clustering.pipeline.METHODS`` and writes
+Runs every method in ``fund_clustering.methods.METHODS`` and writes
 ``methods.json``, ``funds.json`` and one ``{method}.json`` per method.
 """
 
@@ -13,7 +13,8 @@ from pathlib import Path
 
 from fund_clustering.export import write_documents
 from fund_clustering.load import latest_week, load_week
-from fund_clustering.pipeline import METHODS, run_method
+from fund_clustering.methods import METHODS
+from fund_clustering.pipeline import run_method
 
 PROJECT_DIR = Path(__file__).resolve().parent
 
