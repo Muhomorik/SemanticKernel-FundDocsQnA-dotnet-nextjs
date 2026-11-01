@@ -4,6 +4,7 @@ from fund_clustering.load import FundData
 from fund_clustering.methods import METHODS, allocation_matrix
 from fund_clustering.methods.aitchison import aitchison_features
 from fund_clustering.methods.cosine import cosine_features
+from fund_clustering.methods.hellinger import hellinger_features
 
 
 def test_methods_include_cosine_as_first() -> None:
@@ -13,9 +14,10 @@ def test_methods_include_cosine_as_first() -> None:
     assert first.features is cosine_features
 
 
-def test_methods_cosine_then_aitchison() -> None:
-    assert list(METHODS) == ["cosine", "aitchison"]
+def test_methods_cosine_then_aitchison_then_hellinger() -> None:
+    assert list(METHODS) == ["cosine", "aitchison", "hellinger"]
     assert METHODS["aitchison"].features is aitchison_features
+    assert METHODS["hellinger"].features is hellinger_features
 
 
 def test_methods_keyed_by_own_id() -> None:

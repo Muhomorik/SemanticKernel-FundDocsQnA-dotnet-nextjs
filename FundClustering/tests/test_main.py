@@ -59,6 +59,7 @@ def test_main_latest_week_written_to_output(tmp_path: Path) -> None:
         "aitchison.json",
         "cosine.json",
         "funds.json",
+        "hellinger.json",
         "methods.json",
     ]
     manifest = json.loads((output_dir / "methods.json").read_text(encoding="utf-8"))
