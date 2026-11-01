@@ -43,7 +43,7 @@ python main.py --input DIR --output DIR
 ## 📁 Output files
 
 | File | Read | Contents |
-|------|------|----------|
+| --- | --- | --- |
 | `methods.json` | first | Manifest: which method files exist and which one is the default |
 | `funds.json` | once | Display data per fund, shared by all methods |
 | `{method}.json` | per method | Everything one clustering method produced: points, clusters, categories, territory, neighbours |
@@ -77,7 +77,7 @@ Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchiso
 ```
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `default` | string | Method `id` to show first |
 | `methods[].id` | string | Method id, also the file's base name |
 | `methods[].name` | string | Display name |
@@ -105,7 +105,7 @@ Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchiso
 ```
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `isin` | string | Fund id; join key for everything |
 | `name`, `company` | string | Fund and fund company names as delivered |
 | `category` | string | Source category, verbatim |
@@ -119,7 +119,7 @@ Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchiso
 Top level:
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `method`, `name` | string | Method id and display name |
 | `description` | string | One-sentence explanation of the method, for a tooltip |
 | `summary` | object | Headline numbers for the whole map |
@@ -152,7 +152,7 @@ Top level:
 #### `summary`
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `funds` | int | All funds on the map |
 | `clusters` | int | Number of clusters found |
 | `notInCluster` | int | Funds with `cluster: -1` |
@@ -162,7 +162,7 @@ Top level:
 #### `points[]`
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `isin` | string | Fund |
 | `x`, `y` | number | Map position, see [Map coordinates](#map-coordinates) |
 | `cluster` | int | Cluster `id`, or `-1` |
@@ -172,7 +172,7 @@ Top level:
 #### `clusters[]`
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `id` | int | Cluster id (≥ 0), referenced by `points[].cluster` and `territory[].cluster` |
 | `name` | string | Display name, see [Cluster names](#cluster-names) |
 | `size` | int | Funds in the cluster |
@@ -184,7 +184,7 @@ Top level:
 #### `categories[]`
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `category` | string | Source category |
 | `family` | string | Family id |
 | `funds` | int | All funds in the category, clustered or not |
@@ -193,7 +193,7 @@ Top level:
 #### `territory[]`
 
 | Field | Type | Meaning |
-|-------|------|---------|
+| --- | --- | --- |
 | `cluster` | int | Cluster id. A cluster can have several entries when its area is split |
 | `rings` | `[x, y][][]` | One polygon: `rings[0]` is the outer boundary, any further rings are holes. Each ring is closed (first point = last point) |
 
@@ -248,7 +248,7 @@ Clusters come from HDBSCAN on a separate 10-dimensional UMAP of the same feature
 Each category belongs to one family, decided by the text before the first comma.
 
 | `family` | Display name | Category prefixes |
-|----------|--------------|-------------------|
+| --- | --- | --- |
 | `nordic` | Nordics | Sverige, Norden, Norge, Finland, Global & Sverige |
 | `europe` | Europe | Europa, Euroland, Tyskland, Italien, Spanien, Storbritannien, Östeuropa ex Ryssland |
 | `usa` | USA | USA |
@@ -265,7 +265,7 @@ Each category belongs to one family, decided by the text before the first comma.
 Each fund's category is compared with its cluster's `leadingCategory`:
 
 | `verdict` | Rule | Meaning |
-|-----------|------|---------|
+| --- | --- | --- |
 | `agree` | own category = leading category | Clustering confirms the category |
 | `neighbouring` | different category, same **regional** family | Close variant, e.g. a Nordic fund in a Sverige-led cluster |
 | `different` | different family, or two different sector industries | Holdings look like another kind of fund; the interesting disagreements |
@@ -276,7 +276,7 @@ Each fund's category is compared with its cluster's `leadingCategory`:
 A method is a way of turning a fund's allocations into a feature vector. All methods share the same clustering, naming and layout steps.
 
 | `id` | Features |
-|------|----------|
+| --- | --- |
 | `cosine` | All country + sector percentages as one vector (no weighting between the two blocks), scaled to length 1. Compares the *mix* of holdings. Negative values (short positions) used as reported |
 | `aitchison` | Centred log-ratio of the country shares and, separately, of the sector shares (`log(p + 0.005)` minus its mean), then joined. Compares *ratios* between holdings, so small positions count as much as large ones. Negative values read as 0 |
 
@@ -312,7 +312,7 @@ pytest -m "not slow"            # skip the UMAP tests
 ```
 
 | Module | Step |
-|--------|------|
+| --- | --- |
 | `fund_clustering/load.py` | Read and join the weekly CSVs, keep equity funds |
 | `fund_clustering/methods/` | One module per method: allocations → feature vectors; `METHODS` registry |
 | `fund_clustering/cluster.py` | UMAP + HDBSCAN clusters, 2D map coordinates |
