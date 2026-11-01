@@ -63,7 +63,7 @@ az webapp create \
   --name $APP_SERVICE_NAME \
   --resource-group $RESOURCE_GROUP \
   --plan $APP_SERVICE_PLAN \
-  --runtime "DOTNETCORE:9.0"
+  --runtime "DOTNETCORE:10.0"
 
 # Enable System-Assigned Managed Identity
 echo ""

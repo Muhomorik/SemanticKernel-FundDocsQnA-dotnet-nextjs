@@ -113,7 +113,7 @@ flowchart LR
 | ----------- | ------------ | ------------- |
 | [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | .NET 10, PdfPig, LM Studio, OpenAI | PDF text extraction library with native + OCR support |
 | [Preprocessor](Preprocessor/README.md) | .NET 10, Semantic Kernel | Read pre-extracted text files, generate embeddings (file or Cosmos DB) |
-| [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel 1.68, Azure SQL | RAG over PDF documents + function calling over structured fund data (FundDataPlugin) |
+| [Backend](backend/README.md) | ASP.NET Core 10, Semantic Kernel 1.81, Azure SQL | RAG over PDF documents + function calling over structured fund data (FundDataPlugin) |
 | [Frontend](frontend/README.md) | Next.js 16, React 19, TypeScript, shadcn/ui | Chat interface with dark/light theme |
 | [YieldRaccoon](YieldRaccoon/README.md) | .NET 10, WPF, EF Core, Rx.NET, WebView2 | Fund data crawler with cloud sync, data/statistics export, and privacy filter |
 | [FundClustering](FundClustering/README.md) | Python 3.15, pandas, scikit-learn, UMAP | Groups equity funds by country + sector allocations, finds similar funds, and draws a cluster map |
@@ -126,7 +126,7 @@ flowchart LR
 
 | Requirement | Version | Notes |
 | ------------- | --------- | ------- |
-| .NET SDK | 9.0+ | [Download](https://dotnet.microsoft.com/download) |
+| .NET SDK | 10.0+ | [Download](https://dotnet.microsoft.com/download) |
 | Node.js | 18+ | [Download](https://nodejs.org/) |
 | LM Studio or Ollama | Latest | For local embedding generation |
 | OpenAI API Key | - | [Get key](https://platform.openai.com) (required) |
@@ -276,7 +276,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | Layer | Technologies |
 | ------- | -------------- |
 | **Preprocessor** | .NET 10, Semantic Kernel, Ollama/LM Studio/OpenAI |
-| **Backend** | ASP.NET Core 9, Semantic Kernel 1.68, OpenAI, Azure SQL, Cosmos DB |
+| **Backend** | ASP.NET Core 10, Semantic Kernel 1.81, OpenAI, Azure SQL, Cosmos DB |
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
 | **PdfTextExtractor** | .NET 10, PdfPig, LM Studio, OpenAI, Rx.NET, WPF |
 | **YieldRaccoon** | .NET 10, WPF, EF Core, Rx.NET, WebView2, DevExpress MVVM, Autofac |
