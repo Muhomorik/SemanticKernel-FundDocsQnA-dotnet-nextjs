@@ -30,7 +30,7 @@ flowchart LR
 
 1. YieldRaccoon exports two CSVs per ISO week into `data/` (allocations + metadata).
 2. `main.py` joins them on `isin`, keeps `fund_type == EQUITY_FUND`, runs every clustering method and writes `output/`.
-3. The files are regenerated each week and replaced as a whole. `data/` and `output/` are git-ignored.
+3. The files are regenerated each week and replaced as a whole. `data/` and `output/` are committed as an example week, so the notebook and viewer work without running the pipeline first.
 
 ```bash
 python main.py                      # newest week in data/ → output/

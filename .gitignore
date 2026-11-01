@@ -546,8 +546,6 @@ ipython_config.py
 FundClustering/.idea/
 FundClustering/build/
 FundClustering/dist/
-FundClustering/data/
-FundClustering/output/
 
 # Secrets and sensitive files
 .env
