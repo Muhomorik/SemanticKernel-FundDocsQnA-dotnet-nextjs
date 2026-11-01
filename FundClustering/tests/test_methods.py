@@ -2,6 +2,7 @@ import numpy as np
 
 from fund_clustering.load import FundData
 from fund_clustering.methods import METHODS, allocation_matrix
+from fund_clustering.methods.aitchison import aitchison_features
 from fund_clustering.methods.cosine import cosine_features
 
 
@@ -10,6 +11,11 @@ def test_methods_include_cosine_as_first() -> None:
 
     assert first.id == "cosine"
     assert first.features is cosine_features
+
+
+def test_methods_cosine_then_aitchison() -> None:
+    assert list(METHODS) == ["cosine", "aitchison"]
+    assert METHODS["aitchison"].features is aitchison_features
 
 
 def test_methods_keyed_by_own_id() -> None:

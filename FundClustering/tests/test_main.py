@@ -56,6 +56,7 @@ def test_main_latest_week_written_to_output(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert sorted(p.name for p in output_dir.iterdir()) == [
+        "aitchison.json",
         "cosine.json",
         "funds.json",
         "methods.json",

@@ -273,6 +273,7 @@ A method is a way of turning a fund's allocations into a feature vector. All met
 | `id` | Features |
 |------|----------|
 | `cosine` | All country + sector percentages as one vector (no weighting between the two blocks), scaled to length 1. Compares the *mix* of holdings. Negative values (short positions) used as reported |
+| `aitchison` | Centred log-ratio of the country shares and, separately, of the sector shares (`log(p + 0.005)` minus its mean), then joined. Compares *ratios* between holdings, so small positions count as much as large ones. Negative values read as 0 |
 
 Each method lives in its own module under [fund_clustering/methods/](fund_clustering/methods/) as a `Method` (id, name, description and a `features` function). The pipeline only calls `method.features(data)`, so methods are interchangeable.
 
