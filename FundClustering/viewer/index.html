@@ -393,6 +393,7 @@ const picked = new Map();
 
 async function loadJson(file) {
   if (picked.has(file)) return picked.get(file);
+  if (location.protocol === "file:") throw new Error(`${file} not chosen yet`);
   const response = await fetch(OUTPUT + file);
   if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
   return response.json();
@@ -409,14 +410,17 @@ async function start() {
   $("message").hidden = true;
   try {
     const [manifest, funds] = await Promise.all([loadJson("methods.json"), loadJson("funds.json")]);
+    // After picking a missing method file, open the method that asked for it.
+    const wanted = $("method").value;
+    const methodId = manifest.methods.some((m) => m.id === wanted) ? wanted : manifest.default;
     state.manifest = manifest;
     state.fundList = funds.funds;
     state.funds = new Map(funds.funds.map((f) => [f.isin, f]));
     $("method").innerHTML = manifest.methods
       .map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`)
       .join("");
-    $("method").value = manifest.default;
-    await loadMethod(manifest.default);
+    $("method").value = methodId;
+    await loadMethod(methodId);
   } catch (error) {
     showMessage(error);
   }
@@ -426,6 +430,7 @@ async function loadMethod(methodId) {
   const entry = state.manifest.methods.find((m) => m.id === methodId);
   const doc = await loadJson(entry.file);
   state.doc = doc;
+  $("method").title = doc.description;
   state.pointIndex = new Map(doc.points.map((p, i) => [p.isin, i]));
   state.clusters = new Map(doc.clusters.map((c) => [c.id, c]));
   state.isolate = null;
@@ -440,7 +445,8 @@ function showMessage(error) {
   message.innerHTML = `
     <p><strong>Choose the map data</strong>${missing}</p>
     <p>Select <code>methods.json</code>, <code>funds.json</code> and the method files
-    from <code>FundClustering/output</code>, or drop them here.</p>
+    (<code>cosine.json</code>, <code>aitchison.json</code>, …) from
+    <code>FundClustering/output</code>, or drop them here.</p>
     <p><label class="plain">Choose files
       <input type="file" id="picker" accept=".json" multiple hidden></label></p>`;
   $("picker").addEventListener("change", (e) => pickFiles(e.target.files));

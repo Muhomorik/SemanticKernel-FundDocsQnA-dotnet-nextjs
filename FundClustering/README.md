@@ -48,7 +48,7 @@ python main.py --input DIR --output DIR
 | `funds.json` | once | Display data per fund, shared by all methods |
 | `{method}.json` | per method | Everything one clustering method produced: points, clusters, categories, territory, neighbours |
 
-Today there is one method, `cosine` (`cosine.json`). More may be added; **discover them from `methods.json`, never hard-code file names**.
+Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchison` (`aitchison.json`). More may be added; **discover them from `methods.json`, never hard-code file names**.
 
 ### Conventions
 
@@ -69,7 +69,10 @@ Today there is one method, `cosine` (`cosine.json`). More may be added; **discov
 {
   "week": "2026-W44",
   "default": "cosine",
-  "methods": [{ "id": "cosine", "name": "Cosine", "file": "cosine.json" }]
+  "methods": [
+    { "id": "cosine", "name": "Cosine", "file": "cosine.json" },
+    { "id": "aitchison", "name": "Aitchison", "file": "aitchison.json" }
+  ]
 }
 ```
 
@@ -202,7 +205,9 @@ Polygons are built from a grid (~220 cells across the map, padded 0.05 around al
 
 - Every fund has an entry, including unclustered ones.
 - 20 most similar other funds, closest first. A fund is never its own neighbour; ties keep ISIN order.
-- `distance` is measured in the method's feature space (for `cosine`: Euclidean between unit-length allocation vectors, 0..2, ranks the same as cosine distance). It is **not** the distance on the 2D map.
+- `distance` is measured in the method's feature space. It is **not** the distance on the 2D map, and the scale differs per method:
+  - `cosine`: Euclidean between unit-length allocation vectors, 0..2, ranks the same as cosine distance. Typical closest match ≈ 0.1.
+  - `aitchison`: Aitchison distance (Euclidean between centred log-ratio vectors), 0 and up with no fixed maximum. Typical closest match ≈ 3.
 - This is the answer to "which funds are most similar to X?". Example: a fund's 5 most similar funds are `neighbours[isin].slice(0, 5)`.
 
 ---
@@ -278,6 +283,17 @@ A method is a way of turning a fund's allocations into a feature vector. All met
 Each method lives in its own module under [fund_clustering/methods/](fund_clustering/methods/) as a `Method` (id, name, description and a `features` function). The pipeline only calls `method.features(data)`, so methods are interchangeable.
 
 To add a method, write `fund_clustering/methods/{id}.py` with its feature function and a `METHOD`, then list it in `METHODS` in [fund_clustering/methods/\_\_init\_\_.py](fund_clustering/methods/__init__.py). It gets its own `{id}.json` and a manifest entry; the first entry in `METHODS` is the default. Euclidean distance between feature rows must be the method's distance, because UMAP and the neighbour search use Euclidean distance.
+
+---
+
+## 👀 Viewer
+
+[viewer/index.html](viewer/index.html) is a proof-of-concept map of the files in `output/`, the way the app will draw them. Open it straight from disk (`file:///…/FundClustering/viewer/index.html`), no server needed:
+
+1. Click **Choose files** (or drop files on the page) and pick `methods.json`, `funds.json` and every method file from `output/`.
+2. Switch methods with the **Method** selector. A method file you didn't pick brings the picker back; pick it and the map switches to it.
+
+Browsers block `fetch()` from `file://` pages, hence the picker. Served over http, the page loads `../output/` by itself. ECharts and the font come from a CDN, so it needs internet.
 
 ---
 
