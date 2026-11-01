@@ -74,6 +74,7 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | [Preprocessor](Preprocessor/README.md) | Embedding generation and providers |
 | [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | PDF extraction library (native + OCR) |
 | [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
+| [FundClustering](FundClustering/README.md) | Fund clustering pipeline (Python), output format and viewer |
 
 ## Build & Run Commands
 

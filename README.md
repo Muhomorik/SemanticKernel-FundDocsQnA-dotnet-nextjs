@@ -62,6 +62,7 @@ A low-cost hobby project that enables semantic Q&A over PDF documents. Upload PD
 - Natural language Q&A with source citations
 - Local embedding generation (LM Studio/Ollama)
 - Switchable vector storage: in-memory (default) or Azure Cosmos DB
+- Fund similarity analysis: clusters funds by what they hold and finds the most similar funds (FundClustering)
 
 ---
 
@@ -87,6 +88,13 @@ flowchart LR
         YR[YieldRaccoon] -->|WebView2| FP[Fund Provider]
         YR --> DB[(SQLite\nFundProfile, FundHistoryRecord,\nCountry, Sector,\nFundCountryAllocation, FundSectorAllocation)]
         YR -.->|DualWrite| API
+        YR --> CSV[Weekly CSV export\nallocations + metadata]
+    end
+
+    subgraph FundClustering ["FundClustering (similarity analysis)"]
+        CSV --> FC[Python pipeline]
+        FC --> OUT[output/*.json\nclusters, neighbours, map]
+        OUT --> VIEW[Cluster map viewer]
     end
 
     subgraph Runtime ["Backend + Frontend (retrieval & generation)"]
@@ -108,6 +116,7 @@ flowchart LR
 | [Backend](backend/README.md) | ASP.NET Core 9, Semantic Kernel 1.68, Azure SQL | RAG over PDF documents + function calling over structured fund data (FundDataPlugin) |
 | [Frontend](frontend/README.md) | Next.js 16, React 19, TypeScript, shadcn/ui | Chat interface with dark/light theme |
 | [YieldRaccoon](YieldRaccoon/README.md) | .NET 10, WPF, EF Core, Rx.NET, WebView2 | Fund data crawler with cloud sync, data/statistics export, and privacy filter |
+| [FundClustering](FundClustering/README.md) | Python 3.15, pandas, scikit-learn, UMAP | Groups equity funds by country + sector allocations, finds similar funds, and draws a cluster map |
 
 ---
 
@@ -185,9 +194,18 @@ Open [http://localhost:3000](http://localhost:3000)
 │   ├── YieldRaccoon.Application/    # Use-case orchestration, interfaces
 │   ├── YieldRaccoon.Infrastructure/ # EF Core, event stores, services
 │   └── YieldRaccoon.Wpf/           # WPF UI with WebView2
+├── FundClustering/         # Fund similarity analysis (Python)
+│   ├── fund_clustering/             # Pipeline: methods, clustering, naming, neighbours
+│   ├── tests/                       # pytest tests
+│   ├── notebooks/                   # explore.ipynb, method walkthrough and comparisons
+│   ├── viewer/                      # Cluster map viewer (single HTML file)
+│   ├── data/                        # Weekly CSV export from YieldRaccoon (example week)
+│   ├── output/                      # Generated JSON for the viewer (example week)
+│   └── main.py                      # Pipeline entry point
 ├── docs/                   # Guides
 │   ├── AZURE-DEPLOYMENT.md
 │   └── SECRETS-MANAGEMENT.md
+├── Status.md               # Implementation progress tracker
 └── azure-setup.sh          # Azure deployment script
 ```
 
@@ -248,6 +266,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | [Preprocessor](Preprocessor/README.md) | Embedding generation and providers |
 | [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | PDF extraction library (native + OCR) |
 | [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
+| [FundClustering](FundClustering/README.md) | Fund clustering pipeline, output format and viewer |
 | [Project Status](Status.md) | Implementation progress |
 
 ---
@@ -261,6 +280,7 @@ See [Azure Deployment Guide](docs/AZURE-DEPLOYMENT.md) for complete documentatio
 | **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
 | **PdfTextExtractor** | .NET 10, PdfPig, LM Studio, OpenAI, Rx.NET, WPF |
 | **YieldRaccoon** | .NET 10, WPF, EF Core, Rx.NET, WebView2, DevExpress MVVM, Autofac |
+| **FundClustering** | Python 3.15, pandas, NumPy, scikit-learn (HDBSCAN), umap-learn, Shapely, pytest, Jupyter |
 | **Infrastructure** | Azure App Service, Static Web Apps, Key Vault, Application Insights, Cosmos DB |
 
 ---
