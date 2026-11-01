@@ -1,11 +1,11 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-10-27 (Upgraded non-Azure projects — PdfTextExtractor, Preprocessor, YieldRaccoon — to .NET 10 with package updates; backend stays on .NET 9)
+Last Updated: 2026-11-01 (Backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
 - Preprocessor: .NET 10 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
-- Backend: ASP.NET Core 9 + Semantic Kernel + OpenAI (default) / Groq API (optional)
+- Backend: ASP.NET Core 10 + Semantic Kernel + OpenAI (default) / Groq API (optional)
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
 **Project Hosting:**
@@ -48,6 +48,7 @@ Last Updated: 2026-10-27 (Upgraded non-Azure projects — PdfTextExtractor, Prep
 | Task | Status | Notes |
 | ------ | -------- | ------- |
 | .NET 10 upgrade (non-Azure projects) | ✅ | **Completed 2026-10-27**: PdfTextExtractor, Preprocessor, YieldRaccoon (12 projects) → `net10.0` / `net10.0-windows10.0.26100.0`; all NuGet packages to latest stable (MS.Extensions/EF Core 10.0.14, SK 1.81.0, NUnit 5, Test SDK 18, Rx 7, NLog 6.2, Magick 15, ImageSharp 4). Rx 7 moved `DispatcherScheduler` → added `System.Reactive.Wpf` to both WPF apps. NUnit 5 `Assert.ThrowsAsync`/`DoesNotThrowAsync` now awaited (un-awaited calls silently pass); added `NUnit.Analyzers` to all test projects + fixed surfaced NUnit1032 disposal leaks. Dropped inbox `System.Text.Json` ref. 566 tests green. CLAUDE.md, root/component READMEs, and wpf-fluent-design skill updated to .NET 10 (backend/Azure docs intentionally left on .NET 9). Backend + CI held on .NET 9 until Azure App Service is upgraded |
+| .NET 10 upgrade (backend + Azure) | ⏳ | **Code complete 2026-11-01** on `feature/backend-net10`: Backend.API + Backend.Tests → `net10.0`; all packages to latest (SK 1.81.0, EF Core 10.0.14, Azure.Identity 1.21.0, Swashbuckle 10.3.1, Azure.Monitor.OpenTelemetry 1.6.0, Cosmos 3.63.3, NUnit 5, Test SDK 18). `Microsoft.SemanticKernel.Connectors.InMemory` (renamed upstream) → `CommunityToolkit.VectorData.InMemory` 1.0.1. Added `Newtonsoft.Json` (Cosmos now requires explicit ref); pinned `System.Security.Cryptography.Pkcs` 10.0.14 over vulnerable transitive 9.0.11 from SqlClient; dropped inbox `Logging.Console`. Zero vulnerable packages. 234 unit + 23 `[Explicit]` FundData.Plugin tests green. CI `DOTNET_VERSION` → 10.0.x, `azure-setup.sh` runtime → `DOTNETCORE:10.0`, docs updated. **Pending:** switch App Service runtime to .NET 10 in portal, release `develop` → `main`, run Deployment tests after ~60s DB warmup |
 
 ---
 
@@ -106,7 +107,7 @@ Last Updated: 2026-10-27 (Upgraded non-Azure projects — PdfTextExtractor, Prep
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
-| Unit Tests | ✅ | 140 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data, FundDataPlugin integration) |
+| Unit Tests | ✅ | 234 tests passing + 27 `[Explicit]` (23 FundDataPlugin integration, 4 deployment verification) |
 | Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
@@ -1061,7 +1062,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 | Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
 | Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
-| **Total Backend Tests** | **✅ 140 Complete** | 140 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository + FundDataPlugin integration tests) |
+| **Total Backend Tests** | **✅ 234 Complete** | 234 tests passing on .NET 10 / NUnit 5, plus 27 `[Explicit]` (23 FundDataPlugin integration, 4 deployment verification) |
 
 ### Frontend
 

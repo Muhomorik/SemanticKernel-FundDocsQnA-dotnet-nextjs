@@ -233,7 +233,7 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 4. **CORS:** Backend allows localhost:3000, localhost:3001 for development.
 
-5. **Target Frameworks:** PdfTextExtractor, Preprocessor, and YieldRaccoon target .NET 10 (`net10.0` / `net10.0-windows10.0.26100.0` for WPF). The **backend stays on .NET 9** (and CI's `DOTNET_VERSION: 9.0.x`) until the Azure App Service runtime is upgraded — don't bump `backend/` or the workflows independently.
+5. **Target Frameworks:** All .NET projects target .NET 10 (`net10.0` / `net10.0-windows10.0.26100.0` for WPF), CI uses `DOTNET_VERSION: 10.0.x`, and the Azure App Service runtime is `DOTNETCORE|10.0`. Keep the backend's target framework, the workflows, and the App Service runtime in sync — a framework-dependent build won't start on an older runtime.
 
 ## Testing Guidelines
 
@@ -246,6 +246,6 @@ Complete testing guidelines have been moved to the `dotnet-unit-testing-nunit` s
 - Follow AAA pattern (Arrange, Act, Assert)
 - Test naming: `MethodName_Scenario_ExpectedBehavior`
 - Mock all external dependencies
-- NUnit 5 (non-backend projects): always `await Assert.ThrowsAsync` / `DoesNotThrowAsync` in an `async Task` test — an un-awaited call silently passes. `NUnit.Analyzers` flags it (NUnit2059) and also requires disposable fields to be disposed in `[TearDown]` (NUnit1032)
+- NUnit 5: always `await Assert.ThrowsAsync` / `DoesNotThrowAsync` in an `async Task` test — an un-awaited call silently passes. `NUnit.Analyzers` flags it (NUnit2059) and also requires disposable fields to be disposed in `[TearDown]` (NUnit1032)
 
 For detailed patterns, examples, and advanced techniques, see `.claude/skills/dotnet-unit-testing-nunit/SKILL.md`
