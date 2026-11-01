@@ -85,7 +85,7 @@ public class FundSyncApiClient_RetryTests
     }
 
     [Test]
-    public void SyncFundListAsync_429ThreeTimes_ThrowsRateLimitedException()
+    public async Task SyncFundListAsync_429ThreeTimes_ThrowsRateLimitedException()
     {
         // Arrange
         var request = new FundListSyncRequest
@@ -100,13 +100,13 @@ public class FundSyncApiClient_RetryTests
             CreateResponse(HttpStatusCode.TooManyRequests));
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<RateLimitedException>(
+        var ex = await Assert.ThrowsAsync<RateLimitedException>(
             () => _sut.SyncFundListAsync(request));
         Assert.That(ex!.AttemptsExhausted, Is.EqualTo(3));
     }
 
     [Test]
-    public void SyncFundListAsync_Non429Error_ThrowsHttpRequestException()
+    public async Task SyncFundListAsync_Non429Error_ThrowsHttpRequestException()
     {
         // Arrange
         var request = new FundListSyncRequest
@@ -118,7 +118,7 @@ public class FundSyncApiClient_RetryTests
             CreateResponse(HttpStatusCode.InternalServerError));
 
         // Act & Assert — non-429 errors throw immediately, no retry
-        Assert.ThrowsAsync<HttpRequestException>(
+        await Assert.ThrowsAsync<HttpRequestException>(
             () => _sut.SyncFundListAsync(request));
         VerifyRequestCount(1);
     }
@@ -152,7 +152,7 @@ public class FundSyncApiClient_RetryTests
     }
 
     [Test]
-    public void SyncFundListAsync_429_SupportsCancellation()
+    public async Task SyncFundListAsync_429_SupportsCancellation()
     {
         // Arrange
         var request = new FundListSyncRequest
@@ -169,7 +169,7 @@ public class FundSyncApiClient_RetryTests
         cts.CancelAfter(TimeSpan.FromMilliseconds(100));
 
         // Act & Assert
-        Assert.ThrowsAsync<TaskCanceledException>(
+        await Assert.ThrowsAsync<TaskCanceledException>(
             () => _sut.SyncFundListAsync(request, cts.Token));
     }
 

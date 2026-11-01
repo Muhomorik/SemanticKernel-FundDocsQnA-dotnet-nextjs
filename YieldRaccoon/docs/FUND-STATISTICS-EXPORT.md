@@ -8,13 +8,14 @@ Compute summary statistics from daily NAV data and export as CSV for exploratory
 
 ## What it does
 
-A single Export click writes **three CSVs** into the same folder, all sharing one ISO-week filename tag (`YieldRaccoon_*_{family}_{iso_week}.csv`):
+A single Export click writes **four CSVs** into the same folder, all sharing one ISO-week filename tag (`YieldRaccoon_*_{family}_{iso_week}.csv`):
 
 | File | What it holds | Granularity |
 | ------ | ------ | ------ |
 | `YieldRaccoon_summary_{family}_{iso_week}.csv` | Per-bucket bi-weekly history (return, volatility, Sharpe, drawdown, skew, etc.) | ~26 rows per fund per year |
 | `YieldRaccoon_snapshot_{family}_{iso_week}.csv` | Per-fund rolling 12-week + 1-year metrics anchored at the latest NAV date | 1 row per fund |
 | `YieldRaccoon_metadata_{family}_{iso_week}.csv` | Static fund identity (name, fee, category, owners, …) | 1 row per fund |
+| `YieldRaccoon_allocations_{family}_{iso_week}.csv` | Latest country + sector portfolio allocations (wide format) | 1 row per fund, ~50–100 columns |
 
 The source database is **read-only** — nothing is modified. Output is UTF-8, RFC 4180 compliant.
 
@@ -41,6 +42,7 @@ In the main application window, click **Statistics export** from the toolbar/men
 | **Summary output path** | Where to save the per-bucket history CSV. Click **Browse** to pick a location. | `YieldRaccoon_summary_all_{iso_week}.csv` |
 | **Snapshot output path** | Where to save the per-fund rolling-horizon CSV. | `YieldRaccoon_snapshot_all_{iso_week}.csv` |
 | **Metadata output path** | Where to save the metadata companion CSV. | `YieldRaccoon_metadata_all_{iso_week}.csv` |
+| **Allocations output path** | Where to save the country + sector allocations companion CSV. | `YieldRaccoon_allocations_all_{iso_week}.csv` |
 
 ### Available window sizes
 
@@ -78,7 +80,7 @@ Each row represents one fund in one bi-weekly bucket. The four `_2w_*` columns n
 | Column | Description | Formula / Notes |
 | -------- | ------------- | ----------------- |
 | `isin` | Fund ISIN identifier | e.g., `SE0000000001` |
-| `name` | Fund display name | e.g., `Avanza Zero` |
+| `name` | Fund display name | e.g., `Example Index Fund` |
 | `period_start` | First date of the window | `YYYY-MM-DD` |
 | `period_end` | Last date of the window | `YYYY-MM-DD` |
 | `first_nav`, `last_nav`, `nav_high`, `nav_low` | NAV bookends + extremes | absolute values |
@@ -255,8 +257,8 @@ for given risk level) with a connecting line.
 
 ```csv
 isin,name,period_start,period_end,first_nav,last_nav,nav_high,nav_low,return_2w_pct,ann_volatility_2w_pct,max_drawdown_2w_pct,current_drawdown_pct,sharpe_2w,best_day_pct,worst_day_pct,pct_positive_days,skewness
-SE0000000001,Avanza Zero,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
-SE0000000001,Avanza Zero,2026-01-19,2026-01-30,102.3000,103.5000,104.0000,101.8000,1.1730,8.5000,-0.5000,-0.4808,0.9200,0.8000,-0.6000,55.5556,-0.0500
+SE0000000001,Example Index Fund,2026-01-05,2026-01-16,100.0000,102.3000,103.0000,99.5000,2.3000,11.2000,-1.5000,-0.6796,0.8500,1.2000,-0.9000,60.0000,0.1200
+SE0000000001,Example Index Fund,2026-01-19,2026-01-30,102.3000,103.5000,104.0000,101.8000,1.1730,8.5000,-0.5000,-0.4808,0.9200,0.8000,-0.6000,55.5556,-0.0500
 SE0000000002,Example Fund,2026-01-05,2026-01-16,50.0000,49.2000,50.5000,48.8000,-1.6000,15.3000,-3.2000,-2.5743,-0.5500,1.0000,-2.1000,44.4444,-0.3000
 ```
 
@@ -308,8 +310,62 @@ The metadata file holds one row per qualifying fund with static profile attribut
 
 ```csv
 isin,name,company_name,currency_code,category,fund_type,is_index_fund,managed_type,total_fee,management_fee,risk,rating,sharpe_ratio,standard_deviation,recommended_holding_period,capital,number_of_owners
-SE0000000001,Avanza Zero,Avanza Fonder,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,FIVE_YEAR,1000000,50000
+SE0000000001,Example Index Fund,Example Asset Mgmt,SEK,Equity,Equity Fund,true,PASSIVE,0,0,4,3,1.25,12.5,FIVE_YEAR,1000000,50000
 SE0000000002,Active Equity,Some Asset Mgmt,SEK,Equity,Equity Fund,false,ACTIVE,2.17,1.50,5,3,0.78,15.6,THREE_YEAR,3500000,12500
 ```
 
 > Note: in the metadata file, `sharpe_ratio` is the static fund-house-published Sharpe number from the FundProfiles table (not a computed value). Don't confuse it with summary's `sharpe_2w` or snapshot's `sharpe_12w` / `sharpe_1y`.
+
+## Allocations companion file
+
+The allocations file holds one row per qualifying fund in **wide format** — country and sector portfolio allocations exposed as one column per category. Designed to drop straight into pandas/sklearn for clustering.
+
+**Default filename:** `YieldRaccoon_allocations_{family}_{iso_week}.csv` (family = `all` or sanitized lower-cased company name)
+
+**Filters applied:** Same as the other exports (`Buyable = 1`, optional company name, minimum number of owners) **plus** an additional rule: a fund is excluded if it has **no rows in either** the `FundCountryAllocations` or the `FundSectorAllocations` table. This means funds whose portfolio page hasn't been crawled yet are silently dropped — `0`-fill is reserved for "fund holds none of this category", not "haven't checked".
+
+### Schema
+
+| Block | Columns | Notes |
+| ------- | --------- | ------- |
+| Identity | `isin`, `name` | Always present |
+| Countries | `country_<sanitized>` × N | One column per row in the `Countries` lookup table |
+| Sectors | `sector_<sanitized>` × M | One column per row in the `Sectors` lookup table |
+
+**Column ordering:** `isin`, `name`, then country columns alphabetically by sanitized suffix, then sector columns alphabetically by sanitized suffix.
+
+**Cell values:** decimal percentages 0–100. Missing allocations are emitted as the literal `0` (the source page only lists non-zero entries — absence unambiguously means zero).
+
+### Column-name sanitization
+
+Country/sector display names are folded to ASCII-only column suffixes via:
+
+1. Unicode normalize (FormD) and strip combining marks: `Hälsovård` → `Halsovard`, `Råvaror` → `Ravaror`, `Élève` → `Eleve`.
+2. Lowercase: `Halsovard` → `halsovard`.
+3. Replace whitespace + non-alphanumeric runs with single `_`: `North America` → `north_america`, `Telecom & Media` → `telecom_media`.
+4. Trim trailing `_`.
+
+If two source names sanitize to the same suffix (e.g. `Curaçao` and `Curacao` both → `country_curacao`), the export **throws** with both names in the message — resolve in the source data and re-run.
+
+### Important caveats for consumers
+
+- **The column set is not stable across exports.** When a new country or sector appears in subsequent crawls, it shows up as a new column in the next export. Always read the header row and select columns by prefix:
+  ```python
+  import pandas as pd
+  df = pd.read_csv('YieldRaccoon_allocations_all_2026-W19.csv')
+  country_cols = [c for c in df.columns if c.startswith('country_')]
+  sector_cols  = [c for c in df.columns if c.startswith('sector_')]
+  X = df[country_cols + sector_cols].to_numpy()  # ready for sklearn
+  ```
+- **`0` ≠ `NaN`.** A `0` cell means the fund verifiably holds none of that category (the source page lists only non-zero allocations). Funds where the data isn't known are absent from the file entirely.
+- **Per-fund row totals usually sum to ~100** (per kind), but not always — the source occasionally reports cash positions that aren't broken out into sectors, leaving sector totals slightly under 100. Don't assume strict normalization.
+- **Original Swedish display names are not preserved in column headers** — see sanitization rules above. If you need the source labels, query the SQLite `Countries` / `Sectors` tables directly.
+
+### Example allocations CSV
+
+```csv
+isin,name,country_storbritannien,country_sverige,country_usa,sector_industri,sector_teknik
+SE0000000001,Example Index Fund,5.20,12.30,45.20,18.40,30.10
+SE0000000002,Tech Focus,0,0,82.00,0,95.50
+SE0000000003,UK Bond,68.00,0,4.50,0,0
+```

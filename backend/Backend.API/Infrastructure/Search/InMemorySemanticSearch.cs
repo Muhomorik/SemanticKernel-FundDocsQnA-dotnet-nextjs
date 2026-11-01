@@ -3,14 +3,15 @@ using Backend.API.Domain.Models;
 using Backend.API.Infrastructure.Search.Mapping;
 using Backend.API.Infrastructure.Search.Models;
 
+using CommunityToolkit.VectorData.InMemory;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.VectorData;
-using Microsoft.SemanticKernel.Connectors.InMemory;
 
 namespace Backend.API.Infrastructure.Search;
 
 /// <summary>
-/// Semantic search implementation using Semantic Kernel's InMemoryVectorStore.
+/// Semantic search implementation using the VectorData InMemoryVectorStore.
 /// Provides vector similarity search with built-in cosine similarity calculation.
 /// </summary>
 public class InMemorySemanticSearch : ISemanticSearch

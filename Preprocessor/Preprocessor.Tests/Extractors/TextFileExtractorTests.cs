@@ -284,7 +284,7 @@ public class TextFileExtractorTests
     }
 
     [Test]
-    public void ExtractAsync_CancellationToken_ThrowsOperationCanceledException()
+    public async Task ExtractAsync_CancellationToken_ThrowsOperationCanceledException()
     {
         // Arrange
         var pdfPath = Path.Combine(_tempDirectory, "cancel_test.pdf");
@@ -296,7 +296,7 @@ public class TextFileExtractorTests
         cts.Cancel();
 
         // Act & Assert
-        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await _sut.ExtractAsync(pdfPath, cts.Token));
     }
 
@@ -321,20 +321,20 @@ public class TextFileExtractorTests
     }
 
     [Test]
-    public void ExtractAsync_WithNullFilePath_ThrowsArgumentException()
+    public async Task ExtractAsync_WithNullFilePath_ThrowsArgumentException()
     {
         // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () =>
             await _sut.ExtractAsync(null!));
 
         Assert.That(ex.ParamName, Is.EqualTo("pdfFilePath"));
     }
 
     [Test]
-    public void ExtractAsync_WithEmptyFilePath_ThrowsArgumentException()
+    public async Task ExtractAsync_WithEmptyFilePath_ThrowsArgumentException()
     {
         // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () =>
             await _sut.ExtractAsync(""));
 
         Assert.That(ex.ParamName, Is.EqualTo("pdfFilePath"));

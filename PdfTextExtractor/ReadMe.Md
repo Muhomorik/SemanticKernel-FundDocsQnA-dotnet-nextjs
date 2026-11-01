@@ -8,17 +8,17 @@ Features Domain-Driven Design, Rx.NET event streams, and WPF GUI.
 
 | Technology | Version | Purpose |
 | ---------- | ------- | ------- |
-| **.NET** | 9.0 | Runtime framework |
-| **C#** | 12.0 | Programming language |
-| **Autofac** | 8.0.0-9.0.0 | Dependency injection |
-| **System.Reactive** | 6.0.0-6.1.0 | Event streams (Rx.NET) |
-| **PdfPig** | 0.1.12 | Native PDF text extraction |
-| **PDFtoImage** | 5.0.0 | PDF rasterization for OCR |
-| **SixLabors.ImageSharp** | 3.1.12 | Image processing |
-| **Microsoft.Extensions.Http** | 9.0.0 | HTTP client for APIs |
+| **.NET** | 10.0 | Runtime framework |
+| **C#** | 14.0 | Programming language |
+| **Autofac** | 9.3.4 | Dependency injection |
+| **System.Reactive** | 7.0.0 | Event streams (Rx.NET); WPF app adds `System.Reactive.Wpf` |
+| **PdfPig** | 0.1.16 | Native PDF text extraction |
+| **PDFtoImage** | 5.4.0 | PDF rasterization for OCR |
+| **SixLabors.ImageSharp** | 4.1.3 | Image processing |
+| **Microsoft.Extensions.Http** | 10.0.14 | HTTP client for APIs |
 | **DevExpressMvvm** | 24.1.6 | WPF MVVM framework |
 | **MahApps.Metro** | 2.4.11 | WPF modern UI library |
-| **NLog** | 6.0.7 | Structured logging |
+| **NLog** | 6.2.2 | Structured logging |
 
 ![PdfTextExtractor WPF UI](docs/preview.png)
 

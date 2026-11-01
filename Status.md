@@ -1,11 +1,11 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAsync` now preserves existing `Description` when incoming value is null — list crawl no longer wipes about-fund descriptions on Azure)
+Last Updated: 2026-11-01 (Backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
-- Preprocessor: .NET 9 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
-- Backend: ASP.NET Core 9 + Semantic Kernel + OpenAI (default) / Groq API (optional)
+- Preprocessor: .NET 10 Console App + Semantic Kernel (reads pre-extracted text from PdfTextExtractor)
+- Backend: ASP.NET Core 10 + Semantic Kernel + OpenAI (default) / Groq API (optional)
 - Frontend: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 
 **Project Hosting:**
@@ -43,13 +43,22 @@ Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAs
 
 ---
 
+## Maintenance
+
+| Task | Status | Notes |
+| ------ | -------- | ------- |
+| .NET 10 upgrade (non-Azure projects) | ✅ | **Completed 2026-10-27**: PdfTextExtractor, Preprocessor, YieldRaccoon (12 projects) → `net10.0` / `net10.0-windows10.0.26100.0`; all NuGet packages to latest stable (MS.Extensions/EF Core 10.0.14, SK 1.81.0, NUnit 5, Test SDK 18, Rx 7, NLog 6.2, Magick 15, ImageSharp 4). Rx 7 moved `DispatcherScheduler` → added `System.Reactive.Wpf` to both WPF apps. NUnit 5 `Assert.ThrowsAsync`/`DoesNotThrowAsync` now awaited (un-awaited calls silently pass); added `NUnit.Analyzers` to all test projects + fixed surfaced NUnit1032 disposal leaks. Dropped inbox `System.Text.Json` ref. 566 tests green. CLAUDE.md, root/component READMEs, and wpf-fluent-design skill updated to .NET 10 (backend/Azure docs intentionally left on .NET 9). Backend + CI held on .NET 9 until Azure App Service is upgraded |
+| .NET 10 upgrade (backend + Azure) | ⏳ | **Code complete 2026-11-01** on `feature/backend-net10`: Backend.API + Backend.Tests → `net10.0`; all packages to latest (SK 1.81.0, EF Core 10.0.14, Azure.Identity 1.21.0, Swashbuckle 10.3.1, Azure.Monitor.OpenTelemetry 1.6.0, Cosmos 3.63.3, NUnit 5, Test SDK 18). `Microsoft.SemanticKernel.Connectors.InMemory` (renamed upstream) → `CommunityToolkit.VectorData.InMemory` 1.0.1. Added `Newtonsoft.Json` (Cosmos now requires explicit ref); pinned `System.Security.Cryptography.Pkcs` 10.0.14 over vulnerable transitive 9.0.11 from SqlClient; dropped inbox `Logging.Console`. Zero vulnerable packages. 234 unit + 23 `[Explicit]` FundData.Plugin tests green. CI `DOTNET_VERSION` → 10.0.x, `azure-setup.sh` runtime → `DOTNETCORE:10.0`, docs updated. **Pending:** switch App Service runtime to .NET 10 in portal, release `develop` → `main`, run Deployment tests after ~60s DB warmup |
+
+---
+
 ## Part 1: Preprocessor ✅ COMPLETED
 
 ### Implementation Status
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Console Application | ✅ | .NET 9 with CommandLineParser |
+| Console Application | ✅ | .NET 10 with CommandLineParser |
 | Text File Reading | ✅ | **UPDATED 2026-01-28**: TextFileExtractor reads pre-extracted text files from PdfTextExtractor (pattern: {basename}_page_{N}.txt), validates sequential pages, comprehensive tests (14 tests) |
 | Text Chunking | ✅ | **UPDATED 2026-01-28**: SemanticChunker only - paragraph-based splitting with 15% overlap (800 chars default), follows 2025 RAG best practices, preserves semantic boundaries, DI-based, AutoFixture + AutoMoq tests (23 tests) |
 | Embedding Generation | ✅ | Supports Ollama, LM Studio, OpenAI |
@@ -98,7 +107,7 @@ Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAs
 | Security | ✅ | Input validation, sanitization, rate limiting (10/min/IP), constant-time API key comparison |
 | Azure Deployment | ✅ | App Service F1, Key Vault, Application Insights, Cosmos DB (optional) |
 | CI/CD | ✅ | GitHub Actions (.github/workflows/deploy-backend.yml) |
-| Unit Tests | ✅ | 140 tests passing (Domain, ApplicationCore, Infrastructure, Fund Data, FundDataPlugin integration) |
+| Unit Tests | ✅ | 234 tests passing + 27 `[Explicit]` (23 FundDataPlugin integration, 4 deployment verification) |
 | Documentation | ✅ | README with DDD architecture + Cosmos DB setup guide |
 
 ### Security Implementation ✅ (2026-01-01)
@@ -111,6 +120,8 @@ Last Updated: 2026-05-08 (Bug fix: backend `EfCoreFundProfileRepository.UpsertAs
 | System Prompt | ✅ | Hardened with anti-jailbreak instructions |
 | Rate Limiting | ✅ | 60 req/min, queue of 5, `Retry-After: 5` header on 429 |
 | Request Size Limits | ✅ | 10KB max body size |
+| Security Review Rules | ✅ | `.claude/claude-security-guidance.md` — repo threat model + rules for the security-guidance plugin (2026-10-25). Whole-repo Claude Security scan (medium) found 0 verified findings |
+| Sanitized Question in Prompt | ❌ | `QuestionAnsweringService` passes raw `request.Question` (not `sanitizedQuestion`) to `BuildUserPrompt` (lines 80, 149) |
 
 ### Fund Data Sync (Azure SQL) ✅ COMPLETED (2026-03-02)
 
@@ -422,7 +433,7 @@ Reusable .NET library for PDF text extraction using Domain-Driven Design archite
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Project Setup | ✅ | .NET 9.0 class library with 7 NuGet packages |
+| Project Setup | ✅ | .NET 10.0 class library with 7 NuGet packages |
 | DDD Architecture | ✅ | Domain/ApplicationCore/Infrastructure layers, pure domain logic |
 | Autofac DI | ✅ | PdfTextExtractorModule with automatic service registration |
 | Rx.NET Events | ✅ | ReactiveEventPublisher exposing IObservable<PdfExtractionEventBase> |
@@ -476,13 +487,12 @@ Infrastructure (Extractors, File System, Event Bus)
 
 | Package | Version | Purpose |
 | --------- | --------- | --------- |
-| Autofac | 8.0.0 | Dependency injection container |
-| System.Reactive | 6.0.0 | Rx.NET for IObservable event streams |
-| PdfPig | 0.1.12 | PDF text extraction |
-| SixLabors.ImageSharp | 3.1.12 | Image processing for OCR (future) |
-| Microsoft.Extensions.Http | 9.0.0 | HTTP client for LM Studio/Ollama APIs (future) |
-| System.Text.Json | 9.0.0 | JSON serialization |
-| Microsoft.Extensions.Logging.Abstractions | 9.0.0 | Logging infrastructure |
+| Autofac | 9.3.4 | Dependency injection container |
+| System.Reactive | 7.0.0 | Rx.NET for IObservable event streams |
+| PdfPig | 0.1.16 | PDF text extraction |
+| SixLabors.ImageSharp | 4.1.3 | Image processing for OCR (future) |
+| Microsoft.Extensions.Http | 10.0.14 | HTTP client for LM Studio/Ollama APIs (future) |
+| Microsoft.Extensions.Logging.Abstractions | 10.0.14 | Logging infrastructure |
 
 ### Public API Methods
 
@@ -506,7 +516,7 @@ Infrastructure (Extractors, File System, Event Bus)
 | Event Catalog | ✅ Complete | All 23 events documented with code examples |
 | Project Structure | ✅ Complete | ASCII tree view of DDD layers |
 | Usage Examples | ✅ Complete | CLI and WPF integration examples |
-| Tech Stack Badges | ✅ Complete | .NET 9.0, C# 12.0 badges with tables |
+| Tech Stack Badges | ✅ Complete | .NET 10.0, C# 14.0 badges with tables |
 | Mermaid Diagrams | ✅ Complete | DDD layers, project structure, domain layer, sequence diagram, event flow |
 
 ### Mermaid Diagrams (5 Total)
@@ -552,7 +562,7 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 
 | Component | Status | Notes |
 | ----------- | -------- | ------- |
-| Project Setup | ✅ | .NET 9.0 WPF with Windows 10.0.26100.0 target framework |
+| Project Setup | ✅ | .NET 10.0 WPF with Windows 10.0.26100.0 target framework |
 | MVVM Architecture | ✅ | **Completed 2026-01-28**: DevExpress ViewModelBase, property change notification, ICommand implementation |
 | MainWindowViewModel | ✅ | **Completed 2026-01-28**: Title and StatusMessage properties, RefreshCommand, IDisposable implementation |
 | Autofac DI Container | ✅ | **Completed 2026-01-28**: Configured in App.xaml.cs OnStartup, ViewModel and View registration, constructor injection |
@@ -575,14 +585,15 @@ WPF desktop application implementing Model-View-ViewModel pattern using DevExpre
 
 | Package | Version | Purpose |
 | --------- | --------- | --------- |
-| **Autofac** | 9.0.0 | Dependency injection container |
+| **Autofac** | 9.3.4 | Dependency injection container |
 | **DevExpressMvvm** | 24.1.6 | MVVM framework (ViewModelBase, DelegateCommand) |
 | **MahApps.Metro** | 2.4.11 | Modern WPF UI controls and themes |
-| **System.Reactive** | 6.1.0 | Reactive Extensions for IObservable patterns |
-| **NLog** | 6.0.7 | Logging framework (infrastructure ready) |
-| **NLog.Extensions.Logging** | 6.1.0 | NLog integration with Microsoft.Extensions.Logging |
-| **Magick.NET-Q8-AnyCPU** | 14.10.2 | ImageMagick for streaming mode OilPaint effect |
-| **TaskScheduler** | 2.11.0 | Windows Task Scheduler wrapper for daily auto-start feature |
+| **System.Reactive** | 7.0.0 | Reactive Extensions for IObservable patterns |
+| **System.Reactive.Wpf** | 7.0.0 | `DispatcherScheduler` (split out of System.Reactive in Rx 7) |
+| **NLog** | 6.2.2 | Logging framework (infrastructure ready) |
+| **NLog.Extensions.Logging** | 6.2.2 | NLog integration with Microsoft.Extensions.Logging |
+| **Magick.NET-Q8-AnyCPU** | 15.0.0 | ImageMagick for streaming mode OilPaint effect |
+| **TaskScheduler** | 2.12.2 | Windows Task Scheduler wrapper for daily auto-start feature |
 
 ### Architecture
 
@@ -848,6 +859,26 @@ Export fund profile metadata (fees, risk metrics, classifications) as a companio
 
 **Breaking change:** Both statistics and metadata exports now filter by `Buyable = 1`, excluding non-purchasable funds.
 
+### Statistics Export v3 — allocations.csv (wide format) ✅ COMPLETED (2026-05-09)
+
+Added a fourth CSV alongside summary/snapshot/metadata: per-fund country + sector portfolio allocations in wide format (one row per fund, one column per country/sector). Designed for direct ingest into pandas/sklearn for clustering. Columns are discovered at export time from the `Countries` / `Sectors` lookup tables (no hardcoded enums); newly-encountered categories show up as new columns automatically. Funds with zero allocation rows in either table are excluded (un-crawled portfolio page). Auto-weekly export picks it up automatically — same `ExecuteExport` path as the manual button.
+
+| Layer | Component | Status |
+| ------- | ----------- | -------- |
+| **Application** | `IFundAllocationsCsvExportService` (new interface) | ✅ |
+| **Infrastructure** | `AllocationColumnSanitizer` (Unicode FormD diacritic-strip + lowercase + non-alphanumeric-collapse → ASCII-only column suffixes) | ✅ |
+| **Infrastructure** | `FundAllocationsCsvExportService` — discovers columns from `Countries`/`Sectors`, reads allocations via 2 SQL queries, writes wide-format CSV with `0`-fill for missing cells, throws on sanitization collision | ✅ |
+| **Presentation** | ViewModel: 4th output path `AllocationsOutputPath`, `BrowseAllocationsCommand`, allocations call wired into `ExecuteExport` after metadata; status message updated to count 4 file totals | ✅ |
+| **Presentation** | XAML: fourth "Allocations output file" TextBox + Browse; window height bumped 500 → 580 | ✅ |
+| **DI** | `FundAllocationsCsvExportService` registered in `PresentationModule` | ✅ |
+| **Tests** | `AllocationColumnSanitizerTests` — 27 tests across 9 `[TestCase]` groups (ASCII pass-through, diacritic folding, whitespace/special-char collapse, trim, null/blank/non-representable throw) | ✅ |
+| **Tests** | `FundAllocationsCsvExportServiceTests` — 13 tests (header order, both-kinds row, sectors-only row not-skipped, no-allocations-skipped, Buyable filter, MinOwners + Company filter, sanitization in headers, RFC 4180 escaping, collision throw, source-not-found, output-dir creation) | ✅ |
+| **Tests** | `FundStatisticsExportWindowViewModelTests` — 3 new tests/updates (allocations default-path assertion, company-filter refresh, allocations service called once on auto-weekly run) | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT.md` — "What it does" table updated to four files, options table includes allocations path, new "Allocations companion file" section with schema, sanitization rules, pandas snippet | ✅ |
+| **Docs** | `docs/FUND-STATISTICS-EXPORT-AGENT-GUIDE.md` — overview/grammar/schema sections updated for `allocations` kind; pitfalls section adds 4 bullets covering dynamic columns, `0` semantics, missing funds, ASCII folding | ✅ |
+
+**Auto-weekly coverage:** the `WeeklyExportEnabled` toggle in Settings registers a Windows scheduled task that launches with `--auto-weekly-stats`, which auto-fires the same `ExportCommand` as the manual button. Allocations are added inside `ExecuteExport`, so the scheduled run picks them up automatically — no Settings/scheduler changes required.
+
 ### Statistics Export v2 — snapshot.csv + ISO-week filenames + column renames ✅ COMPLETED (2026-04-30)
 
 Restructured the Statistics Export to match the new design docs ([summary-csv-plan.md](YieldRaccoon/docs/summary-csv-plan.md), [snapshot-csv-plan.md](YieldRaccoon/docs/snapshot-csv-plan.md)). One Export click now writes three CSVs (summary + snapshot + metadata) under one ISO-week-tagged family. Re-running the same week overwrites the same files (immutability invariant).
@@ -1031,7 +1062,7 @@ Rate-limit awareness across all Backend API interactions. `FundSyncApiClient` re
 | Validation Tests | ✅ Complete | SafeQuestionAttribute (8 tests), prompt injection defense |
 | Integration Tests | ✅ Complete | Full pipeline tests (6 tests), end-to-end validation |
 | Controller Tests | ❌ Not Implemented | AskController, health checks |
-| **Total Backend Tests** | **✅ 140 Complete** | 140 tests passing (includes VectorStore migration + Fund Data sync + EF Core repository + FundDataPlugin integration tests) |
+| **Total Backend Tests** | **✅ 234 Complete** | 234 tests passing on .NET 10 / NUnit 5, plus 27 `[Explicit]` (23 FundDataPlugin integration, 4 deployment verification) |
 
 ### Frontend
 

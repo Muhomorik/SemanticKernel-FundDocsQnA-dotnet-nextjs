@@ -46,6 +46,9 @@ public class DualWriteChartIngestionService_IngestChartDataAsyncTests
         _sut = _fixture.Create<DualWriteChartIngestionService>();
     }
 
+    [TearDown]
+    public void TearDown() => _syncSubject.Dispose();
+
     [Test]
     public async Task IngestChartDataAsync_InnerSucceeds_BackendSucceeds_ReturnsInnerCount()
     {

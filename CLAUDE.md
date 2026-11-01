@@ -6,6 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a personal hobby project. Be warm, friendly, and human — like a coding buddy, not a corporate assistant. Humor is welcome and encouraged. Use casual language, share enthusiasm about cool solutions, crack a joke when the moment calls for it, and celebrate wins together. Skip the robotic "I'll help you with that" phrasing — just be yourself and have fun building things.
 
+## 📝 Documentation Conventions
+
+**No real company / fund-house / brand names in markdown docs.** Use generic placeholders instead — for any:
+
+- Real fund name → `Example Index Fund`, `Example Bond Fund`
+- Real asset manager / fund company → `Example Asset Mgmt`, `AcmeCo`
+- Filename / family-tag example → `acmeco`
+- Prose mention of a specific company → impersonal phrasing ("the source occasionally reports cash positions…")
+
+Applies to all `*.md` files (root, `docs/`, `YieldRaccoon/docs/`, READMEs). Test fixtures, code comments, SQL strings, and CSV column headers are **not** affected — use whatever names are convenient there. ISIN values like `SE0000000001` are fine as obviously-synthetic ascending placeholders. Country and sector names from the source data (e.g. `Sverige`, `USA`, `Teknik`) are also fine — they're geographic / industry classifications, not brands.
+
+Why: this repo is public. Naming specific real companies in committed documentation could give the impression of endorsement or implicate them in scraping-related discussion.
+
 **🚨 MANDATORY:** All implementation work requires updating [Status.md](Status.md). This is **NOT OPTIONAL** and is part of the Definition of Done. See workflow below.
 
 ## 🚨 MANDATORY WORKFLOW: Status.md Updates
@@ -61,6 +74,7 @@ Fund Factsheet Q&A Generator - A full-stack RAG application enabling semantic se
 | [Preprocessor](Preprocessor/README.md) | Embedding generation and providers |
 | [PdfTextExtractor](PdfTextExtractor/ReadMe.Md) | PDF extraction library (native + OCR) |
 | [YieldRaccoon](YieldRaccoon/README.md) | Fund price crawler desktop app |
+| [FundClustering](FundClustering/README.md) | Fund clustering pipeline (Python), output format and viewer |
 
 ## Build & Run Commands
 
@@ -219,6 +233,8 @@ PDF Files → Preprocessor → embeddings.json → Backend → Frontend
 
 4. **CORS:** Backend allows localhost:3000, localhost:3001 for development.
 
+5. **Target Frameworks:** All .NET projects target .NET 10 (`net10.0` / `net10.0-windows10.0.26100.0` for WPF), CI uses `DOTNET_VERSION: 10.0.x`, and the Azure App Service runtime is `DOTNETCORE|10.0`. Keep the backend's target framework, the workflows, and the App Service runtime in sync — a framework-dependent build won't start on an older runtime.
+
 ## Testing Guidelines
 
 Complete testing guidelines have been moved to the `dotnet-unit-testing-nunit` skill.
@@ -230,5 +246,6 @@ Complete testing guidelines have been moved to the `dotnet-unit-testing-nunit` s
 - Follow AAA pattern (Arrange, Act, Assert)
 - Test naming: `MethodName_Scenario_ExpectedBehavior`
 - Mock all external dependencies
+- NUnit 5: always `await Assert.ThrowsAsync` / `DoesNotThrowAsync` in an `async Task` test — an un-awaited call silently passes. `NUnit.Analyzers` flags it (NUnit2059) and also requires disposable fields to be disposed in `[TearDown]` (NUnit1032)
 
 For detailed patterns, examples, and advanced techniques, see `.claude/skills/dotnet-unit-testing-nunit/SKILL.md`

@@ -11,7 +11,7 @@ Comprehensive integration tests for the LM Studio OCR text extraction pipeline.
    - Recommended: `qwen/qwen2.5-vl-7b` (7B model, requires ~5-6 GB VRAM)
    - Alternative: `llava-v1.6-mistral-7b`
 3. **Sample PDF files** in the test directory
-4. **.NET 9.0 SDK**
+4. **.NET 10.0 SDK**
 
 ### Hardware Recommendations
 

@@ -240,14 +240,14 @@ public class FundMetadataCsvExportServiceTests
     #region Edge Cases
 
     [Test]
-    public void ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
+    public async Task ExportAsync_SourceNotFound_ThrowsFileNotFoundException()
     {
         // Arrange
         var fakePath = Path.Combine(_tempDir, "nonexistent.db");
         var destPath = Path.Combine(_tempDir, "metadata.csv");
 
         // Act & Assert
-        Assert.ThrowsAsync<FileNotFoundException>(() =>
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
             _sut.ExportAsync(fakePath, destPath));
     }
 

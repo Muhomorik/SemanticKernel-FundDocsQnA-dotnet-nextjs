@@ -9,9 +9,9 @@
     xmlns:viewModels="clr-namespace:YieldRaccoon.Wpf.ViewModels"
     Title="Statistics export"
     Width="550"
-    Height="500"
+    Height="580"
     MinWidth="450"
-    MinHeight="460"
+    MinHeight="540"
     d:DataContext="{d:DesignInstance viewModels:FundStatisticsExportWindowViewModel,
                                      IsDesignTimeCreatable=True}"
     Icon="/Resources/YieldRaccoon.ico"
@@ -206,6 +206,31 @@
                     Grid.Column="1"
                     Width="80"
                     Command="{Binding BrowseMetadataCommand}"
+                    Content="Browse..."
+                    Style="{StaticResource yr.ButtonStyle}" />
+            </Grid>
+
+            <!--  Allocations output file  -->
+            <TextBlock
+                Margin="0,20,0,4"
+                Style="{StaticResource yr.SubheaderStyle}"
+                Text="Allocations output file" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    mah:TextBoxHelper.Watermark="Allocations CSV output path..."
+                    Text="{Binding AllocationsOutputPath, UpdateSourceTrigger=PropertyChanged}" />
+
+                <Button
+                    Grid.Column="1"
+                    Width="80"
+                    Command="{Binding BrowseAllocationsCommand}"
                     Content="Browse..."
                     Style="{StaticResource yr.ButtonStyle}" />
             </Grid>

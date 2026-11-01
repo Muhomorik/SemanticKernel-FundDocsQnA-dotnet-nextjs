@@ -25,6 +25,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     private readonly IFundStatisticsCsvExportService _exportService;
     private readonly IFundMetadataCsvExportService _metadataExportService;
     private readonly IFundSnapshotCsvExportService _snapshotExportService;
+    private readonly IFundAllocationsCsvExportService _allocationsExportService;
     private readonly DatabaseOptions _databaseOptions;
     private readonly IUserSettingsService? _userSettingsService;
     private readonly UserSettings? _userSettings;
@@ -45,6 +46,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         IFundStatisticsCsvExportService exportService,
         IFundMetadataCsvExportService metadataExportService,
         IFundSnapshotCsvExportService snapshotExportService,
+        IFundAllocationsCsvExportService allocationsExportService,
         DatabaseOptions databaseOptions,
         IUserSettingsService userSettingsService,
         UserSettings userSettings,
@@ -54,6 +56,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _metadataExportService = metadataExportService ?? throw new ArgumentNullException(nameof(metadataExportService));
         _snapshotExportService = snapshotExportService ?? throw new ArgumentNullException(nameof(snapshotExportService));
+        _allocationsExportService = allocationsExportService ?? throw new ArgumentNullException(nameof(allocationsExportService));
         _databaseOptions = databaseOptions ?? throw new ArgumentNullException(nameof(databaseOptions));
         _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
         _userSettings = userSettings ?? throw new ArgumentNullException(nameof(userSettings));
@@ -78,6 +81,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         OutputPath = BuildDefaultPath("summary", CompanyName);
         SnapshotOutputPath = BuildDefaultPath("snapshot", CompanyName);
         MetadataOutputPath = BuildDefaultPath("metadata", CompanyName);
+        AllocationsOutputPath = BuildDefaultPath("allocations", CompanyName);
 
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -89,6 +93,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         BrowseCommand = new DelegateCommand(ExecuteBrowse, CanExecuteBrowse, true);
         BrowseSnapshotCommand = new DelegateCommand(ExecuteBrowseSnapshot, CanExecuteBrowse, true);
         BrowseMetadataCommand = new DelegateCommand(ExecuteBrowseMetadata, CanExecuteBrowse, true);
+        BrowseAllocationsCommand = new DelegateCommand(ExecuteBrowseAllocations, CanExecuteBrowse, true);
         CloseCommand = new DelegateCommand(ExecuteClose);
         WindowClosingCommand = new DelegateCommand(ExecuteWindowClosing);
         LoadedCommand = new DelegateCommand(ExecuteLoaded);
@@ -105,6 +110,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         _exportService = null!;
         _metadataExportService = null!;
         _snapshotExportService = null!;
+        _allocationsExportService = null!;
         _databaseOptions = new DatabaseOptions();
         _userSettingsService = null;
         _userSettings = null;
@@ -120,6 +126,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         OutputPath = "YieldRaccoon_summary_all_2026-W18.csv";
         SnapshotOutputPath = "YieldRaccoon_snapshot_all_2026-W18.csv";
         MetadataOutputPath = "YieldRaccoon_metadata_all_2026-W18.csv";
+        AllocationsOutputPath = "YieldRaccoon_allocations_all_2026-W18.csv";
         MinNumberOfOwners = DefaultMinNumberOfOwners;
         IsExporting = false;
         StatusMessage = string.Empty;
@@ -131,6 +138,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         BrowseCommand = new DelegateCommand(() => { });
         BrowseSnapshotCommand = new DelegateCommand(() => { });
         BrowseMetadataCommand = new DelegateCommand(() => { });
+        BrowseAllocationsCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         WindowClosingCommand = new DelegateCommand(() => { });
         LoadedCommand = new DelegateCommand(() => { });
@@ -204,6 +212,16 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     {
         get => GetProperty(() => MetadataOutputPath);
         set => SetProperty(() => MetadataOutputPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the allocations CSV output file path. Wide-format country + sector allocations,
+    /// one row per fund, dynamic column set discovered from the lookup tables at export time.
+    /// </summary>
+    public string AllocationsOutputPath
+    {
+        get => GetProperty(() => AllocationsOutputPath);
+        set => SetProperty(() => AllocationsOutputPath, value);
     }
 
     /// <summary>
@@ -290,6 +308,11 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
     public ICommand BrowseMetadataCommand { get; }
 
     /// <summary>
+    /// Gets the command to browse for an allocations output file location.
+    /// </summary>
+    public ICommand BrowseAllocationsCommand { get; }
+
+    /// <summary>
     /// Gets the command to close the window.
     /// </summary>
     public ICommand CloseCommand { get; }
@@ -315,7 +338,8 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
                && !IsExporting
                && !string.IsNullOrWhiteSpace(OutputPath)
                && !string.IsNullOrWhiteSpace(SnapshotOutputPath)
-               && !string.IsNullOrWhiteSpace(MetadataOutputPath);
+               && !string.IsNullOrWhiteSpace(MetadataOutputPath)
+               && !string.IsNullOrWhiteSpace(AllocationsOutputPath);
     }
 
     private async void ExecuteExport()
@@ -366,10 +390,17 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
                 companyFilter,
                 MinNumberOfOwners);
 
-            StatusMessage = $"Exported {summaryCount} summary + {snapshotCount} snapshot + {metadataCount} metadata rows";
+            ProgressText = "Writing allocations...";
+            var allocationsCount = await _allocationsExportService.ExportAsync(
+                sourcePath,
+                AllocationsOutputPath,
+                companyFilter,
+                MinNumberOfOwners);
+
+            StatusMessage = $"Exported {summaryCount} summary + {snapshotCount} snapshot + {metadataCount} metadata + {allocationsCount} allocation rows";
             IsStatusError = false;
-            _logger.Info("Export completed: summary={0} ({1}), snapshot={2} ({3}), metadata={4} ({5})",
-                OutputPath, summaryCount, SnapshotOutputPath, snapshotCount, MetadataOutputPath, metadataCount);
+            _logger.Info("Export completed: summary={0} ({1}), snapshot={2} ({3}), metadata={4} ({5}), allocations={6} ({7})",
+                OutputPath, summaryCount, SnapshotOutputPath, snapshotCount, MetadataOutputPath, metadataCount, AllocationsOutputPath, allocationsCount);
 
             PersistSuccessfulRun(summaryCount, isScheduledRun);
 
@@ -464,6 +495,8 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
 
     private void ExecuteBrowseMetadata() => MetadataOutputPath = BrowseForCsv("Select metadata export location", MetadataOutputPath) ?? MetadataOutputPath;
 
+    private void ExecuteBrowseAllocations() => AllocationsOutputPath = BrowseForCsv("Select allocations export location", AllocationsOutputPath) ?? AllocationsOutputPath;
+
     private string? BrowseForCsv(string title, string currentPath)
     {
         _logger.Debug("Browse: {0}", title);
@@ -534,6 +567,7 @@ public class FundStatisticsExportWindowViewModel : ViewModelBase
         OutputPath = BuildDefaultPath("summary", CompanyName);
         SnapshotOutputPath = BuildDefaultPath("snapshot", CompanyName);
         MetadataOutputPath = BuildDefaultPath("metadata", CompanyName);
+        AllocationsOutputPath = BuildDefaultPath("allocations", CompanyName);
     }
 
     private string BuildDefaultPath(string kind, string companyName)

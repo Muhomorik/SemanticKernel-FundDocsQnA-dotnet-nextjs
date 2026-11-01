@@ -44,6 +44,9 @@ public class DualWritePortfolioDataIngestionService_IngestPortfolioDataAsyncTest
             _syncSubject);
     }
 
+    [TearDown]
+    public void TearDown() => _syncSubject.Dispose();
+
     private static AboutFundPageData PageDataWithJson(string? json) => new()
     {
         OrderBookId = OrderBookId.Create("950780"),
@@ -84,13 +87,13 @@ public class DualWritePortfolioDataIngestionService_IngestPortfolioDataAsyncTest
     }
 
     [Test]
-    public void IngestPortfolioDataAsync_LocalThrows_PropagatesAndSkipsCloud()
+    public async Task IngestPortfolioDataAsync_LocalThrows_PropagatesAndSkipsCloud()
     {
         _innerMock.Setup(x => x.IngestPortfolioDataAsync(
                 It.IsAny<AboutFundPageData>(), _isinId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("DB went away"));
 
-        Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<InvalidOperationException>(
             () => _sut.IngestPortfolioDataAsync(PageDataWithJson(SamplePayload), _isinId));
 
         _apiClientMock.Verify(x => x.SyncPortfolioAllocationsAsync(

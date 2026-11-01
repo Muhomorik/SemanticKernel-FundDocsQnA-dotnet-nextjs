@@ -69,14 +69,14 @@ public class EfCoreFundProfileRepository_UpdateLastVisitedAtAsyncTests
 
     [Test]
     [TestOf(nameof(EfCoreFundProfileRepository.UpdateLastVisitedAtAsync))]
-    public void UpdateLastVisitedAtAsync_NonExistentProfile_DoesNotThrow()
+    public async Task UpdateLastVisitedAtAsync_NonExistentProfile_DoesNotThrow()
     {
         // Arrange
         var nonExistentId = _fixture.Create<IsinId>();
         var visitedAt = DateTimeOffset.UtcNow;
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(() => _sut.UpdateLastVisitedAtAsync(nonExistentId, visitedAt));
+        await Assert.DoesNotThrowAsync(() => _sut.UpdateLastVisitedAtAsync(nonExistentId, visitedAt));
     }
 
     [Test]

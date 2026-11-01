@@ -18,6 +18,9 @@ public class FundListResponseInterceptorTests
         _sut = new FundListResponseInterceptor(_logger);
     }
 
+    [TearDown]
+    public void TearDown() => _sut.Dispose();
+
     #region ShouldInterceptResponse
 
     [Test]

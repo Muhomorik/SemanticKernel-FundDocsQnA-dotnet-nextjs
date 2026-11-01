@@ -70,7 +70,7 @@ Create a `pdfs` folder in your build output directory and add PDF files there.
 
 ## Prerequisites
 
-- .NET 9 SDK
+- .NET 10 SDK
 - **Embedding Provider**: Choose one (OpenAI is default for production compatibility)
   - OpenAI (default) - Cloud-based, requires API key (~$0.02 per 1M tokens)
   - LM Studio - GUI-based, port 1234, free

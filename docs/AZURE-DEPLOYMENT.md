@@ -63,7 +63,7 @@ cp ./embeddings.json ../backend/Backend.API/Data/embeddings.json
 2. **Azure CLI** - [Install](https://docs.microsoft.com/cli/azure/install-azure-cli)
 3. **Git** - For pushing code to GitHub
 4. **GitHub Account** - For CI/CD
-5. **.NET 9 SDK** - For local testing
+5. **.NET 10 SDK** - For local testing
 
 ### Required API Keys
 
@@ -93,7 +93,7 @@ The script will create:
 
 - Resource Group
 - App Service Plan (F1 Free tier)
-- App Service (Linux, .NET 9)
+- App Service (Linux, .NET 10)
 - Managed Identity
 - Application Insights
 - Key Vault with secrets
@@ -132,10 +132,10 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
 cd Preprocessor/Preprocessor
 
 # Update to use OpenAI embeddings, then run:
-dotnet run -- -m pdfpig -i ./pdfs -o ./bin/Debug/net9.0/output.json
+dotnet run -- -m pdfpig -i ./pdfs -o ./bin/Debug/net10.0/output.json
 
 # Copy to backend
-cp ./bin/Debug/net9.0/output.json ../backend/Backend.API/Data/embeddings.json
+cp ./bin/Debug/net10.0/output.json ../backend/Backend.API/Data/embeddings.json
 ```
 
 ### Step 5: Deploy

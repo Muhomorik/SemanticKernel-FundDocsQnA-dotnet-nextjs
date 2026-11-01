@@ -86,7 +86,7 @@ public class FundSyncApiClientTests
     }
 
     [Test]
-    public void SyncFundListAsync_Non2xx_ThrowsHttpRequestException()
+    public async Task SyncFundListAsync_Non2xx_ThrowsHttpRequestException()
     {
         // Arrange
         var request = new FundListSyncRequest
@@ -97,7 +97,7 @@ public class FundSyncApiClientTests
         SetupHandler(HttpStatusCode.InternalServerError, content: "Internal Server Error");
 
         // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(
+        await Assert.ThrowsAsync<HttpRequestException>(
             () => _sut.SyncFundListAsync(request));
     }
 
