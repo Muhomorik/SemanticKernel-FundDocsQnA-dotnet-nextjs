@@ -48,7 +48,7 @@ python main.py --input DIR --output DIR
 | `funds.json` | once | Display data per fund, shared by all methods |
 | `{method}.json` | per method | Everything one clustering method produced: points, clusters, categories, territory, neighbours |
 
-Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchison` (`aitchison.json`). More may be added; **discover them from `methods.json`, never hard-code file names**.
+Today there are three methods, `cosine` (`cosine.json`, the default), `aitchison` (`aitchison.json`) and `hellinger` (`hellinger.json`). More may be added; **discover them from `methods.json`, never hard-code file names**.
 
 ### Conventions
 
@@ -71,7 +71,8 @@ Today there are two methods, `cosine` (`cosine.json`, the default) and `aitchiso
   "default": "cosine",
   "methods": [
     { "id": "cosine", "name": "Cosine", "file": "cosine.json" },
-    { "id": "aitchison", "name": "Aitchison", "file": "aitchison.json" }
+    { "id": "aitchison", "name": "Aitchison", "file": "aitchison.json" },
+    { "id": "hellinger", "name": "Hellinger 60/40", "file": "hellinger.json" }
   ]
 }
 ```
@@ -208,6 +209,7 @@ Polygons are built from a grid (~220 cells across the map, padded 0.05 around al
 - `distance` is measured in the method's feature space. It is **not** the distance on the 2D map, and the scale differs per method:
   - `cosine`: Euclidean between unit-length allocation vectors, 0..2, ranks the same as cosine distance. Typical closest match ≈ 0.1.
   - `aitchison`: Aitchison distance (Euclidean between centred log-ratio vectors), 0 and up with no fixed maximum. Typical closest match ≈ 3.
+  - `hellinger`: Hellinger distance (Euclidean between square-rooted shares, blocks weighted 60/40), 0..√2. Typical closest match ≈ 0.2.
 - This is the answer to "which funds are most similar to X?". Example: a fund's 5 most similar funds are `neighbours[isin].slice(0, 5)`.
 
 ---
@@ -279,6 +281,7 @@ A method is a way of turning a fund's allocations into a feature vector. All met
 | --- | --- |
 | `cosine` | All country + sector percentages as one vector (no weighting between the two blocks), scaled to length 1. Compares the *mix* of holdings. Negative values (short positions) used as reported |
 | `aitchison` | Centred log-ratio of the country shares and, separately, of the sector shares (`log(p + 0.005)` minus its mean), then joined. Compares *ratios* between holdings, so small positions count as much as large ones. Negative values read as 0 |
+| `hellinger` | Square root of the country shares and, separately, of the sector shares, each renormalised to 100% first; the country block is scaled by √0.6 and the sector block by √0.4, then joined. Small positions count a little more than in `cosine`, much less than in `aitchison`. Countries make up 60% of the squared distance, sectors 40%. Negative values read as 0; a block with nothing left stays zero |
 
 Each method lives in its own module under [fund_clustering/methods/](fund_clustering/methods/) as a `Method` (id, name, description and a `features` function). The pipeline only calls `method.features(data)`, so methods are interchangeable.
 
