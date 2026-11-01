@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-11-01 (Backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
+Last Updated: 2026-11-01 (Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
@@ -254,7 +254,7 @@ Backend API endpoints for ownership flow Sankey visualization. Computes investor
 | Loading States | ✅ | Skeleton loading for messages |
 | Error Handling | ✅ | Alert with retry functionality |
 | Responsive Design | ✅ | Mobile-first approach |
-| Testing | ✅ | Jest + React Testing Library, 4 tests passing |
+| Testing | ✅ | Jest + React Testing Library, 106 tests passing |
 | Code Quality | ✅ | EditorConfig, Prettier with Tailwind plugin |
 | Documentation | ✅ | README with setup instructions |
 
@@ -263,6 +263,7 @@ Backend API endpoints for ownership flow Sankey visualization. Computes investor
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
 | 503 Error Handling | ⏳ | User-friendly message for Azure free tier quota limits |
+| Package Updates (Next.js 16.4) | ✅ | Next.js 16.1.1 → 16.4.3, React 19.2.3 → 19.3.1, other deps updated within their major versions; production `npm audit` clean (fixed critical `sharp`/libvips advisories). New `react-hooks/set-state-in-effect` lint rule fixed properly: `useIsClient` hook (`lib/use-is-client.ts`) replaces mounted-flag effects, chat reset now remounts the session via `resetKey`. Added `jest-dom.d.ts` so test files type-check (Next 16.4 build fails otherwise). Major upgrades (TypeScript 7, ESLint 10, lucide-react 1.x, jest-dom 7) deferred; `@types/node` stays on 20 to match CI's Node 20 |
 
 ### Not Planned
 

@@ -33,7 +33,6 @@ export function OwnershipFlowPage() {
 
   // Effect 1: load periods on mount, auto-select most recent weekly period
   useEffect(() => {
-    setIsLoadingPeriods(true);
     fetchOwnershipPeriods()
       .then((data) => {
         setPeriods(data);

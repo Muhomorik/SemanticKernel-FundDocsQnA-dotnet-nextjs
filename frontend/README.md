@@ -66,11 +66,13 @@ Tests are located in the `__tests__` directory, mirroring the app structure:
 
 ```text
 __tests__/
-├── app/
-│   └── page.test.tsx
-└── lib/
-    └── api-streaming.test.ts
+├── app/             # Page-level tests
+├── components/      # Chat, theme toggle
+├── lib/             # API client, hooks
+└── ownership-flow/  # Sankey charts, period selector, page
 ```
+
+jest-dom matchers are registered at runtime in `jest.setup.js`; `jest-dom.d.ts` provides their TypeScript types (the production build type-checks test files too).
 
 Example test:
 
