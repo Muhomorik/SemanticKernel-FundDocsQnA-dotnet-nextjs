@@ -21,7 +21,7 @@ Fund categories from the source (e.g. `Branschfond, Ny teknik`) are too broad to
 flowchart LR
     CSV["data/<br/>YieldRaccoon_allocations_all_&lt;week&gt;.csv<br/>YieldRaccoon_metadata_all_&lt;week&gt;.csv"] --> Main["python main.py"]
     Main --> Out["output/<br/>methods.json<br/>funds.json<br/>&lbrace;method&rbrace;.json"]
-    Out --> BE["Backend<br/>serves files as-is"]
+    Out -->|"copied by hand"| BE["Backend<br/>Data/fund-clusters/<br/>serves files as-is"]
     BE --> FE["Frontend chart<br/>draws only"]
 
     classDef domain fill:#d1e7dd,stroke:#0f5132,color:#0f5132;
@@ -31,6 +31,7 @@ flowchart LR
 1. YieldRaccoon exports two CSVs per ISO week into `data/` (allocations + metadata).
 2. `main.py` joins them on `isin`, keeps `fund_type == EQUITY_FUND`, runs every clustering method and writes `output/`.
 3. The files are regenerated each week and replaced as a whole. `data/` and `output/` are committed as an example week, so the notebook and viewer work without running the pipeline first.
+4. The backend keeps its own copy in `backend/Backend.API/Data/fund-clusters/` and serves it under `/api/fund-clusters` (see the [Backend README](../backend/README.md#get-apifund-clusters)). The frontend's `/fund-clusters` page draws from that API. While the page is a proof of concept, refresh the copy by hand: copy `output/*.json` into that folder.
 
 ```bash
 python main.py                      # newest week in data/ → output/

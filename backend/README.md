@@ -292,6 +292,7 @@ All configuration is in `appsettings.json` under `BackendOptions`. See **[Config
 | `SystemPrompt` | *(hardened default)* | Custom LLM system prompt (optional) |
 | `VectorStorageType` | `InMemory` | Vector storage ("InMemory" or "CosmosDb") |
 | `EmbeddingsFilePath` | `Data/embeddings.json` | Path to embeddings file (InMemory only) |
+| `FundClustersDirectory` | `Data/fund-clusters` | Folder with the fund cluster map JSON files |
 | `CosmosDbEndpoint` | — | Cosmos DB endpoint URL (CosmosDb only) |
 | `CosmosDbDatabaseName` | — | Cosmos DB database name (CosmosDb only) |
 | `CosmosDbContainerName` | `embeddings` | Cosmos DB container name (CosmosDb only) |
@@ -553,6 +554,18 @@ curl -X POST http://localhost:5000/api/funds/portfolio-allocations \
 Schema: four tables — `Countries` (Guid PK, unique `DisplayName`, optional `CountryCode`), `Sectors` (Guid PK, unique `DisplayName`), `FundCountryAllocations` and `FundSectorAllocations` (Guid PKs, unique `(Isin, CountryId/SectorId)`, `Percentage DECIMAL(5,2)`, cascade-deleted with FundProfile, restricted from lookup deletion). Designed to feed an ML feature matrix where every fund × every country/sector exists (zero-padded via `LEFT JOIN`).
 
 All fund endpoints return `503 Service Unavailable` if Azure SQL is not configured.
+
+### GET /api/fund-clusters
+
+Serves the fund cluster map files from `Backend.API/Data/fund-clusters/` as-is. These are a copy of the [FundClustering](../FundClustering/README.md) pipeline output, refreshed by hand. Public and read-only, with no parsing or computation. Responses carry `ETag` and `Last-Modified`.
+
+| Endpoint | Returns |
+| --- | --- |
+| `GET /api/fund-clusters/methods` | `methods.json`: which methods exist, and the default |
+| `GET /api/fund-clusters/funds` | `funds.json`: display data per fund |
+| `GET /api/fund-clusters/methods/{id}` | The method's file, e.g. `cosine.json` |
+
+`{id}` is looked up in `methods.json`, never used as a path. An unknown id returns `404`. A missing `methods.json` or `funds.json` returns `503`. To update the data, copy `FundClustering/output/*.json` into the folder.
 
 ## DDD Architecture
 

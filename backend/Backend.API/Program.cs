@@ -390,6 +390,8 @@ builder.Services.AddScoped<IFundCountryAllocationRepository, EfCoreFundCountryAl
 builder.Services.AddScoped<IFundSectorAllocationRepository, EfCoreFundSectorAllocationRepository>();
 builder.Services.AddScoped<IFundSyncService, FundSyncService>();
 builder.Services.AddScoped<IOwnershipFlowService, OwnershipFlowService>();
+// Singleton: caches the parsed methods.json between requests
+builder.Services.AddSingleton<IFundClusterFiles, FundClusterFiles>();
 builder.Services.AddMemoryCache();
 
 // ========================================
@@ -550,9 +552,9 @@ if (hasAzureSql)
 {
     try
     {
-        // Re-authenticate in Visual Studio
-        // The error says your VS 2019 token is stale:
-        // Tools → Options → Azure Services Authentication → re-authenticate.
+        // "The operation was canceled" in GetFedAuthToken = Entra token acquisition timed out
+        // (Authentication=Active Directory Default). Locally, launchSettings pins
+        // AZURE_TOKEN_CREDENTIALS=AzureCliCredential, so run `az login` if it reappears.
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<FundDataDbContext>();

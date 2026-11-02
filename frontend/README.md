@@ -67,10 +67,13 @@ Tests are located in the `__tests__` directory, mirroring the app structure:
 ```text
 __tests__/
 ├── app/             # Page-level tests
-├── components/      # Chat, theme toggle
+├── components/      # Chat, header nav, theme toggle
+├── fund-clusters/   # Cluster map: lib, chart options, components, page
 ├── lib/             # API client, hooks
 └── ownership-flow/  # Sankey charts, period selector, page
 ```
+
+Shared test fixtures live in `test-utils/`, outside `__tests__`, so Jest doesn't pick them up as test files. Tests that render the cluster map mock `echarts`.
 
 jest-dom matchers are registered at runtime in `jest.setup.js`; `jest-dom.d.ts` provides their TypeScript types (the production build type-checks test files too).
 
