@@ -3,19 +3,15 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { formatOwnerCount, TooltipState } from "@/lib/ownership-flow";
+import { useIsClient } from "@/lib/use-is-client";
 
 interface SankeyTooltipProps {
   state: TooltipState;
 }
 
 export function SankeyTooltip({ state }: SankeyTooltipProps) {
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  // document.body only exists in the browser
+  if (!useIsClient()) return null;
 
   const label =
     state.side === "out"

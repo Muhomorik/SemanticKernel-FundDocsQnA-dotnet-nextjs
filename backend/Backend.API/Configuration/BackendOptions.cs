@@ -12,6 +12,13 @@ public record BackendOptions
     public required string EmbeddingsFilePath { get; init; }
 
     /// <summary>
+    /// Gets or sets the folder holding the fund cluster JSON files
+    /// (<c>methods.json</c>, <c>funds.json</c>, one file per method).
+    /// Relative paths are resolved against the content root.
+    /// </summary>
+    public string FundClustersDirectory { get; init; } = "Data/fund-clusters";
+
+    /// <summary>
     /// Gets or sets the LLM provider to use for chat completion.
     /// Can be overridden by the LLM_PROVIDER environment variable.
     /// </summary>

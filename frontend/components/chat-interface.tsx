@@ -11,6 +11,12 @@ import { useChatContext } from "./chat-context";
 import { DemoBanner } from "./demo-banner";
 
 export function ChatInterface() {
+  const { resetKey } = useChatContext();
+  // Changing the key remounts the session, clearing all of its state
+  return <ChatSession key={resetKey} />;
+}
+
+function ChatSession() {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   // Error variant: "cold-start" for Azure App Service cold start errors (502, 503, network timeout),
@@ -20,16 +26,7 @@ export function ChatInterface() {
     variant: "destructive" | "cold-start";
   } | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const { shouldReset, clearReset, resetChat } = useChatContext();
-
-  React.useEffect(() => {
-    if (shouldReset) {
-      setMessages([]);
-      setError(null);
-      setIsLoading(false);
-      clearReset();
-    }
-  }, [shouldReset, clearReset]);
+  const { resetChat } = useChatContext();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

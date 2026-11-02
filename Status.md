@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-11-01 (Backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
+Last Updated: 2026-11-01 (Fund Clusters proof-of-concept page + `/api/fund-clusters` file API; Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
@@ -48,7 +48,7 @@ Last Updated: 2026-11-01 (Backend upgraded to .NET 10 with package updates; Azur
 | Task | Status | Notes |
 | ------ | -------- | ------- |
 | .NET 10 upgrade (non-Azure projects) | ✅ | **Completed 2026-10-27**: PdfTextExtractor, Preprocessor, YieldRaccoon (12 projects) → `net10.0` / `net10.0-windows10.0.26100.0`; all NuGet packages to latest stable (MS.Extensions/EF Core 10.0.14, SK 1.81.0, NUnit 5, Test SDK 18, Rx 7, NLog 6.2, Magick 15, ImageSharp 4). Rx 7 moved `DispatcherScheduler` → added `System.Reactive.Wpf` to both WPF apps. NUnit 5 `Assert.ThrowsAsync`/`DoesNotThrowAsync` now awaited (un-awaited calls silently pass); added `NUnit.Analyzers` to all test projects + fixed surfaced NUnit1032 disposal leaks. Dropped inbox `System.Text.Json` ref. 566 tests green. CLAUDE.md, root/component READMEs, and wpf-fluent-design skill updated to .NET 10 (backend/Azure docs intentionally left on .NET 9). Backend + CI held on .NET 9 until Azure App Service is upgraded |
-| .NET 10 upgrade (backend + Azure) | ⏳ | **Code complete 2026-11-01** on `feature/backend-net10`: Backend.API + Backend.Tests → `net10.0`; all packages to latest (SK 1.81.0, EF Core 10.0.14, Azure.Identity 1.21.0, Swashbuckle 10.3.1, Azure.Monitor.OpenTelemetry 1.6.0, Cosmos 3.63.3, NUnit 5, Test SDK 18). `Microsoft.SemanticKernel.Connectors.InMemory` (renamed upstream) → `CommunityToolkit.VectorData.InMemory` 1.0.1. Added `Newtonsoft.Json` (Cosmos now requires explicit ref); pinned `System.Security.Cryptography.Pkcs` 10.0.14 over vulnerable transitive 9.0.11 from SqlClient; dropped inbox `Logging.Console`. Zero vulnerable packages. 234 unit + 23 `[Explicit]` FundData.Plugin tests green. CI `DOTNET_VERSION` → 10.0.x, `azure-setup.sh` runtime → `DOTNETCORE:10.0`, docs updated. **Pending:** switch App Service runtime to .NET 10 in portal, release `develop` → `main`, run Deployment tests after ~60s DB warmup |
+| .NET 10 upgrade (backend + Azure) | ⏳ | **Code complete 2026-11-01** on `feature/backend-net10`: Backend.API + Backend.Tests → `net10.0`; all packages to latest (SK 1.81.0, EF Core 10.0.14, Azure.Identity 1.21.0, Swashbuckle 10.3.1, Azure.Monitor.OpenTelemetry 1.6.0, Cosmos 3.63.3, NUnit 5, Test SDK 18). `Microsoft.SemanticKernel.Connectors.InMemory` (renamed upstream) → `CommunityToolkit.VectorData.InMemory` 1.0.1. Added `Newtonsoft.Json` (Cosmos now requires explicit ref); pinned `System.Security.Cryptography.Pkcs` 10.0.14 over vulnerable transitive 9.0.11 from SqlClient; dropped inbox `Logging.Console`. Zero vulnerable packages. 234 unit + 23 `[Explicit]` FundData.Plugin tests green. CI `DOTNET_VERSION` → 10.0.x, `azure-setup.sh` runtime → `DOTNETCORE:10.0`, docs updated; frontend footer tech-stack badge → "ASP.NET Core 10". **Pending:** switch App Service runtime to .NET 10 in portal, release `develop` → `main`, run Deployment tests after ~60s DB warmup |
 
 ---
 
@@ -175,6 +175,32 @@ LLM can now answer structured fund data queries (performance, ownership, categor
 
 **Plan:** `.claude/plans/curried-riding-hoare.md`
 
+### Fund Clusters — Backend + Frontend ✅ COMPLETED (2026-11-01)
+
+Proof-of-concept page at `/fund-clusters` that draws the FundClustering output: cluster map, categories, disagreements and similar funds. The backend serves a hand-copied set of the JSON files as-is, and the frontend only draws (ECharts 6.1). Built test-first.
+
+| Component | Details | Status |
+| ----------- | --------- | -------- |
+| Data | `Backend.API/Data/fund-clusters/*.json`, a copy of `FundClustering/output/`, refreshed by hand; published as Content | ✅ |
+| `BackendOptions.FundClustersDirectory` | Default `Data/fund-clusters`, resolved against the content root | ✅ |
+| `FundClusterFiles` (singleton) | Resolves `methods.json` / `funds.json` / method files. Method ids are looked up in the manifest (never used as paths), the manifest is re-read when its write time changes, and files outside the folder are refused | ✅ |
+| `FundClustersController` | `GET /api/fund-clusters/methods`, `/funds`, `/methods/{id}` via `PhysicalFile` with ETag/Last-Modified; 404 for unknown id, 503 for missing data; `ApiRateLimit` | ✅ |
+| `lib/fund-clusters.ts` | JSON contract types, fetchers (reuse `ApiError`, AbortSignal), family colours, ring orientation, search, verdict helpers | ✅ |
+| `lib/fund-clusters-chart.ts` | Pure ECharts series builder (territory / points / labels / similar / pin), aspect-ratio grid, zoom window, escaped tooltip HTML | ✅ |
+| `components/fund-clusters/` | `fund-clusters-page` (orchestrator, pin survives method switch), `cluster-map` (lazy `import("echarts")`, imperative zoom handle, theme-aware), `cluster-toolbar`, `fund-search` (ARIA combobox), `cluster-sidebar` (pinned card + 10 similar funds, 3 tabs), `cluster-stats`, `cluster-legend` | ✅ |
+| `app/fund-clusters/page.tsx` | Static route shell with `Metadata` | ✅ |
+| `header.tsx` | `NAV` list, links to every page except the current one | ✅ |
+| **Tests** | Backend: `FundClusterFilesTests` (17), `FundClustersControllerTests` (8). Frontend: 103 in `__tests__/fund-clusters/` + `header.test.tsx`; fixtures in `test-utils/fund-clusters.ts` | ✅ |
+
+### Fund Clusters — Animated article illustrations ⏳ IN PROGRESS (2026-11-02)
+
+Standalone `FundClustering/viewer/animate.html`: GSAP-animated SVG scenes for the blog post, one per number key, sized for screen capture.
+
+| Component | Details | Status |
+| ----------- | --------- | -------- |
+| `viewer/animate.html` | Scenes 1 pipeline, 2 stacked bar, 3 scorecard, 4 cosine → Aitchison → Hellinger morph | ⏳ |
+| `FundClustering/README.md` | "Animated illustrations" subsection under Viewer | ⏳ |
+
 ### Ownership Flow — Frontend ✅ COMPLETED (2026-03-11)
 
 Frontend page at `/ownership-flow` with declarative JSX SVG Sankey renderer, period selector, and full dark/light mode support.
@@ -254,7 +280,7 @@ Backend API endpoints for ownership flow Sankey visualization. Computes investor
 | Loading States | ✅ | Skeleton loading for messages |
 | Error Handling | ✅ | Alert with retry functionality |
 | Responsive Design | ✅ | Mobile-first approach |
-| Testing | ✅ | Jest + React Testing Library, 4 tests passing |
+| Testing | ✅ | Jest + React Testing Library, 106 tests passing |
 | Code Quality | ✅ | EditorConfig, Prettier with Tailwind plugin |
 | Documentation | ✅ | README with setup instructions |
 
@@ -263,6 +289,7 @@ Backend API endpoints for ownership flow Sankey visualization. Computes investor
 | Feature | Status | Notes |
 | --------- | -------- | ------- |
 | 503 Error Handling | ⏳ | User-friendly message for Azure free tier quota limits |
+| Package Updates (Next.js 16.4) | ✅ | Next.js 16.1.1 → 16.4.3, React 19.2.3 → 19.3.1, other deps updated within their major versions; production `npm audit` clean (fixed critical `sharp`/libvips advisories). New `react-hooks/set-state-in-effect` lint rule fixed properly: `useIsClient` hook (`lib/use-is-client.ts`) replaces mounted-flag effects, chat reset now remounts the session via `resetKey`. Added `jest-dom.d.ts` so test files type-check (Next 16.4 build fails otherwise). Major upgrades (TypeScript 7, ESLint 10, lucide-react 1.x, jest-dom 7) deferred; `@types/node` stays on 20 to match CI's Node 20 |
 
 ### Not Planned
 

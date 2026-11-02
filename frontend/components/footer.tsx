@@ -14,7 +14,7 @@ function GitHubIcon({ className }: { className?: string }) {
 export function Footer() {
   const techStack = [
     "Next.js 16",
-    "ASP.NET Core 9",
+    "ASP.NET Core 10",
     "Semantic Kernel",
     "OpenAI",
     "Cosmos DB",

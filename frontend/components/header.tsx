@@ -1,15 +1,31 @@
 "use client";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Activity, ArrowLeft, TrendingUp } from "lucide-react";
+import { Activity, Network, TrendingUp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useChatContext } from "./chat-context";
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV: NavItem[] = [
+  { href: "/", label: "Fund Insights", icon: TrendingUp },
+  { href: "/ownership-flow", label: "Ownership Flow", icon: Activity },
+  { href: "/fund-clusters", label: "Fund Clusters", icon: Network },
+];
+
+function isCurrent(href: string, pathname: string | null): boolean {
+  const path = pathname?.replace(/\/$/, "") || "/";
+  return href === "/" ? path === "/" : path.startsWith(href);
+}
+
 export function Header() {
   const { resetChat } = useChatContext();
   const pathname = usePathname();
-  const isOnFlowPage = pathname?.startsWith("/ownership-flow");
 
   const handleHeaderClick = () => {
     resetChat();
@@ -32,23 +48,20 @@ export function Header() {
           </span>
         </button>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href={isOnFlowPage ? "/" : "/ownership-flow"}
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200"
-          >
-            {isOnFlowPage ? (
-              <>
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Fund Insights</span>
-              </>
-            ) : (
-              <>
-                <Activity className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Ownership Flow</span>
-              </>
-            )}
-          </Link>
+        <div className="flex items-center gap-1">
+          {NAV.filter((item) => !isCurrent(item.href, pathname)).map(
+            ({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-label={label}
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{label}</span>
+              </Link>
+            )
+          )}
           <ThemeToggle />
         </div>
       </div>

@@ -3,26 +3,22 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 interface ChatContextType {
-  shouldReset: boolean;
+  // Incremented on every reset; used as a React key to remount the chat session
+  resetKey: number;
   resetChat: () => void;
-  clearReset: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [shouldReset, setShouldReset] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   const resetChat = () => {
-    setShouldReset(true);
-  };
-
-  const clearReset = () => {
-    setShouldReset(false);
+    setResetKey((key) => key + 1);
   };
 
   return (
-    <ChatContext.Provider value={{ shouldReset, resetChat, clearReset }}>
+    <ChatContext.Provider value={{ resetKey, resetChat }}>
       {children}
     </ChatContext.Provider>
   );
