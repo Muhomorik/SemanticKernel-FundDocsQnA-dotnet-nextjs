@@ -35,16 +35,21 @@ class FundData:
         return self.country_columns + self.sector_columns
 
 
-def latest_week(data_dir: Path | str) -> str:
-    """Return the newest week (e.g. ``2026-W44``) with an allocations export."""
-    weeks = [
+def available_weeks(data_dir: Path | str) -> list[str]:
+    """Return every week (e.g. ``2026-W44``) with an allocations export, oldest first."""
+    return sorted(
         match.group(1)
         for path in Path(data_dir).glob("YieldRaccoon_allocations_all_*.csv")
         if (match := _ALLOCATIONS_PATTERN.fullmatch(path.name))
-    ]
+    )
+
+
+def latest_week(data_dir: Path | str) -> str:
+    """Return the newest week (e.g. ``2026-W44``) with an allocations export."""
+    weeks = available_weeks(data_dir)
     if not weeks:
         raise FileNotFoundError(f"No allocations export found in {data_dir}")
-    return max(weeks)
+    return weeks[-1]
 
 
 def load_week(data_dir: Path | str, week: str) -> FundData:

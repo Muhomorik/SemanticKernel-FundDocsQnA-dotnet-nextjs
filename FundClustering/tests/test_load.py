@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from fund_clustering.load import latest_week, load_week
+from fund_clustering.load import available_weeks, latest_week, load_week
 from tests.conftest import WEEK, write_week
 
 
@@ -57,3 +57,21 @@ def test_latest_week_several_weeks_returns_newest(data_dir: Path) -> None:
 def test_latest_week_empty_folder_raises(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         latest_week(tmp_path)
+
+
+def test_available_weeks_several_weeks_sorted_oldest_first(data_dir: Path) -> None:
+    write_week(data_dir, "2026-W10", [{"isin": "X"}], [{"isin": "X"}])
+    write_week(data_dir, "2025-W52", [{"isin": "X"}], [{"isin": "X"}])
+
+    weeks = available_weeks(data_dir)
+
+    assert weeks == ["2025-W52", WEEK, "2026-W10"]
+
+
+def test_available_weeks_other_files_ignored(tmp_path: Path) -> None:
+    (tmp_path / "YieldRaccoon_snapshot_all_2026-W01.csv").touch()
+    (tmp_path / "YieldRaccoon_allocations_all_latest.csv").touch()
+
+    weeks = available_weeks(tmp_path)
+
+    assert weeks == []
