@@ -30,7 +30,7 @@ flowchart LR
 
 1. YieldRaccoon exports two CSVs per ISO week into `data/` (allocations + metadata).
 2. `main.py` joins them on `isin`, keeps `fund_type == EQUITY_FUND`, runs every clustering method and writes `output/`.
-3. Every file name ends in the ISO week (`cosine_2026-W44.json`), so several weeks can sit in one folder. `data/` and `output/` are committed as an example week, so the notebook and viewer work without running the pipeline first.
+3. Every file name ends in the ISO week (`cosine_2026-W44.json`), so several weeks can sit in one folder. `data/` and `output/` are committed with three example weeks (2026-W28, W44, W45), so the notebooks and viewer work without running the pipeline first.
 4. The backend keeps its own copy in `backend/Backend.API/Data/fund-clusters/` and serves it under `/api/fund-clusters` (see the [Backend README](../backend/README.md#get-apifund-clusters)). The frontend's `/fund-clusters` page draws from that API. While the page is a proof of concept, refresh the copy by hand: copy one week's files into that folder and rename `methods_<week>.json` → `methods.json` and `funds_<week>.json` → `funds.json` (the backend looks for those two names). Method files keep their week, since the manifest names them.
 
 ```bash
@@ -310,11 +310,11 @@ Browsers block `fetch()` from `file://` pages, hence the picker. Served over htt
 | [notebooks/explore.ipynb](notebooks/explore.ipynb) | One week: how each method clusters, names and finds neighbours |
 | [notebooks/cluster_migration.ipynb](notebooks/cluster_migration.ipynb) | Two weeks: which funds changed cluster, and was it the fund or the clustering? |
 
-`cluster_migration.ipynb` compares two weeks you pick (`FROM_WEEK`, `TO_WEEK`). Run `main.py` for each of them into the same folder first, then point `OUTPUT_DIR` at it:
+`cluster_migration.ipynb` compares two weeks you pick (`FROM_WEEK`, `TO_WEEK`), reading `data/` and `output/`. The committed example weeks are ready to use; for other weeks, copy their CSVs into `data/` and run `main.py` for each:
 
 ```bash
-python main.py --input D:\Vision --output D:\Vision\fund-clusters --week 2026-W28
-python main.py --input D:\Vision --output D:\Vision\fund-clusters --week 2026-W45
+python main.py --week 2026-W28
+python main.py --week 2026-W45
 ```
 
 Clusters are matched by the funds they share (ids are renumbered each run). Each fund gets a change class: `stayed`, `moved` (other cluster and its own allocation drifted more than usual), `reshuffled` (other cluster, normal drift: clustering noise), `joined` / `left`, `new` / `gone`. The logic lives in `fund_clustering/migration.py`.
