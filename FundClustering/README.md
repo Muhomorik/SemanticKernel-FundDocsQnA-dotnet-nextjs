@@ -303,6 +303,24 @@ Browsers block `fetch()` from `file://` pages, hence the picker. Served over htt
 
 ---
 
+## 📓 Notebooks
+
+| Notebook | Question |
+| --- | --- |
+| [notebooks/explore.ipynb](notebooks/explore.ipynb) | One week: how each method clusters, names and finds neighbours |
+| [notebooks/cluster_migration.ipynb](notebooks/cluster_migration.ipynb) | Two weeks: which funds changed cluster, and was it the fund or the clustering? |
+
+`cluster_migration.ipynb` compares two weeks you pick (`FROM_WEEK`, `TO_WEEK`). Run `main.py` for each of them into the same folder first, then point `OUTPUT_DIR` at it:
+
+```bash
+python main.py --input D:\Vision --output D:\Vision\fund-clusters --week 2026-W28
+python main.py --input D:\Vision --output D:\Vision\fund-clusters --week 2026-W45
+```
+
+Clusters are matched by the funds they share (ids are renumbered each run). Each fund gets a change class: `stayed`, `moved` (other cluster and its own allocation drifted more than usual), `reshuffled` (other cluster, normal drift: clustering noise), `joined` / `left`, `new` / `gone`. The logic lives in `fund_clustering/migration.py`.
+
+---
+
 ## 🚀 Development
 
 Requires Python 3.15+.
@@ -327,6 +345,7 @@ pytest -m "not slow"            # skip the UMAP tests
 | `fund_clustering/territory.py` | Territory grid and polygons |
 | `fund_clustering/pipeline.py` | One method end to end |
 | `fund_clustering/export.py` | Writes the JSON files described above |
+| `fund_clustering/migration.py` | Compares two weeks' results: cluster matching, retention, drift, change class |
 
 ## 📚 Related docs
 
