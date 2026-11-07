@@ -60,7 +60,8 @@ def funds_document(data: FundData) -> dict:
     Returns:
         ``{"week": ..., "funds": [...]}`` in ``data.funds`` order.
     """
-    categories = sorted(data.funds["category"].unique())
+    # str() for the type checker: pandas types unique() values as Any | Timestamp.
+    categories = sorted({str(category) for category in data.funds["category"]})
     families = {category: category_family(category) for category in categories}
     shades = {}
     for category in categories:
@@ -98,6 +99,7 @@ def method_document(data: FundData, run: MethodRun) -> dict:
     isins = data.funds["isin"].tolist()
     labels = run.result.labels
     xy = run.result.xy
+    clusters = run.clusters.sort_index()
 
     return {
         "week": data.week,
@@ -120,7 +122,7 @@ def method_document(data: FundData, run: MethodRun) -> dict:
         ],
         "clusters": [
             {
-                "id": int(cluster_id),
+                "id": cluster_id,
                 "name": cluster["name"],
                 "size": int(cluster["size"]),
                 "purity": _round(cluster["purity"]),
@@ -132,7 +134,10 @@ def method_document(data: FundData, run: MethodRun) -> dict:
                     for category, count in cluster["category_counts"].items()
                 },
             }
-            for cluster_id, cluster in run.clusters.sort_index().iterrows()
+            # Ids from the index as plain ints: iterrows() types labels as Hashable.
+            for cluster_id, (_, cluster) in zip(
+                clusters.index.astype(int).tolist(), clusters.iterrows()
+            )
         ],
         "categories": _categories(data, run),
         "territory": [
@@ -191,7 +196,9 @@ def _categories(data: FundData, run: MethodRun) -> list[dict]:
         }
     )
     rows = []
-    for category, group in sorted(frame.groupby("category"), key=lambda g: g[0]):
+    # groupby sorts by category; str() because pandas types group keys as any scalar.
+    for key, group in frame.groupby("category"):
+        category = str(key)
         clustered = int(group["clustered"].sum())
         rows.append(
             {
@@ -209,7 +216,8 @@ def _categories(data: FundData, run: MethodRun) -> list[dict]:
 def write_documents(
     output_dir: Path | str, data: FundData, runs: list[MethodRun]
 ) -> list[Path]:
-    """Write ``methods.json``, ``funds.json`` and one ``{method}.json`` per run.
+    """Write ``methods_<week>.json``, ``funds_<week>.json`` and one
+    ``<method>_<week>.json`` per run, so several weeks can share a folder.
 
     Args:
         output_dir: Folder to write into; created if missing.
@@ -222,17 +230,20 @@ def write_documents(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    documents = {"funds.json": funds_document(data)}
+    def file_name(base: str) -> str:
+        return f"{base}_{data.week}.json"
+
+    documents = {file_name("funds"): funds_document(data)}
     for run in runs:
-        documents[f"{run.method.id}.json"] = method_document(data, run)
-    documents["methods.json"] = {
+        documents[file_name(run.method.id)] = method_document(data, run)
+    documents[file_name("methods")] = {
         "week": data.week,
         "default": runs[0].method.id,
         "methods": [
             {
                 "id": run.method.id,
                 "name": run.method.name,
-                "file": f"{run.method.id}.json",
+                "file": file_name(run.method.id),
             }
             for run in runs
         ],

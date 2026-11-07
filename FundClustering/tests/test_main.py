@@ -56,11 +56,13 @@ def test_main_latest_week_written_to_output(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert sorted(p.name for p in output_dir.iterdir()) == [
-        "aitchison.json",
-        "cosine.json",
-        "funds.json",
-        "hellinger.json",
-        "methods.json",
+        "aitchison_2026-W02.json",
+        "cosine_2026-W02.json",
+        "funds_2026-W02.json",
+        "hellinger_2026-W02.json",
+        "methods_2026-W02.json",
     ]
-    manifest = json.loads((output_dir / "methods.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (output_dir / "methods_2026-W02.json").read_text(encoding="utf-8")
+    )
     assert manifest["week"] == "2026-W02"

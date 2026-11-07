@@ -4,7 +4,8 @@ Usage:
     python main.py [--input DIR] [--output DIR] [--week 2026-W44]
 
 Runs every method in ``fund_clustering.methods.METHODS`` and writes
-``methods.json``, ``funds.json`` and one ``{method}.json`` per method.
+``methods_<week>.json``, ``funds_<week>.json`` and one ``<method>_<week>.json``
+per method.
 """
 
 import argparse

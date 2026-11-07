@@ -2,7 +2,7 @@
 
 Python pipeline that groups equity funds by their country + sector allocations and writes the results to `output/` as precomputed JSON. The files are a draw-only data contract for the fund cluster map: every number is computed here, consumers only read and display.
 
-> **TL;DR:** read `output/methods.json` first, then `output/funds.json`, then the method file it names (e.g. `cosine.json`). Join everything on `isin`. `cluster: -1` means "not in a cluster".
+> **TL;DR:** read `output/methods_<week>.json` first, then `output/funds_<week>.json`, then the method file it names (e.g. `cosine_2026-W44.json`). Join everything on `isin`. `cluster: -1` means "not in a cluster".
 
 ---
 
@@ -20,7 +20,7 @@ Fund categories from the source (e.g. `Branschfond, Ny teknik`) are too broad to
 ```mermaid
 flowchart LR
     CSV["data/<br/>YieldRaccoon_allocations_all_&lt;week&gt;.csv<br/>YieldRaccoon_metadata_all_&lt;week&gt;.csv"] --> Main["python main.py"]
-    Main --> Out["output/<br/>methods.json<br/>funds.json<br/>&lbrace;method&rbrace;.json"]
+    Main --> Out["output/<br/>methods_&lt;week&gt;.json<br/>funds_&lt;week&gt;.json<br/>&lbrace;method&rbrace;_&lt;week&gt;.json"]
     Out -->|"copied by hand"| BE["Backend<br/>Data/fund-clusters/<br/>serves files as-is"]
     BE --> FE["Frontend chart<br/>draws only"]
 
@@ -30,8 +30,8 @@ flowchart LR
 
 1. YieldRaccoon exports two CSVs per ISO week into `data/` (allocations + metadata).
 2. `main.py` joins them on `isin`, keeps `fund_type == EQUITY_FUND`, runs every clustering method and writes `output/`.
-3. The files are regenerated each week and replaced as a whole. `data/` and `output/` are committed as an example week, so the notebook and viewer work without running the pipeline first.
-4. The backend keeps its own copy in `backend/Backend.API/Data/fund-clusters/` and serves it under `/api/fund-clusters` (see the [Backend README](../backend/README.md#get-apifund-clusters)). The frontend's `/fund-clusters` page draws from that API. While the page is a proof of concept, refresh the copy by hand: copy `output/*.json` into that folder.
+3. Every file name ends in the ISO week (`cosine_2026-W44.json`), so several weeks can sit in one folder. `data/` and `output/` are committed as an example week, so the notebook and viewer work without running the pipeline first.
+4. The backend keeps its own copy in `backend/Backend.API/Data/fund-clusters/` and serves it under `/api/fund-clusters` (see the [Backend README](../backend/README.md#get-apifund-clusters)). The frontend's `/fund-clusters` page draws from that API. While the page is a proof of concept, refresh the copy by hand: copy one week's files into that folder and rename `methods_<week>.json` → `methods.json` and `funds_<week>.json` → `funds.json` (the backend looks for those two names). Method files keep their week, since the manifest names them.
 
 ```bash
 python main.py                      # newest week in data/ → output/
@@ -45,16 +45,18 @@ python main.py --input DIR --output DIR
 
 | File | Read | Contents |
 | --- | --- | --- |
-| `methods.json` | first | Manifest: which method files exist and which one is the default |
-| `funds.json` | once | Display data per fund, shared by all methods |
-| `{method}.json` | per method | Everything one clustering method produced: points, clusters, categories, territory, neighbours |
+| `methods_<week>.json` | first | Manifest: which method files exist and which one is the default |
+| `funds_<week>.json` | once | Display data per fund, shared by all methods |
+| `{method}_<week>.json` | per method | Everything one clustering method produced: points, clusters, categories, territory, neighbours |
 
-Today there are three methods, `cosine` (`cosine.json`, the default), `aitchison` (`aitchison.json`) and `hellinger` (`hellinger.json`). More may be added; **discover them from `methods.json`, never hard-code file names**.
+`<week>` is the ISO week of the source data, e.g. `cosine_2026-W44.json`. The rest of this README shortens the names to `methods.json`, `funds.json` and `{method}.json`.
+
+Today there are three methods, `cosine` (the default), `aitchison` and `hellinger`. More may be added; **discover them from the manifest, never hard-code file names**.
 
 ### Conventions
 
 - UTF-8, compact JSON, camelCase keys.
-- Every file has `week`: the ISO week of the source data, e.g. `"2026-W44"`. All files in one `output/` share it.
+- Every file has `week`: the ISO week of the source data, e.g. `"2026-W44"`, the same week as in its file name.
 - Funds appear in the same order everywhere: sorted by `isin`. `funds.json.funds[i]` and `{method}.json.points[i]` are the same fund.
 - Computed numbers are rounded to 4 decimals; allocation percentages to 2.
 - `cluster: -1` = not in a cluster (HDBSCAN noise). Such funds have no cluster entry and are excluded from shares.
@@ -71,9 +73,9 @@ Today there are three methods, `cosine` (`cosine.json`, the default), `aitchison
   "week": "2026-W44",
   "default": "cosine",
   "methods": [
-    { "id": "cosine", "name": "Cosine", "file": "cosine.json" },
-    { "id": "aitchison", "name": "Aitchison", "file": "aitchison.json" },
-    { "id": "hellinger", "name": "Hellinger 60/40", "file": "hellinger.json" }
+    { "id": "cosine", "name": "Cosine", "file": "cosine_2026-W44.json" },
+    { "id": "aitchison", "name": "Aitchison", "file": "aitchison_2026-W44.json" },
+    { "id": "hellinger", "name": "Hellinger 60/40", "file": "hellinger_2026-W44.json" }
   ]
 }
 ```
@@ -81,7 +83,7 @@ Today there are three methods, `cosine` (`cosine.json`, the default), `aitchison
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `default` | string | Method `id` to show first |
-| `methods[].id` | string | Method id, also the file's base name |
+| `methods[].id` | string | Method id, also the start of the file name (`<id>_<week>.json`) |
 | `methods[].name` | string | Display name |
 | `methods[].file` | string | File name in the same folder |
 
@@ -286,7 +288,7 @@ A method is a way of turning a fund's allocations into a feature vector. All met
 
 Each method lives in its own module under [fund_clustering/methods/](fund_clustering/methods/) as a `Method` (id, name, description and a `features` function). The pipeline only calls `method.features(data)`, so methods are interchangeable.
 
-To add a method, write `fund_clustering/methods/{id}.py` with its feature function and a `METHOD`, then list it in `METHODS` in [fund_clustering/methods/\_\_init\_\_.py](fund_clustering/methods/__init__.py). It gets its own `{id}.json` and a manifest entry; the first entry in `METHODS` is the default. Euclidean distance between feature rows must be the method's distance, because UMAP and the neighbour search use Euclidean distance.
+To add a method, write `fund_clustering/methods/{id}.py` with its feature function and a `METHOD`, then list it in `METHODS` in [fund_clustering/methods/\_\_init\_\_.py](fund_clustering/methods/__init__.py). It gets its own `{id}_<week>.json` and a manifest entry; the first entry in `METHODS` is the default. Euclidean distance between feature rows must be the method's distance, because UMAP and the neighbour search use Euclidean distance.
 
 ---
 
@@ -294,10 +296,10 @@ To add a method, write `fund_clustering/methods/{id}.py` with its feature functi
 
 [viewer/index.html](viewer/index.html) is a proof-of-concept map of the files in `output/`, the way the app will draw them. Open it straight from disk (`file:///…/FundClustering/viewer/index.html`), no server needed:
 
-1. Click **Choose files** (or drop files on the page) and pick `methods.json`, `funds.json` and every method file from `output/`.
+1. Click **Choose files** (or drop files on the page) and pick one week's files from `output/`: `methods_<week>.json`, `funds_<week>.json` and every method file. The week is read from the `methods_<week>.json` name.
 2. Switch methods with the **Method** selector. A method file you didn't pick brings the picker back; pick it and the map switches to it.
 
-Browsers block `fetch()` from `file://` pages, hence the picker. Served over http, the page loads `../output/` by itself. ECharts and the font come from a CDN, so it needs internet.
+Browsers block `fetch()` from `file://` pages, hence the picker. Served over http, the page loads `../output/` by itself once you give it the week: `index.html?week=2026-W44`. ECharts and the font come from a CDN, so it needs internet.
 
 ---
 

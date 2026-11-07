@@ -206,21 +206,27 @@ def test_method_document_neighbours_keyed_by_isin(
     ]
 
 
-def test_write_documents_writes_manifest_funds_and_method_files(
+def test_write_documents_file_names_carry_the_week(
     tmp_path: Path, data: FundData, run: MethodRun
 ) -> None:
     written = write_documents(tmp_path, data, [run])
 
     assert sorted(path.name for path in written) == [
-        "cosine.json",
-        "funds.json",
-        "methods.json",
+        "cosine_2026-W01.json",
+        "funds_2026-W01.json",
+        "methods_2026-W01.json",
     ]
-    manifest = json.loads((tmp_path / "methods.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (tmp_path / "methods_2026-W01.json").read_text(encoding="utf-8")
+    )
     assert manifest == {
         "week": "2026-W01",
         "default": "cosine",
-        "methods": [{"id": "cosine", "name": "Cosine", "file": "cosine.json"}],
+        "methods": [
+            {"id": "cosine", "name": "Cosine", "file": "cosine_2026-W01.json"}
+        ],
     }
-    method = json.loads((tmp_path / "cosine.json").read_text(encoding="utf-8"))
+    method = json.loads(
+        (tmp_path / "cosine_2026-W01.json").read_text(encoding="utf-8")
+    )
     assert method["points"][0]["isin"] == "SE0000000001"

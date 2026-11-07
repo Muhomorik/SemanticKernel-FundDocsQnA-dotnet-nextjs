@@ -278,6 +278,7 @@
 "use strict";
 
 const OUTPUT = "../output/";
+const WEEK_FILE = /^methods_(\d{4}-W\d{2})\.json$/;
 const NOT_IN_CLUSTER = -1;
 const SIMILAR_SHOWN = 10;
 const MARGIN = 0.03;
@@ -391,6 +392,15 @@ function isDisagreement(point) {
 // not fetch() other files, so the picker is the way in without a server.
 const picked = new Map();
 
+// File names carry the ISO week (methods_2026-W44.json). The week comes from
+// ?week=2026-W44 when served, or from the picked methods_<week>.json.
+let week = new URLSearchParams(location.search).get("week");
+
+function weekFile(base) {
+  if (!week) throw new Error("no week: pick methods_<week>.json or add ?week=2026-W44");
+  return `${base}_${week}.json`;
+}
+
 async function loadJson(file) {
   if (picked.has(file)) return picked.get(file);
   if (location.protocol === "file:") throw new Error(`${file} not chosen yet`);
@@ -401,7 +411,9 @@ async function loadJson(file) {
 
 async function pickFiles(files) {
   for (const file of files) {
-    if (file.name.endsWith(".json")) picked.set(file.name, JSON.parse(await file.text()));
+    if (!file.name.endsWith(".json")) continue;
+    picked.set(file.name, JSON.parse(await file.text()));
+    week = file.name.match(WEEK_FILE)?.[1] ?? week;
   }
   start();
 }
@@ -409,7 +421,10 @@ async function pickFiles(files) {
 async function start() {
   $("message").hidden = true;
   try {
-    const [manifest, funds] = await Promise.all([loadJson("methods.json"), loadJson("funds.json")]);
+    const [manifest, funds] = await Promise.all([
+      loadJson(weekFile("methods")),
+      loadJson(weekFile("funds")),
+    ]);
     // After picking a missing method file, open the method that asked for it.
     const wanted = $("method").value;
     const methodId = manifest.methods.some((m) => m.id === wanted) ? wanted : manifest.default;
@@ -444,9 +459,10 @@ function showMessage(error) {
   const missing = picked.size ? ` (${esc(error.message)})` : "";
   message.innerHTML = `
     <p><strong>Choose the map data</strong>${missing}</p>
-    <p>Select <code>methods.json</code>, <code>funds.json</code> and the method files
-    (<code>cosine.json</code>, <code>aitchison.json</code>, <code>hellinger.json</code>) from
-    <code>FundClustering/output</code>, or drop them here.</p>
+    <p>Select one week's files from <code>FundClustering/output</code>:
+    <code>methods_&lt;week&gt;.json</code>, <code>funds_&lt;week&gt;.json</code> and the method
+    files (<code>cosine_&lt;week&gt;.json</code>, <code>aitchison_&lt;week&gt;.json</code>,
+    <code>hellinger_&lt;week&gt;.json</code>), or drop them here.</p>
     <p><label class="plain">Choose files
       <input type="file" id="picker" accept=".json" multiple hidden></label></p>`;
   $("picker").addEventListener("change", (e) => pickFiles(e.target.files));

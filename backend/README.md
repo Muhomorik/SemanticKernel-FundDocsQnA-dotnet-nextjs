@@ -565,7 +565,7 @@ Serves the fund cluster map files from `Backend.API/Data/fund-clusters/` as-is. 
 | `GET /api/fund-clusters/funds` | `funds.json`: display data per fund |
 | `GET /api/fund-clusters/methods/{id}` | The method's file, e.g. `cosine.json` |
 
-`{id}` is looked up in `methods.json`, never used as a path. An unknown id returns `404`. A missing `methods.json` or `funds.json` returns `503`. To update the data, copy `FundClustering/output/*.json` into the folder.
+`{id}` is looked up in `methods.json`, never used as a path. An unknown id returns `404`. A missing `methods.json` or `funds.json` returns `503`. To update the data, copy one week's files from `FundClustering/output/` into the folder and rename `methods_<week>.json` → `methods.json` and `funds_<week>.json` → `funds.json`; method files keep their week-suffixed names, which the manifest lists.
 
 ## DDD Architecture
 
