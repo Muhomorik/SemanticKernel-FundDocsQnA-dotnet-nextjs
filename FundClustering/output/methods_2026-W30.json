@@ -1,0 +1,1 @@
+{"week":"2026-W30","default":"cosine","methods":[{"id":"cosine","name":"Cosine","file":"cosine_2026-W30.json"},{"id":"aitchison","name":"Aitchison","file":"aitchison_2026-W30.json"},{"id":"hellinger","name":"Hellinger 60/40","file":"hellinger_2026-W30.json"}]}
