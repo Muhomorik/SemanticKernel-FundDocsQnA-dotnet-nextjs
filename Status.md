@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-11-07 (Fund Clusters cluster migration notebook (two-week comparison, week in output file names); Fund Clusters proof-of-concept page + `/api/fund-clusters` file API; Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
+Last Updated: 2026-11-08 (Fund Clusters cluster transitions notebook (MONIC-style, all weeks W28–W45); Fund Clusters cluster migration notebook (two-week comparison, week in output file names); Fund Clusters proof-of-concept page + `/api/fund-clusters` file API; Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
@@ -203,6 +203,17 @@ Which funds changed cluster between weekly exports, and was it a real change in 
 | `fund_clustering/migration.py` | Compare two hand-picked weeks: `load_method_week`, `match_clusters` (Jaccard + `linear_sum_assignment`, min 0.3), `mate_retention`, `neighbour_retention`, `allocation_drift` (columns aligned first), `compare_weeks` → change class per fund (`moved` = drift above the 95th percentile of funds that stayed). 16 tests in `test_migration.py`; `scipy` listed as a direct dependency | ✅ |
 | `notebooks/cluster_migration.ipynb` | `FROM_WEEK` → `TO_WEEK`: side by side, cluster matching (+ ended / new), Sankey coloured by change class, moved / reshuffled / joined-left tables, drift vs mates-kept scatter, example funds. Reads `data/` + `output/` (W28, W44, W45 committed as examples). README "Notebooks" section. Summary for W28 → W45: most cluster changes are noise (reshuffled funds keep ~90% of neighbours, like funds that stayed); Hellinger most stable (585 stayed, overlap 0.82); 39% of funds have zero allocation drift over 17 weeks | ✅ |
 | `explore.ipynb` | `WEEK = "2026-W44"` constant at the top instead of the newest week in `data/` | ✅ |
+
+### Fund Clusters — Cluster transitions week by week ✅ COMPLETED (2026-11-08)
+
+What happened to each cluster from one week to the next, Hellinger only. New notebook `FundClustering/notebooks/cluster_transitions.ipynb`. Built one step at a time, test-first.
+
+| Component | Details | Status |
+| ----------- | --------- | -------- |
+| Example weeks W29–W43 | CSVs copied into `data/` and `main.py --week` run per week, so `data/` and `output/` hold all 18 weeks, W28–W45 | ✅ |
+| `migration.cluster_transitions` | MONIC-style label per cluster, counted over funds present in both weeks. A piece is ≥ 25% of a cluster's funds (`MIN_SHARE`); survival needs > 50% both ways (`SURVIVE`). Earlier week: `survived` / `split` / `absorbed` / `disappeared`; later week: `continued` / `merged` / `new`. 7 tests | ✅ |
+| `notebooks/cluster_transitions.ipynb` | `WEEKS` list on top. Overview table per week, one Sankey per consecutive week pair coloured by transition, an alluvial across all weeks (clusters ≥ 10 funds), an events table, and a cluster-per-week table for one ISIN. Summary: 35–49 clusters a week from a steady ~780 funds; real splits are rare; the common event is small clusters absorbed and coming back; the environment funds flip between a 47-fund mixed cluster and a 5–9-fund environment cluster | ✅ |
+| README | Notebooks table and paragraph; `migration.py` row | ✅ |
 
 ### Fund Clusters — Animated article illustrations ⏳ IN PROGRESS (2026-11-02)
 

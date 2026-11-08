@@ -309,6 +309,7 @@ Browsers block `fetch()` from `file://` pages, hence the picker. Served over htt
 | --- | --- |
 | [notebooks/explore.ipynb](notebooks/explore.ipynb) | One week: how each method clusters, names and finds neighbours |
 | [notebooks/cluster_migration.ipynb](notebooks/cluster_migration.ipynb) | Two weeks: which funds changed cluster, and was it the fund or the clustering? |
+| [notebooks/cluster_transitions.ipynb](notebooks/cluster_transitions.ipynb) | Every week: what happened to each cluster (survived, split, absorbed, merged …)? |
 
 `cluster_migration.ipynb` compares two weeks you pick (`FROM_WEEK`, `TO_WEEK`), reading `data/` and `output/`. The committed example weeks are ready to use; for other weeks, copy their CSVs into `data/` and run `main.py` for each:
 
@@ -318,6 +319,8 @@ python main.py --week 2026-W45
 ```
 
 Clusters are matched by the funds they share (ids are renumbered each run). Each fund gets a change class: `stayed`, `moved` (other cluster and its own allocation drifted more than usual), `reshuffled` (other cluster, normal drift: clustering noise), `joined` / `left`, `new` / `gone`. The logic lives in `fund_clustering/migration.py`.
+
+`cluster_transitions.ipynb` follows the **clusters** (Hellinger only) through every week in `WEEKS`, compared one week with the next. Each cluster gets a transition: `survived`, `split`, `absorbed` or `disappeared` for the earlier week, and `continued`, `merged` or `new` for the later week. This is the MONIC approach: a cluster counts as a piece when it receives at least a quarter of another cluster's funds, and survives when more than half its funds stay together. All 18 example weeks (W28–W45) are committed, so it runs as is.
 
 ---
 
@@ -345,7 +348,7 @@ pytest -m "not slow"            # skip the UMAP tests
 | `fund_clustering/territory.py` | Territory grid and polygons |
 | `fund_clustering/pipeline.py` | One method end to end |
 | `fund_clustering/export.py` | Writes the JSON files described above |
-| `fund_clustering/migration.py` | Compares two weeks' results: cluster matching, retention, drift, change class |
+| `fund_clustering/migration.py` | Compares two weeks' results: cluster matching, retention, drift, change class, cluster transitions |
 
 ## 📚 Related docs
 
