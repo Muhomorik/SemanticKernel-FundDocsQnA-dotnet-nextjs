@@ -1,6 +1,6 @@
 # PDF Q&A Application - Implementation Status
 
-Last Updated: 2026-11-01 (Fund Clusters proof-of-concept page + `/api/fund-clusters` file API; Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
+Last Updated: 2026-11-07 (Fund Clusters cluster migration notebook (two-week comparison, week in output file names); Fund Clusters proof-of-concept page + `/api/fund-clusters` file API; Frontend packages updated to Next.js 16.4.3 / React 19.3.1; backend upgraded to .NET 10 with package updates; Azure App Service runtime switch pending release)
 
 **Tech Stack:**
 
@@ -191,6 +191,18 @@ Proof-of-concept page at `/fund-clusters` that draws the FundClustering output: 
 | `app/fund-clusters/page.tsx` | Static route shell with `Metadata` | ✅ |
 | `header.tsx` | `NAV` list, links to every page except the current one | ✅ |
 | **Tests** | Backend: `FundClusterFilesTests` (17), `FundClustersControllerTests` (8). Frontend: 103 in `__tests__/fund-clusters/` + `header.test.tsx`; fixtures in `test-utils/fund-clusters.ts` | ✅ |
+
+### Fund Clusters — Cluster migration over time ✅ COMPLETED (2026-11-07)
+
+Which funds changed cluster between weekly exports, and was it a real change in holdings or clustering noise? New notebook `FundClustering/notebooks/cluster_migration.ipynb` comparing two hand-picked ISO weeks. Built one step at a time, test-first.
+
+| Component | Details | Status |
+| ----------- | --------- | -------- |
+| `load.available_weeks` | Every week with an allocations export, oldest first; `latest_week` reuses it | ✅ |
+| Week in output file names | `methods_<week>.json`, `funds_<week>.json`, `<method>_<week>.json`; manifest names the suffixed method files. Viewer takes the week from the picked `methods_<week>.json` or `?week=`; backend unchanged, copy step renames manifest + funds file (both READMEs). `output/` regenerated for W44 | ✅ |
+| `fund_clustering/migration.py` | Compare two hand-picked weeks: `load_method_week`, `match_clusters` (Jaccard + `linear_sum_assignment`, min 0.3), `mate_retention`, `neighbour_retention`, `allocation_drift` (columns aligned first), `compare_weeks` → change class per fund (`moved` = drift above the 95th percentile of funds that stayed). 16 tests in `test_migration.py`; `scipy` listed as a direct dependency | ✅ |
+| `notebooks/cluster_migration.ipynb` | `FROM_WEEK` → `TO_WEEK`: side by side, cluster matching (+ ended / new), Sankey coloured by change class, moved / reshuffled / joined-left tables, drift vs mates-kept scatter, example funds. Reads `data/` + `output/` (W28, W44, W45 committed as examples). README "Notebooks" section. Summary for W28 → W45: most cluster changes are noise (reshuffled funds keep ~90% of neighbours, like funds that stayed); Hellinger most stable (585 stayed, overlap 0.82); 39% of funds have zero allocation drift over 17 weeks | ✅ |
+| `explore.ipynb` | `WEEK = "2026-W44"` constant at the top instead of the newest week in `data/` | ✅ |
 
 ### Fund Clusters — Animated article illustrations ⏳ IN PROGRESS (2026-11-02)
 
