@@ -22,6 +22,12 @@ NOT_IN_CLUSTER_NAME = "Not in a cluster"
 # Smallest member overlap (Jaccard) for two clusters to count as the same one.
 MIN_MATCH = 0.3
 
+# Cluster transitions (MONIC): a share of a cluster's funds counts as a piece
+# from MIN_SHARE; a cluster survives when its main piece holds more than SURVIVE
+# of its funds and those funds are more than SURVIVE of the later cluster.
+MIN_SHARE = 0.25
+SURVIVE = 0.5
+
 # A fund that changed cluster "moved" when its drift is above this quantile of
 # the drift of funds that stayed, i.e. more than the normal weekly wobble.
 DRIFT_QUANTILE = 0.95
@@ -135,6 +141,84 @@ def match_clusters(before: pd.Series, after: pd.Series) -> pd.DataFrame:
     )
     matches = matches[matches["jaccard"] >= MIN_MATCH]
     return matches.sort_values("before_cluster").reset_index(drop=True)
+
+
+def _pieces(source: set[str], targets: dict[int, set[str]]) -> dict[int, float]:
+    """Share of ``source`` in each target cluster, at least ``MIN_SHARE``, largest first."""
+    if not source:
+        return {}
+    shares = {
+        target: len(source & members) / len(source)
+        for target, members in targets.items()
+    }
+    kept = [(target, share) for target, share in shares.items() if share >= MIN_SHARE]
+    return dict(sorted(kept, key=lambda item: (-item[1], item[0])))
+
+
+def cluster_transitions(before: pd.Series, after: pd.Series) -> pd.DataFrame:
+    """What happened to each cluster between two weeks (MONIC-style).
+
+    Shares are counted over funds present in both weeks. A *piece* is a share
+    of at least ``MIN_SHARE``.
+
+    Earlier week (``side == "before"``), per cluster:
+        ``survived``: one later cluster holds more than ``SURVIVE`` of its funds,
+        and those funds are more than ``SURVIVE`` of that cluster.
+        ``split``: two or more pieces, none a survival.
+        ``absorbed``: more than ``SURVIVE`` went into one cluster, but they are
+        not the majority there.
+        ``disappeared``: otherwise; its funds scattered or left clusters.
+
+    Later week (``side == "after"``), per cluster:
+        ``merged``: two or more earlier clusters each make up a piece of it.
+        ``continued``: exactly one does.
+        ``new``: none do; built from funds outside a cluster or new funds.
+
+    Args:
+        before, after: Cluster id per ISIN.
+
+    Returns:
+        Columns ``side``, ``cluster``, ``transition``, ``partners`` (cluster
+        ids in the other week, largest share first) and ``shares`` (the
+        matching shares of this cluster's funds).
+    """
+    shared = before.index.intersection(after.index)
+    before_shared, after_shared = _members(before[shared]), _members(after[shared])
+
+    rows = []
+    for cluster in sorted(_members(before)):
+        source = before_shared.get(cluster, set())
+        pieces = _pieces(source, after_shared)
+        survivor = [
+            target
+            for target, share in pieces.items()
+            if share > SURVIVE
+            and len(source & after_shared[target]) / len(after_shared[target]) > SURVIVE
+        ]
+        if survivor:
+            kind, pieces = "survived", {survivor[0]: pieces[survivor[0]]}
+        elif len(pieces) >= 2:
+            kind = "split"
+        elif pieces and next(iter(pieces.values())) > SURVIVE:
+            kind = "absorbed"
+        else:
+            kind, pieces = "disappeared", {}
+        rows.append(("before", cluster, kind, pieces))
+
+    for cluster in sorted(_members(after)):
+        pieces = _pieces(after_shared.get(cluster, set()), before_shared)
+        kind = {0: "new", 1: "continued"}.get(len(pieces), "merged")
+        rows.append(("after", cluster, kind, pieces))
+
+    return pd.DataFrame(
+        {
+            "side": [side for side, *_ in rows],
+            "cluster": [cluster for _, cluster, *_ in rows],
+            "transition": [kind for _, _, kind, _ in rows],
+            "partners": [list(pieces) for *_, pieces in rows],
+            "shares": [list(pieces.values()) for *_, pieces in rows],
+        }
+    )
 
 
 def mate_retention(before: pd.Series, after: pd.Series) -> pd.Series:

@@ -5,12 +5,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from fund_clustering.cluster import NOT_IN_CLUSTER
 from fund_clustering.load import FundData
 from fund_clustering.methods import METHODS
 from fund_clustering.migration import (
     NOT_IN_CLUSTER_NAME,
     MethodWeek,
     allocation_drift,
+    cluster_transitions,
     compare_weeks,
     load_method_week,
     match_clusters,
@@ -117,6 +119,103 @@ def test_match_clusters_not_in_cluster_ignored_and_new_funds_skipped() -> None:
 
     assert matches[["before_cluster", "after_cluster"]].values.tolist() == [[0, 4]]
     assert matches["jaccard"].tolist() == [1.0]
+
+
+# ---------- cluster_transitions ----------
+
+
+def transition(transitions: pd.DataFrame, side: str, cluster: int) -> pd.Series:
+    row = transitions[(transitions["side"] == side) & (transitions["cluster"] == cluster)]
+    assert len(row) == 1
+    return row.iloc[0]
+
+
+def test_cluster_transitions_renumbered_cluster_survived() -> None:
+    before = pd.Series({"A": 0, "B": 0, "C": 0, "D": 0})
+    after = pd.Series({"A": 9, "B": 9, "C": 9, "D": -1})
+
+    transitions = cluster_transitions(before, after)
+
+    row = transition(transitions, "before", 0)
+    assert row["transition"] == "survived"
+    assert row["partners"] == [9]
+    assert row["shares"] == [0.75]
+    assert transition(transitions, "after", 9)["transition"] == "continued"
+
+
+def test_cluster_transitions_two_halves_split() -> None:
+    before = pd.Series({"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0})
+    after = pd.Series({"A": 1, "B": 1, "C": 1, "D": 2, "E": 2, "F": 2})
+
+    transitions = cluster_transitions(before, after)
+
+    row = transition(transitions, "before", 0)
+    assert row["transition"] == "split"
+    assert row["partners"] == [1, 2]
+    assert row["shares"] == [0.5, 0.5]
+
+
+def test_cluster_transitions_big_piece_and_small_piece_survived() -> None:
+    before = pd.Series({"A": 0, "B": 0, "C": 0, "D": 0})
+    after = pd.Series({"A": 1, "B": 1, "C": 1, "D": 2})
+
+    transitions = cluster_transitions(before, after)
+
+    # 3 of 4 went to 1, which holds nothing else: the cluster survived.
+    assert transition(transitions, "before", 0)["transition"] == "survived"
+
+
+def test_cluster_transitions_two_clusters_merged() -> None:
+    before = pd.Series({"A": 0, "B": 0, "C": 1, "D": 1})
+    after = pd.Series({"A": 5, "B": 5, "C": 5, "D": 5})
+
+    transitions = cluster_transitions(before, after)
+
+    row = transition(transitions, "after", 5)
+    assert row["transition"] == "merged"
+    assert row["partners"] == [0, 1]
+    assert row["shares"] == [0.5, 0.5]
+
+
+def test_cluster_transitions_small_cluster_absorbed_by_big_one() -> None:
+    before = pd.Series(
+        {"A": 0, "B": 0, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
+    )
+    after = pd.Series({isin: 4 for isin in "ABCDEFGHI"})
+
+    transitions = cluster_transitions(before, after)
+
+    # Cluster 0 is only 2 of the 9 funds in 4: absorbed, not a survivor.
+    row = transition(transitions, "before", 0)
+    assert row["transition"] == "absorbed"
+    assert row["partners"] == [4]
+    assert transition(transitions, "before", 1)["transition"] == "survived"
+    # 2/9 from cluster 0 is below MIN_SHARE: 4 simply continues cluster 1.
+    assert transition(transitions, "after", 4)["transition"] == "continued"
+
+
+def test_cluster_transitions_scattered_cluster_disappeared() -> None:
+    before = pd.Series({"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0})
+    after = pd.Series({"A": -1, "B": -1, "C": -1, "D": -1, "E": -1, "F": 3})
+
+    transitions = cluster_transitions(before, after)
+
+    row = transition(transitions, "before", 0)
+    assert row["transition"] == "disappeared"
+    assert row["partners"] == []
+
+
+def test_cluster_transitions_new_cluster_from_unclustered_funds() -> None:
+    before = pd.Series({"A": -1, "B": -1, "C": 0, "D": 0})
+    after = pd.Series({"A": 2, "B": 2, "C": 1, "D": 1, "NEW": 2})
+
+    transitions = cluster_transitions(before, after)
+
+    row = transition(transitions, "after", 2)
+    assert row["transition"] == "new"
+    assert row["partners"] == []
+    # Funds outside a cluster are not a cluster: no row for -1 on either side.
+    assert NOT_IN_CLUSTER not in transitions["cluster"].tolist()
 
 
 # ---------- mate_retention ----------
